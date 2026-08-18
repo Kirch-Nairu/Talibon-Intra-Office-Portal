@@ -3,7 +3,6 @@ name: Prototype CI
 on:
   push:
     branches:
-      - main
       - KIRCH-PROTOTYPE-**
   pull_request:
 
