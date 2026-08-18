@@ -23,13 +23,22 @@ class WorkflowTransaction extends Model
         'current_department_id',
         'created_by_user_id',
         'assigned_to_user_id',
+        'assigned_employee_id',
         'status',
+        'received_at',
+        'due_at',
+        'completed_at',
         'closed_at',
     ];
 
     protected function casts(): array
     {
-        return ['closed_at' => 'datetime'];
+        return [
+            'received_at' => 'datetime',
+            'due_at' => 'datetime',
+            'completed_at' => 'datetime',
+            'closed_at' => 'datetime',
+        ];
     }
 
     public function originDepartment(): BelongsTo
@@ -50,6 +59,11 @@ class WorkflowTransaction extends Model
     public function assignee(): BelongsTo
     {
         return $this->belongsTo(User::class, 'assigned_to_user_id');
+    }
+
+    public function assignedEmployee(): BelongsTo
+    {
+        return $this->belongsTo(Employee::class, 'assigned_employee_id');
     }
 
     public function events(): HasMany
