@@ -25,6 +25,7 @@ export default function AppLayout({ title, children }: Props) {
         { label: 'Memoranda', href: '/memoranda', icon: FileText, show: true },
         { label: 'Legislation', href: '/legislation', icon: Gavel, show: true },
         { label: 'HRIS', href: '/hris', icon: Users, show: true },
+        { label: 'Employees', href: '/employees', icon: Users, show: true },
         { label: 'Departments', href: '/departments', icon: Building2, show: true },
         { label: 'Audit & Security', href: '/audit', icon: ShieldCheck, show: canAudit },
     ].filter((item) => item.show);
