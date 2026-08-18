@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Department;
+use App\Models\Employee;
 use App\Models\WorkflowTransaction;
 use App\Services\TransactionWorkflowService;
 use Illuminate\Http\RedirectResponse;
@@ -20,7 +21,11 @@ class TransactionController extends Controller
         $departmentId = $user->employee?->department_id;
 
         $query = WorkflowTransaction::query()
-            ->with(['originDepartment:id,code,name,short_name', 'currentDepartment:id,code,name,short_name'])
+            ->with([
+                'originDepartment:id,code,name,short_name',
+                'currentDepartment:id,code,name,short_name',
+                'assignedEmployee:id,employee_number,full_name,department_id,position_title',
+            ])
             ->latest();
 
         if (! $user->isRole('system_admin', 'mayor_approver', 'mayor_staff')) {
@@ -59,6 +64,7 @@ class TransactionController extends Controller
             'description' => ['nullable', 'string', 'max:5000'],
             'priority' => ['required', Rule::in(['normal', 'high', 'urgent'])],
             'target_department_id' => ['required', 'integer', 'exists:departments,id'],
+            'due_at' => ['nullable', 'date', 'after_or_equal:today'],
             'remarks' => ['nullable', 'string', 'max:2000'],
         ]);
 
@@ -75,6 +81,7 @@ class TransactionController extends Controller
             'originDepartment:id,code,name,short_name',
             'currentDepartment:id,code,name,short_name',
             'creator:id,name,email',
+            'assignedEmployee:id,employee_number,full_name,department_id,position_title',
             'events.actor.employee.department',
             'events.fromDepartment:id,code,name,short_name',
             'events.toDepartment:id,code,name,short_name',
@@ -87,9 +94,19 @@ class TransactionController extends Controller
         return Inertia::render('Transactions/Show', [
             'transaction' => $transaction,
             'departments' => Department::query()->where('is_active', true)->orderBy('name')->get(['id', 'code', 'name', 'short_name']),
+            'assignableEmployees' => $canTransition
+                ? Employee::query()
+                    ->where('department_id', $transaction->current_department_id)
+                    ->where('employment_status', 'active')
+                    ->orderBy('full_name')
+                    ->limit(100)
+                    ->get(['id', 'employee_number', 'full_name', 'position_title'])
+                : [],
+            'accountability' => $this->accountability($transaction),
             'permissions' => [
                 'canTransition' => $canTransition,
                 'canMayorDecision' => $canMayorDecision,
+                'canAssign' => $canTransition,
             ],
         ]);
     }
@@ -97,8 +114,9 @@ class TransactionController extends Controller
     public function transition(Request $request, WorkflowTransaction $transaction, TransactionWorkflowService $workflow): RedirectResponse
     {
         $data = $request->validate([
-            'action' => ['required', Rule::in(['mark_review', 'forward', 'send_to_mayor', 'return_origin', 'request_information', 'approve', 'disapprove'])],
+            'action' => ['required', Rule::in(['assign', 'mark_review', 'forward', 'send_to_mayor', 'return_origin', 'request_information', 'approve', 'disapprove'])],
             'target_department_id' => ['nullable', 'integer', 'exists:departments,id'],
+            'assigned_employee_id' => ['nullable', 'integer', 'exists:employees,id'],
             'remarks' => ['nullable', 'string', 'max:2000'],
         ]);
 
@@ -113,9 +131,34 @@ class TransactionController extends Controller
             $transaction,
             $data['action'],
             $data['target_department_id'] ?? null,
+            $data['assigned_employee_id'] ?? null,
             $data['remarks'] ?? null,
         );
 
         return redirect()->route('transactions.show', $updated)->with('success', 'Transaction workflow updated.');
+    }
+
+    private function accountability(WorkflowTransaction $transaction): array
+    {
+        $terminal = in_array($transaction->status, ['approved', 'disapproved', 'closed'], true);
+        $dueState = 'on_track';
+
+        if ($terminal) {
+            $dueState = 'completed';
+        } elseif ($transaction->due_at?->isPast()) {
+            $dueState = 'overdue';
+        } elseif ($transaction->due_at && $transaction->due_at->lessThanOrEqualTo(now()->addDay())) {
+            $dueState = 'due_soon';
+        }
+
+        return [
+            'dueState' => $dueState,
+            'timeInCurrentOffice' => $transaction->received_at
+                ? $transaction->received_at->diffForHumans(now(), true)
+                : 'Not recorded',
+            'receivedAt' => $transaction->received_at?->toIso8601String(),
+            'dueAt' => $transaction->due_at?->toIso8601String(),
+            'completedAt' => $transaction->completed_at?->toIso8601String(),
+        ];
     }
 }
