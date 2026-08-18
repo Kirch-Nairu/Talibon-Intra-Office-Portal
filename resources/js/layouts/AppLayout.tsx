@@ -1,5 +1,5 @@
 import { Head, Link, router, usePage } from '@inertiajs/react';
-import { Bell, Building2, FileText, Gavel, LayoutDashboard, LogOut, Menu, ShieldCheck, Users, X } from 'lucide-react';
+import { Bell, BriefcaseBusiness, Building2, FileBarChart, FileText, Gavel, LayoutDashboard, LogOut, Menu, ShieldCheck, Users, X } from 'lucide-react';
 import { PropsWithChildren, useEffect, useState } from 'react';
 import type { SharedProps } from '../types';
 
@@ -12,7 +12,9 @@ export default function AppLayout({ title, children }: Props) {
     const [dismissedMemoId, setDismissedMemoId] = useState<number | null>(null);
     const user = auth.user;
     const isMayor = ['system_admin', 'mayor_approver', 'mayor_staff'].includes(user?.role ?? '');
+    const isHr = ['system_admin', 'hr_officer'].includes(user?.role ?? '');
     const canAudit = ['system_admin', 'mayor_approver'].includes(user?.role ?? '');
+    const canReports = isMayor || isHr;
 
     useEffect(() => {
         const timer = window.setInterval(() => router.reload({
@@ -27,11 +29,13 @@ export default function AppLayout({ title, children }: Props) {
         { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard, show: true },
         { label: 'My Work', href: '/transactions', icon: FileText, show: true },
         { label: "Mayor's Office", href: '/mayor-office', icon: Building2, show: isMayor },
+        { label: 'Operations', href: '/operations', icon: BriefcaseBusiness, show: isMayor },
         { label: 'Memoranda', href: '/memoranda', icon: FileText, show: true },
-        { label: 'Legislation', href: '/legislation', icon: Gavel, show: true },
+        { label: 'Central Records', href: '/legislation', icon: Gavel, show: true },
         { label: 'HRIS', href: '/hris', icon: Users, show: true },
         { label: 'Employees', href: '/employees', icon: Users, show: true },
         { label: 'Departments', href: '/departments', icon: Building2, show: true },
+        { label: 'Reports', href: '/reports', icon: FileBarChart, show: canReports },
         { label: 'Audit & Security', href: '/audit', icon: ShieldCheck, show: canAudit },
     ].filter((item) => item.show);
 
