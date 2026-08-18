@@ -1,5 +1,5 @@
 import { Link } from '@inertiajs/react';
-import { AlertTriangle, Building2, Download, FileBarChart, Printer, UsersRound } from 'lucide-react';
+import { AlertTriangle, Building2, Download, FileBarChart, Printer } from 'lucide-react';
 import AppLayout from '../../layouts/AppLayout';
 
 type Summary = {
@@ -21,7 +21,7 @@ type Summary = {
     payrollNet: number;
 };
 type Workload = { code: string; office: string; employees: number; active: number; overdue: number };
-type Aging = { reference: string; title: string; origin?: string; current?: string; responsible: string; status: string; due?: string | null; overdue: boolean; age: string };
+type Aging = { id: number; reference: string; title: string; origin?: string; current?: string; responsible: string; status: string; due?: string | null; overdue: boolean; age: string };
 
 type Props = {
     permissions: { executive: boolean; hr: boolean };
@@ -37,11 +37,13 @@ const money = (value: number) => new Intl.NumberFormat('en-PH', { style: 'curren
 export default function ReportsIndex({ permissions, summary, departmentWorkload, transactionAging, operationsByType, recordsByType }: Props) {
     const ackRate = summary.memoDelivered > 0 ? Math.round((summary.memoAcknowledged / summary.memoDelivered) * 100) : 0;
     const exportCards = [
-        ['Department Workload', 'department-workload'],
-        ['Transaction Aging', 'transaction-aging'],
+        ...(permissions.executive ? [
+            ['Department Workload', 'department-workload'],
+            ['Transaction Aging', 'transaction-aging'],
+            ['Operations Monitoring', 'operations'],
+        ] : []),
         ['Employee Directory', 'employee-directory'],
-        ['Operations Monitoring', 'operations'],
-        ['Payroll Summary', 'payroll-summary'],
+        ...(permissions.hr ? [['Payroll Summary', 'payroll-summary']] : []),
     ];
 
     return (
@@ -71,13 +73,13 @@ export default function ReportsIndex({ permissions, summary, departmentWorkload,
                     <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"><div className="text-[9px] uppercase text-slate-400">Memo acknowledgement</div><div className="mt-2 text-2xl font-bold text-slate-950">{ackRate}%</div><div className="mt-1 text-[10px] text-slate-500">{summary.memoAcknowledged} of {summary.memoDelivered} deliveries acknowledged</div></div>
                     <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"><div className="text-[9px] uppercase text-slate-400">Attendance evidence</div><div className="mt-2 text-2xl font-bold text-slate-950">{summary.attendanceEvents}</div><div className="mt-1 text-[10px] text-slate-500">synthetic imported biometric events</div></div>
                     <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"><div className="text-[9px] uppercase text-slate-400">Pending leave</div><div className="mt-2 text-2xl font-bold text-slate-950">{summary.leavePending}</div><div className="mt-1 text-[10px] text-slate-500">requests awaiting HR action</div></div>
-                    <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"><div className="text-[9px] uppercase text-slate-400">{summary.payrollPeriod || 'Payroll period'}</div><div className="mt-2 text-lg font-bold text-slate-950 sm:text-xl">{money(summary.payrollNet)}</div><div className="mt-1 text-[10px] text-slate-500">net payroll across {summary.payrollEmployees} synthetic records</div></div>
+                    {permissions.hr ? <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"><div className="text-[9px] uppercase text-slate-400">{summary.payrollPeriod || 'Payroll period'}</div><div className="mt-2 text-lg font-bold text-slate-950 sm:text-xl">{money(summary.payrollNet)}</div><div className="mt-1 text-[10px] text-slate-500">net payroll across {summary.payrollEmployees} synthetic records</div></div> : <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"><div className="text-[9px] uppercase text-slate-400">Operations deadlines</div><div className="mt-2 text-2xl font-bold text-slate-950">{summary.operationsOverdue}</div><div className="mt-1 text-[10px] text-slate-500">overdue project, procurement, fund, or compliance items</div></div>}
                 </section>
 
                 <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:rounded-3xl sm:p-5">
                     <div className="flex items-center gap-2"><Download size={17} className="text-blue-800" /><h2 className="text-sm font-bold text-slate-950 sm:text-base">Exportable reports</h2></div>
                     <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-5">{exportCards.map(([label, report]) => <a key={report} href={`/reports/export/${report}`} className="flex items-center justify-between gap-2 rounded-xl border border-slate-200 px-3 py-2.5 text-[10px] font-semibold text-slate-700 transition hover:border-blue-300 hover:bg-blue-50 sm:text-xs"><span>{label}</span><Download size={14} /></a>)}</div>
-                    <p className="mt-2 text-[9px] text-slate-400 sm:text-[10px]">CSV exports are generated from the current database state. Print view is available from this page.</p>
+                    <p className="mt-2 text-[9px] text-slate-400 sm:text-[10px]">CSV exports are generated from the current database state and are permission-scoped. Print view is available from this page.</p>
                 </section>
 
                 <section className="grid gap-4 xl:grid-cols-[.85fr_1.15fr]">
@@ -88,16 +90,14 @@ export default function ReportsIndex({ permissions, summary, departmentWorkload,
 
                     <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm sm:rounded-3xl">
                         <div className="border-b border-slate-100 px-4 py-3 sm:px-5 sm:py-4"><div className="flex items-center gap-2"><FileBarChart size={16} className="text-blue-800" /><h2 className="text-sm font-bold text-slate-950">Transaction aging</h2></div><p className="mt-1 text-[9px] text-slate-500 sm:text-xs">Current responsibility, deadline, and time in receiving office.</p></div>
-                        <div className="divide-y divide-slate-100">{transactionAging.map((tx) => <Link key={tx.reference} href={`/transactions/${tx.reference.split('-').pop()}`} className="block px-4 py-3 transition hover:bg-slate-50"><div className="flex items-start justify-between gap-3"><div className="min-w-0"><div className="text-[9px] font-bold text-blue-700 sm:text-[10px]">{tx.reference}</div><div className="mt-0.5 truncate text-[11px] font-semibold text-slate-950 sm:text-sm">{tx.title}</div><div className="mt-1 text-[9px] text-slate-500 sm:text-[10px]">{tx.current} · {tx.responsible} · {tx.age}</div></div><div className="shrink-0 text-right">{tx.overdue ? <div className="inline-flex items-center gap-1 rounded-full bg-rose-50 px-2 py-1 text-[8px] font-bold uppercase text-rose-700"><AlertTriangle size={10} /> overdue</div> : <div className="rounded-full bg-emerald-50 px-2 py-1 text-[8px] font-bold uppercase text-emerald-700">on track</div>}<div className="mt-1 text-[8px] text-slate-400">{tx.due ? new Date(tx.due).toLocaleDateString() : 'No due date'}</div></div></div></Link>)}</div>
+                        <div className="divide-y divide-slate-100">{transactionAging.map((tx) => <Link key={tx.id} href={`/transactions/${tx.id}`} className="block px-4 py-3 transition hover:bg-slate-50"><div className="flex items-start justify-between gap-3"><div className="min-w-0"><div className="text-[9px] font-bold text-blue-700 sm:text-[10px]">{tx.reference}</div><div className="mt-0.5 truncate text-[11px] font-semibold text-slate-950 sm:text-sm">{tx.title}</div><div className="mt-1 text-[9px] text-slate-500 sm:text-[10px]">{tx.current} · {tx.responsible} · {tx.age}</div></div><div className="shrink-0 text-right">{tx.overdue ? <div className="inline-flex items-center gap-1 rounded-full bg-rose-50 px-2 py-1 text-[8px] font-bold uppercase text-rose-700"><AlertTriangle size={10} /> overdue</div> : <div className="rounded-full bg-emerald-50 px-2 py-1 text-[8px] font-bold uppercase text-emerald-700">on track</div>}<div className="mt-1 text-[8px] text-slate-400">{tx.due ? new Date(tx.due).toLocaleDateString() : 'No due date'}</div></div></div></Link>)}</div>
                     </div>
                 </section>
 
                 <section className="grid gap-3 sm:grid-cols-2">
-                    <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5"><h2 className="text-sm font-bold text-slate-950">Operational monitoring coverage</h2><div className="mt-3 grid grid-cols-2 gap-2">{Object.entries(operationsByType).map(([type, count]) => <div key={type} className="rounded-xl bg-slate-50 p-3"><div className="text-[9px] uppercase text-slate-400">{type.replaceAll('_', ' ')}</div><div className="mt-1 text-xl font-bold text-slate-950">{count}</div></div>)}</div><Link href="/operations" className="mt-3 inline-block text-[10px] font-semibold text-blue-700 sm:text-xs">Open operations monitoring →</Link></div>
+                    <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5"><h2 className="text-sm font-bold text-slate-950">Operational monitoring coverage</h2><div className="mt-3 grid grid-cols-2 gap-2">{Object.entries(operationsByType).map(([type, count]) => <div key={type} className="rounded-xl bg-slate-50 p-3"><div className="text-[9px] uppercase text-slate-400">{type.replaceAll('_', ' ')}</div><div className="mt-1 text-xl font-bold text-slate-950">{count}</div></div>)}</div>{permissions.executive && <Link href="/operations" className="mt-3 inline-block text-[10px] font-semibold text-blue-700 sm:text-xs">Open operations monitoring →</Link>}</div>
                     <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5"><h2 className="text-sm font-bold text-slate-950">Central records coverage</h2><div className="mt-3 grid grid-cols-2 gap-2">{Object.entries(recordsByType).map(([type, count]) => <div key={type} className="rounded-xl bg-slate-50 p-3"><div className="text-[9px] uppercase text-slate-400">{type.replaceAll('_', ' ')}</div><div className="mt-1 text-xl font-bold text-slate-950">{count}</div></div>)}</div><Link href="/legislation" className="mt-3 inline-block text-[10px] font-semibold text-blue-700 sm:text-xs">Open central records →</Link></div>
                 </section>
-
-                {!permissions.executive && !permissions.hr && <div className="rounded-xl border border-blue-100 bg-blue-50 p-3 text-[9px] text-blue-900 sm:text-xs">Your account is viewing organization-wide prototype report summaries. Production deployments should apply report-level permissions and data classifications to each report family.</div>}
             </div>
         </AppLayout>
     );
