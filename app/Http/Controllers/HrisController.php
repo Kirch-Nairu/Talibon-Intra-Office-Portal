@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\AttendanceLog;
 use App\Models\LeaveType;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -34,13 +35,22 @@ class HrisController extends Controller
             ];
         });
 
+        $lastAttendance = AttendanceLog::query()->latest('occurred_at')->first();
+
         return Inertia::render('Hris/Dashboard', [
-            'employee' => $employee->only(['id', 'employee_number', 'position_title']),
+            'employee' => $employee->only(['id', 'employee_number', 'full_name', 'position_title']),
             'department' => $employee->department,
             'leaveTypes' => $leaveTypes,
             'requests' => $employee->leaveRequests,
             'attendance' => $employee->attendanceLogs,
             'canAdmin' => $user->isRole('system_admin', 'hr_officer'),
+            'attendanceIntegration' => [
+                'source' => 'Prototype Biometric 01',
+                'status' => 'simulation',
+                'lastEvent' => $lastAttendance?->occurred_at?->toIso8601String(),
+                'events' => AttendanceLog::query()->count(),
+                'employeesRepresented' => AttendanceLog::query()->distinct('employee_id')->count('employee_id'),
+            ],
         ]);
     }
 }
