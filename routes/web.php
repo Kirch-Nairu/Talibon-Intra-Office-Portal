@@ -3,6 +3,7 @@
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\MayorOfficeController;
+use App\Http\Controllers\MemorandumController;
 use App\Http\Controllers\TransactionController;
 use Illuminate\Support\Facades\Route;
 
@@ -22,5 +23,12 @@ Route::middleware('auth')->group(function (): void {
     Route::post('/transactions/{transaction}/transition', [TransactionController::class, 'transition'])->name('transactions.transition');
 
     Route::get('/mayor-office', MayorOfficeController::class)->name('mayor-office');
+
+    Route::get('/memoranda', [MemorandumController::class, 'index'])->name('memoranda.index');
+    Route::get('/memoranda/create', [MemorandumController::class, 'create'])->name('memoranda.create');
+    Route::post('/memoranda', [MemorandumController::class, 'store'])->name('memoranda.store');
+    Route::get('/memoranda/{memorandum}', [MemorandumController::class, 'show'])->name('memoranda.show');
+    Route::post('/memoranda/{memorandum}/acknowledge', [MemorandumController::class, 'acknowledge'])->name('memoranda.acknowledge');
+
     Route::post('/logout', [AuthenticatedSessionController::class, 'destroy'])->name('logout');
 });

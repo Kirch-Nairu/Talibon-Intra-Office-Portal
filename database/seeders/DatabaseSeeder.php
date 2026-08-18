@@ -37,27 +37,22 @@ class DatabaseSeeder extends Seeder
         ];
 
         foreach ($accounts as $index => $account) {
-            $user = User::query()->updateOrCreate(
-                ['email' => $account['email']],
-                [
-                    'name' => $account['name'],
-                    'role' => $account['role'],
-                    'is_active' => true,
-                    'password' => Hash::make('TalibonDemo2026!'),
-                ],
-            );
+            $user = User::query()->updateOrCreate(['email' => $account['email']], [
+                'name' => $account['name'], 'role' => $account['role'], 'is_active' => true,
+                'password' => Hash::make('TalibonDemo2026!'),
+            ]);
 
-            Employee::query()->updateOrCreate(
-                ['user_id' => $user->id],
-                [
-                    'employee_number' => sprintf('DEMO-%04d', $index + 1),
-                    'department_id' => $departments[$account['department']]->id,
-                    'position_title' => $account['position'],
-                    'employment_status' => 'active',
-                ],
-            );
+            Employee::query()->updateOrCreate(['user_id' => $user->id], [
+                'employee_number' => sprintf('DEMO-%04d', $index + 1),
+                'department_id' => $departments[$account['department']]->id,
+                'position_title' => $account['position'],
+                'employment_status' => 'active',
+            ]);
         }
 
-        $this->call(WorkflowDemoSeeder::class);
+        $this->call([
+            WorkflowDemoSeeder::class,
+            MemorandumDemoSeeder::class,
+        ]);
     }
 }

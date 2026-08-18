@@ -17,9 +17,20 @@ export type AuthUser = {
     };
 };
 
+export type PendingMemo = {
+    id: number;
+    memo_number: string;
+    title: string;
+    issuer?: string | null;
+    department?: string | null;
+    requires_acknowledgement: boolean;
+};
+
 export type SharedProps = {
     [key: string]: unknown;
     appName: string;
     auth: { user: AuthUser | null };
+    pendingMemo: PendingMemo | null;
+    unreadMemoCount: number;
     flash: { success?: string; error?: string };
 };
