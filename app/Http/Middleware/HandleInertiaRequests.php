@@ -3,6 +3,7 @@
 namespace App\Http\Middleware;
 
 use App\Models\MemoRecipient;
+use App\Models\WorkflowTransaction;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
 
@@ -15,6 +16,7 @@ class HandleInertiaRequests extends Middleware
         $user = $request->user()?->loadMissing('employee.department');
         $pendingMemo = null;
         $unreadMemoCount = 0;
+        $notifications = [];
 
         if ($user) {
             $recipientQuery = MemoRecipient::query()
@@ -44,6 +46,52 @@ class HandleInertiaRequests extends Middleware
                     'requires_acknowledgement' => $pendingRecipient->memorandum->requires_acknowledgement,
                 ];
             }
+
+            $memoNotifications = (clone $recipientQuery)
+                ->whereNull('viewed_at')
+                ->with('memorandum:id,memo_number,title')
+                ->latest('delivered_at')
+                ->limit(4)
+                ->get()
+                ->map(fn (MemoRecipient $recipient): array => [
+                    'key' => 'memo-'.$recipient->id,
+                    'type' => 'memorandum',
+                    'title' => 'New memorandum',
+                    'message' => $recipient->memorandum->memo_number.' · '.$recipient->memorandum->title,
+                    'url' => '/memoranda/'.$recipient->memorandum->id,
+                    'created_at' => $recipient->delivered_at?->toIso8601String(),
+                    'urgent' => (bool) $recipient->memorandum->requires_acknowledgement,
+                ])
+                ->all();
+
+            $workflowNotifications = [];
+            $departmentId = $user->employee?->department_id;
+
+            if ($departmentId) {
+                $workflowNotifications = WorkflowTransaction::query()
+                    ->with('originDepartment:id,name,short_name')
+                    ->where('current_department_id', $departmentId)
+                    ->whereNotIn('status', ['approved', 'disapproved', 'closed'])
+                    ->latest('updated_at')
+                    ->limit(5)
+                    ->get()
+                    ->map(fn (WorkflowTransaction $transaction): array => [
+                        'key' => 'tx-'.$transaction->id.'-'.$transaction->updated_at?->timestamp,
+                        'type' => 'transaction',
+                        'title' => $user->employee?->department?->code === 'MAYOR' ? 'Executive item received' : 'Office transaction',
+                        'message' => $transaction->reference_no.' · '.$transaction->title.' · '.strtoupper(str_replace('_', ' ', $transaction->status)),
+                        'url' => '/transactions/'.$transaction->id,
+                        'created_at' => $transaction->updated_at?->toIso8601String(),
+                        'urgent' => in_array($transaction->priority, ['high', 'urgent'], true),
+                    ])
+                    ->all();
+            }
+
+            $notifications = collect([...$memoNotifications, ...$workflowNotifications])
+                ->sortByDesc('created_at')
+                ->take(8)
+                ->values()
+                ->all();
         }
 
         return [
@@ -69,6 +117,8 @@ class HandleInertiaRequests extends Middleware
             ],
             'pendingMemo' => $pendingMemo,
             'unreadMemoCount' => $unreadMemoCount,
+            'notifications' => $notifications,
+            'notificationCount' => count($notifications),
             'flash' => [
                 'success' => fn () => $request->session()->get('success'),
                 'error' => fn () => $request->session()->get('error'),
