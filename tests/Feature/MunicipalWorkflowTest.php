@@ -71,7 +71,7 @@ class MunicipalWorkflowTest extends TestCase
 
         $transaction->refresh();
         $this->assertSame('approved', $transaction->status);
-        $this->assertDatabaseCount('transaction_events', 7);
+        $this->assertSame(4, $transaction->events()->count());
         $this->assertDatabaseHas('transaction_events', [
             'transaction_id' => $transaction->id,
             'action' => 'approve',
