@@ -15,6 +15,7 @@ class DatabaseSeeder extends Seeder
             MemorandumDemoSeeder::class,
             LegislativeDemoSeeder::class,
             HrisDemoSeeder::class,
+            OperationsMonitoringDemoSeeder::class,
         ]);
     }
 }
