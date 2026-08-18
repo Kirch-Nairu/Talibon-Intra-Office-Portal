@@ -3,9 +3,11 @@
 namespace App\Services;
 
 use App\Models\Department;
+use App\Models\Employee;
 use App\Models\TransactionEvent;
 use App\Models\User;
 use App\Models\WorkflowTransaction;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
@@ -28,6 +30,14 @@ class TransactionWorkflowService
         }
 
         return DB::transaction(function () use ($actor, $data, $originDepartmentId): WorkflowTransaction {
+            $dueAt = isset($data['due_at']) && $data['due_at']
+                ? Carbon::parse($data['due_at'])->endOfDay()
+                : now()->addDays(match ($data['priority']) {
+                    'urgent' => 1,
+                    'high' => 3,
+                    default => 5,
+                })->endOfDay();
+
             $transaction = WorkflowTransaction::query()->create([
                 'transaction_type' => $data['transaction_type'],
                 'title' => $data['title'],
@@ -37,6 +47,8 @@ class TransactionWorkflowService
                 'current_department_id' => $data['target_department_id'],
                 'created_by_user_id' => $actor->id,
                 'status' => 'submitted',
+                'received_at' => now(),
+                'due_at' => $dueAt,
             ]);
 
             $transaction->update([
@@ -64,13 +76,19 @@ class TransactionWorkflowService
                 $transaction->id,
             );
 
-            return $transaction->fresh(['originDepartment', 'currentDepartment', 'creator']);
+            return $transaction->fresh(['originDepartment', 'currentDepartment', 'creator', 'assignedEmployee']);
         });
     }
 
-    public function transition(User $actor, WorkflowTransaction $transaction, string $action, ?int $targetDepartmentId = null, ?string $remarks = null): WorkflowTransaction
-    {
-        return DB::transaction(function () use ($actor, $transaction, $action, $targetDepartmentId, $remarks): WorkflowTransaction {
+    public function transition(
+        User $actor,
+        WorkflowTransaction $transaction,
+        string $action,
+        ?int $targetDepartmentId = null,
+        ?int $assignedEmployeeId = null,
+        ?string $remarks = null,
+    ): WorkflowTransaction {
+        return DB::transaction(function () use ($actor, $transaction, $action, $targetDepartmentId, $assignedEmployeeId, $remarks): WorkflowTransaction {
             $locked = WorkflowTransaction::query()->lockForUpdate()->findOrFail($transaction->id);
             $locked->loadMissing('currentDepartment');
 
@@ -82,11 +100,29 @@ class TransactionWorkflowService
             $fromDepartmentId = $locked->current_department_id;
             $toDepartmentId = $fromDepartmentId;
             $newStatus = $previousStatus;
+            $assignment = $locked->assigned_employee_id;
+            $receivedAt = $locked->received_at;
+            $completedAt = $locked->completed_at;
+            $eventRemarks = $remarks;
 
             switch ($action) {
+                case 'assign':
+                    if (! $assignedEmployeeId) {
+                        throw ValidationException::withMessages(['assigned_employee_id' => 'Choose an employee from the current office.']);
+                    }
+                    $employee = Employee::query()
+                        ->whereKey($assignedEmployeeId)
+                        ->where('department_id', $fromDepartmentId)
+                        ->where('employment_status', 'active')
+                        ->firstOrFail();
+                    $assignment = $employee->id;
+                    $eventRemarks = trim(($remarks ? $remarks.' ' : '')."Assigned to {$employee->full_name}.");
+                    break;
+
                 case 'mark_review':
                     $newStatus = 'for_review';
                     break;
+
                 case 'forward':
                     if (! $targetDepartmentId || $targetDepartmentId === $fromDepartmentId) {
                         throw ValidationException::withMessages(['target_department_id' => 'Choose a different receiving department.']);
@@ -94,33 +130,52 @@ class TransactionWorkflowService
                     Department::query()->whereKey($targetDepartmentId)->where('is_active', true)->firstOrFail();
                     $toDepartmentId = $targetDepartmentId;
                     $newStatus = 'submitted';
+                    $assignment = null;
+                    $receivedAt = now();
                     break;
+
                 case 'send_to_mayor':
                     $mayor = Department::query()->where('code', 'MAYOR')->where('is_active', true)->firstOrFail();
                     $toDepartmentId = $mayor->id;
                     $newStatus = 'for_approval';
+                    $assignment = null;
+                    $receivedAt = now();
                     break;
+
                 case 'return_origin':
                     $toDepartmentId = $locked->origin_department_id;
                     $newStatus = 'returned';
+                    $assignment = null;
+                    $receivedAt = now();
                     break;
+
                 case 'request_information':
                     $toDepartmentId = $locked->origin_department_id;
                     $newStatus = 'information_requested';
+                    $assignment = null;
+                    $receivedAt = now();
                     break;
+
                 case 'approve':
                     $newStatus = 'approved';
+                    $completedAt = now();
                     break;
+
                 case 'disapprove':
                     $newStatus = 'disapproved';
+                    $completedAt = now();
                     break;
+
                 default:
                     throw ValidationException::withMessages(['action' => 'Unsupported workflow action.']);
             }
 
             $locked->update([
                 'current_department_id' => $toDepartmentId,
+                'assigned_employee_id' => $assignment,
                 'status' => $newStatus,
+                'received_at' => $receivedAt,
+                'completed_at' => $completedAt,
             ]);
 
             TransactionEvent::query()->create([
@@ -131,7 +186,7 @@ class TransactionWorkflowService
                 'action' => $action,
                 'previous_status' => $previousStatus,
                 'new_status' => $newStatus,
-                'remarks' => $remarks,
+                'remarks' => $eventRemarks,
                 'created_at' => now(),
             ]);
 
@@ -144,7 +199,7 @@ class TransactionWorkflowService
                 $locked->id,
             );
 
-            return $locked->fresh(['originDepartment', 'currentDepartment', 'creator']);
+            return $locked->fresh(['originDepartment', 'currentDepartment', 'creator', 'assignedEmployee']);
         });
     }
 }
