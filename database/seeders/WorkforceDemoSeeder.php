@@ -83,6 +83,7 @@ class WorkforceDemoSeeder extends Seeder
             ->get();
 
         $remaining = self::TARGET_EMPLOYEE_COUNT - count($accounts);
+        $sealedPrototypePassword = Hash::make(Str::random(64));
 
         for ($i = 1; $i <= $remaining; $i++) {
             $department = $departmentList[($i - 1) % $departmentList->count()];
@@ -92,12 +93,22 @@ class WorkforceDemoSeeder extends Seeder
             $name = $first.' '.$last;
             $email = sprintf('%s.%04d@talibon.demo', Str::slug(strtolower($first.'.'.$last), '.'), $i);
 
+            $user = User::query()->updateOrCreate(
+                ['email' => $email],
+                [
+                    'name' => $name,
+                    'role' => 'employee',
+                    'is_active' => true,
+                    'password' => $sealedPrototypePassword,
+                ],
+            );
+
             Employee::query()->updateOrCreate(
                 ['employee_number' => sprintf('TAL-EMP-%04d', $i)],
                 [
                     'full_name' => $name,
                     'work_email' => $email,
-                    'user_id' => null,
+                    'user_id' => $user->id,
                     'department_id' => $department->id,
                     'position_title' => $position,
                     'employment_status' => 'active',
