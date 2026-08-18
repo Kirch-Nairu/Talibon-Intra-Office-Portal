@@ -67,5 +67,8 @@ jobs:
       - name: Migrate and seed PostgreSQL
         run: php artisan migrate:fresh --seed --force
 
+      - name: Run demo-critical feature tests
+        run: php artisan test --testsuite=Feature
+
       - name: Verify application routes
         run: php artisan route:list
