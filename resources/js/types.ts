@@ -2,6 +2,7 @@ export type Department = {
     id: number;
     code: string;
     name: string;
+    short_name?: string | null;
 };
 
 export type AuthUser = {
