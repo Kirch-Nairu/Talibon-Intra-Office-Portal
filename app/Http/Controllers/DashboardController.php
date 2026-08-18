@@ -4,6 +4,9 @@ namespace App\Http\Controllers;
 
 use App\Models\Department;
 use App\Models\Employee;
+use App\Models\LegislativeRecord;
+use App\Models\Memorandum;
+use App\Models\OperationalItem;
 use App\Models\TransactionEvent;
 use App\Models\WorkflowTransaction;
 use Illuminate\Database\Eloquent\Builder;
@@ -40,6 +43,8 @@ class DashboardController extends Controller
             'departmentsCount' => Department::query()->where('is_active', true)->count(),
             'municipalOverview' => $canSeeMunicipalOverview ? $this->municipalOverview($department->id) : null,
             'departmentWorkload' => $canSeeMunicipalOverview ? $this->departmentWorkload() : [],
+            'centralRecords' => $this->centralRecords(),
+            'operationsSnapshot' => $canSeeMunicipalOverview ? $this->operationsSnapshot() : null,
         ]);
     }
 
@@ -132,6 +137,70 @@ class DashboardController extends Controller
             ->sortByDesc(fn (array $office): int => ($office['overdue'] * 100) + ($office['active'] * 10) + $office['dueSoon'])
             ->values()
             ->all();
+    }
+
+    private function centralRecords(): array
+    {
+        $recordsByType = LegislativeRecord::query()
+            ->selectRaw('record_type, COUNT(*) as total')
+            ->groupBy('record_type')
+            ->pluck('total', 'record_type')
+            ->map(fn ($count): int => (int) $count)
+            ->all();
+
+        return [
+            'memoranda' => Memorandum::query()->where('status', 'published')->count(),
+            'ordinances' => $recordsByType['ordinance'] ?? 0,
+            'resolutions' => $recordsByType['resolution'] ?? 0,
+            'executiveOrders' => $recordsByType['executive_order'] ?? 0,
+            'officeOrders' => $recordsByType['office_order'] ?? 0,
+            'administrativeOrders' => $recordsByType['administrative_order'] ?? 0,
+            'circulars' => $recordsByType['circular'] ?? 0,
+            'latestRecords' => LegislativeRecord::query()
+                ->orderByDesc('approved_at')
+                ->limit(4)
+                ->get(['id', 'record_type', 'record_number', 'title', 'issuing_body'])
+                ->map(fn (LegislativeRecord $record): array => [
+                    'id' => $record->id,
+                    'type' => $record->record_type,
+                    'number' => $record->record_number,
+                    'title' => $record->title,
+                    'issuingBody' => $record->issuing_body,
+                ])
+                ->all(),
+            'latestMemos' => Memorandum::query()
+                ->where('status', 'published')
+                ->latest('published_at')
+                ->limit(3)
+                ->get(['id', 'memo_number', 'title', 'published_at'])
+                ->map(fn (Memorandum $memo): array => [
+                    'id' => $memo->id,
+                    'number' => $memo->memo_number,
+                    'title' => $memo->title,
+                    'publishedAt' => $memo->published_at?->toIso8601String(),
+                ])
+                ->all(),
+        ];
+    }
+
+    private function operationsSnapshot(): array
+    {
+        $funds = OperationalItem::query()->where('item_type', 'fund');
+        $allocated = (float) (clone $funds)->sum('allocated_amount');
+        $utilized = (float) (clone $funds)->sum('utilized_amount');
+
+        return [
+            'projects' => OperationalItem::query()->where('item_type', 'project')->count(),
+            'procurement' => OperationalItem::query()->where('item_type', 'procurement')->count(),
+            'funds' => OperationalItem::query()->where('item_type', 'fund')->count(),
+            'compliance' => OperationalItem::query()->where('item_type', 'compliance')->count(),
+            'overdue' => OperationalItem::query()
+                ->whereNotIn('status', ['completed', 'closed', 'cancelled'])
+                ->whereNotNull('target_date')
+                ->whereDate('target_date', '<', today())
+                ->count(),
+            'fundUtilizationPercent' => $allocated > 0 ? (int) round(($utilized / $allocated) * 100) : 0,
+        ];
     }
 
     private function recentTransactions(int $departmentId, bool $isMayorOffice): array
