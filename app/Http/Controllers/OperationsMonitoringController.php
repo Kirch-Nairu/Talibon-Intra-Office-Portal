@@ -12,6 +12,8 @@ class OperationsMonitoringController extends Controller
 {
     public function __invoke(Request $request): Response
     {
+        abort_unless($request->user()->isRole('system_admin', 'mayor_approver', 'mayor_staff'), 403);
+
         $type = $request->query('type');
 
         if ($type !== null) {
