@@ -1,0 +1,54 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Models\Department;
+use App\Models\Employee;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Http\Request;
+use Inertia\Inertia;
+use Inertia\Response;
+
+class EmployeeDirectoryController extends Controller
+{
+    public function __invoke(Request $request): Response
+    {
+        $search = trim((string) $request->query('q', ''));
+        $departmentCode = trim((string) $request->query('department', ''));
+
+        $employees = Employee::query()
+            ->with('department:id,code,name,short_name')
+            ->where('employment_status', 'active')
+            ->when($search !== '', function (Builder $query) use ($search): void {
+                $query->where(function (Builder $nested) use ($search): void {
+                    $nested->where('employee_number', 'ilike', "%{$search}%")
+                        ->orWhere('full_name', 'ilike', "%{$search}%")
+                        ->orWhere('work_email', 'ilike', "%{$search}%")
+                        ->orWhere('position_title', 'ilike', "%{$search}%");
+                });
+            })
+            ->when($departmentCode !== '', function (Builder $query) use ($departmentCode): void {
+                $query->whereHas('department', fn (Builder $department) => $department->where('code', $departmentCode));
+            })
+            ->orderBy('full_name')
+            ->paginate(40)
+            ->withQueryString();
+
+        return Inertia::render('Employees/Index', [
+            'employees' => $employees,
+            'filters' => [
+                'q' => $search,
+                'department' => $departmentCode,
+            ],
+            'departments' => Department::query()
+                ->where('is_active', true)
+                ->orderBy('name')
+                ->get(['code', 'name', 'short_name']),
+            'summary' => [
+                'employees' => Employee::query()->where('employment_status', 'active')->count(),
+                'portalAccounts' => Employee::query()->where('employment_status', 'active')->whereNotNull('user_id')->count(),
+                'offices' => Department::query()->where('is_active', true)->count(),
+            ],
+        ]);
+    }
+}
