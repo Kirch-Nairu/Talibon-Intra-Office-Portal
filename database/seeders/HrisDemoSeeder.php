@@ -26,7 +26,9 @@ class HrisDemoSeeder extends Seeder
             return [$data['code'] => $type];
         });
 
-        Employee::query()->each(function (Employee $employee) use ($types): void {
+        $sampleWorkday = now()->copy()->subDay()->startOfDay();
+
+        Employee::query()->each(function (Employee $employee) use ($types, $sampleWorkday): void {
             foreach ([['VL', 18.500], ['SL', 27.250], ['SPL', 2.000]] as [$code, $balance]) {
                 $account = LeaveCreditAccount::query()->firstOrCreate([
                     'employee_id' => $employee->id,
@@ -45,8 +47,20 @@ class HrisDemoSeeder extends Seeder
             }
 
             if (! $employee->attendanceLogs()->exists()) {
-                AttendanceLog::query()->create(['employee_id' => $employee->id, 'occurred_at' => now()->copy()->startOfDay()->addHours(7)->addMinutes(56), 'event_type' => 'in', 'source' => 'Prototype Biometric 01', 'created_at' => now()]);
-                AttendanceLog::query()->create(['employee_id' => $employee->id, 'occurred_at' => now()->copy()->startOfDay()->addHours(17)->addMinutes(8), 'event_type' => 'out', 'source' => 'Prototype Biometric 01', 'created_at' => now()]);
+                AttendanceLog::query()->create([
+                    'employee_id' => $employee->id,
+                    'occurred_at' => $sampleWorkday->copy()->addHours(7)->addMinutes(56),
+                    'event_type' => 'in',
+                    'source' => 'Prototype Biometric 01',
+                    'created_at' => now(),
+                ]);
+                AttendanceLog::query()->create([
+                    'employee_id' => $employee->id,
+                    'occurred_at' => $sampleWorkday->copy()->addHours(17)->addMinutes(8),
+                    'event_type' => 'out',
+                    'source' => 'Prototype Biometric 01',
+                    'created_at' => now(),
+                ]);
             }
         });
 
