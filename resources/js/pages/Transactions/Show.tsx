@@ -1,18 +1,150 @@
 import { Link, router, useForm } from '@inertiajs/react';
-import { ArrowRight, CheckCircle2, Clock3, RotateCcw, Send } from 'lucide-react';
+import { ArrowRight, CheckCircle2, Clock3, Radio, RotateCcw, Send } from 'lucide-react';
+import { useEffect } from 'react';
 import AppLayout from '../../layouts/AppLayout';
 
 type Dept = { id: number; code: string; name: string; short_name?: string };
-type Event = { id: number; action: string; previous_status?: string; new_status?: string; remarks?: string; created_at: string; actor: { name: string; employee?: { department?: Dept } }; from_department?: Dept; to_department?: Dept };
-type Tx = { id: number; reference_no: string; title: string; description?: string; transaction_type: string; priority: string; status: string; created_at: string; origin_department: Dept; current_department: Dept; creator: { name: string }; events: Event[] };
+type Event = {
+    id: number;
+    action: string;
+    previous_status?: string;
+    new_status?: string;
+    remarks?: string;
+    created_at: string;
+    actor: { name: string; employee?: { department?: Dept } };
+    from_department?: Dept;
+    to_department?: Dept;
+};
+type Tx = {
+    id: number;
+    reference_no: string;
+    title: string;
+    description?: string;
+    transaction_type: string;
+    priority: string;
+    status: string;
+    created_at: string;
+    origin_department: Dept;
+    current_department: Dept;
+    creator: { name: string };
+    events: Event[];
+};
 
 export default function Show({ transaction: tx, departments, permissions }: { transaction: Tx; departments: Dept[]; permissions: { canTransition: boolean; canMayorDecision: boolean } }) {
-    const form = useForm<{ action: string; target_department_id: number | ''; remarks: string }>({ action: 'mark_review', target_department_id: '', remarks: '' });
-    const transition = (action: string) => { form.transform((data) => ({ ...data, action })).post(`/transactions/${tx.id}/transition`, { preserveScroll: true, onSuccess: () => form.reset('remarks') }); };
-    return <AppLayout title={tx.reference_no}><div className="mx-auto max-w-6xl space-y-6"><div><Link href="/transactions" className="text-sm font-semibold text-blue-700">← Back to My Work</Link></div><section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm md:p-8"><div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between"><div><div className="text-xs font-bold uppercase tracking-[0.18em] text-blue-700">{tx.reference_no}</div><h1 className="mt-2 text-3xl font-bold text-slate-950">{tx.title}</h1><p className="mt-3 max-w-3xl text-sm leading-6 text-slate-600">{tx.description || 'No additional description.'}</p></div><div className="flex flex-wrap gap-2"><span className="rounded-full bg-slate-100 px-3 py-1.5 text-xs font-bold uppercase text-slate-700">{tx.status.replaceAll('_', ' ')}</span><span className="rounded-full bg-amber-50 px-3 py-1.5 text-xs font-bold uppercase text-amber-800">{tx.priority}</span></div></div><div className="mt-7 grid gap-4 border-t border-slate-100 pt-6 sm:grid-cols-3"><div><div className="text-xs uppercase text-slate-400">Origin</div><div className="mt-1 font-semibold text-slate-900">{tx.origin_department.name}</div></div><div><div className="text-xs uppercase text-slate-400">Current Office</div><div className="mt-1 font-semibold text-blue-800">{tx.current_department.name}</div></div><div><div className="text-xs uppercase text-slate-400">Created by</div><div className="mt-1 font-semibold text-slate-900">{tx.creator.name}</div></div></div></section>
+    const form = useForm<{ action: string; target_department_id: number | ''; remarks: string }>({
+        action: 'mark_review',
+        target_department_id: '',
+        remarks: '',
+    });
 
-            {(permissions.canTransition || permissions.canMayorDecision) && <section className="rounded-3xl border border-blue-100 bg-blue-50/60 p-6"><div className="flex items-center gap-2 font-bold text-slate-950"><Send size={18} /> Workflow actions</div><textarea value={form.data.remarks} onChange={(e) => form.setData('remarks', e.target.value)} rows={2} className="mt-4 w-full rounded-xl border border-blue-200 bg-white px-4 py-3" placeholder="Review note / routing remarks" />{permissions.canTransition && <div className="mt-4 flex flex-wrap gap-3"><button onClick={() => transition('mark_review')} className="rounded-xl border border-blue-200 bg-white px-4 py-2.5 text-sm font-semibold text-blue-900"><Clock3 className="mr-2 inline" size={16} />Mark for Review</button><button onClick={() => transition('send_to_mayor')} className="rounded-xl bg-[#0b2852] px-4 py-2.5 text-sm font-semibold text-white">Send to Mayor's Office</button><button onClick={() => transition('return_origin')} className="rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700"><RotateCcw className="mr-2 inline" size={16} />Return to Origin</button><div className="flex min-w-[280px] flex-1 gap-2"><select value={form.data.target_department_id} onChange={(e) => form.setData('target_department_id', Number(e.target.value))} className="min-w-0 flex-1 rounded-xl border border-blue-200 bg-white px-3 py-2.5 text-sm"><option value="">Forward to department…</option>{departments.filter((d) => d.id !== tx.current_department.id).map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}</select><button disabled={!form.data.target_department_id} onClick={() => transition('forward')} className="rounded-xl border border-blue-200 bg-white px-4 py-2.5 text-sm font-semibold text-blue-900 disabled:opacity-40">Forward</button></div></div>}{permissions.canMayorDecision && <div className="mt-4 flex gap-3"><button onClick={() => transition('approve')} className="rounded-xl bg-emerald-700 px-5 py-2.5 text-sm font-semibold text-white"><CheckCircle2 className="mr-2 inline" size={16} />Approve</button><button onClick={() => transition('disapprove')} className="rounded-xl bg-rose-700 px-5 py-2.5 text-sm font-semibold text-white">Disapprove</button><button onClick={() => transition('request_information')} className="rounded-xl border border-blue-200 bg-white px-5 py-2.5 text-sm font-semibold text-blue-900">Request Information</button></div>}</section>}
+    useEffect(() => {
+        const refresh = () => {
+            if (document.visibilityState !== 'visible' || form.processing) {
+                return;
+            }
 
-            <section className="rounded-3xl border border-slate-200 bg-white shadow-sm"><div className="border-b border-slate-100 px-6 py-5"><h2 className="font-bold text-slate-950">Routing history</h2><p className="mt-1 text-sm text-slate-500">Append-only workflow evidence</p></div><div className="divide-y divide-slate-100">{tx.events.map((event) => <div key={event.id} className="grid gap-4 px-6 py-5 md:grid-cols-[32px_1fr_180px]"><div className="flex h-8 w-8 items-center justify-center rounded-full bg-blue-50 text-blue-800"><ArrowRight size={15} /></div><div><div className="font-semibold text-slate-950">{event.action.replaceAll('_', ' ')}</div><div className="mt-1 text-sm text-slate-600">{event.from_department?.short_name || event.from_department?.name || '—'} → {event.to_department?.short_name || event.to_department?.name || '—'}</div>{event.remarks && <div className="mt-2 rounded-xl bg-slate-50 px-3 py-2 text-sm text-slate-600">{event.remarks}</div>}<div className="mt-2 text-xs text-slate-400">By {event.actor.name}</div></div><div className="text-xs text-slate-500 md:text-right">{new Date(event.created_at).toLocaleString()}</div></div>)}</div></section>
-        </div></AppLayout>;
+            router.reload({
+                only: ['transaction', 'permissions'],
+                preserveScroll: true,
+                preserveState: true,
+            });
+        };
+
+        const timer = window.setInterval(refresh, 2000);
+        window.addEventListener('focus', refresh);
+
+        return () => {
+            window.clearInterval(timer);
+            window.removeEventListener('focus', refresh);
+        };
+    }, [form.processing]);
+
+    const transition = (action: string) => {
+        form.transform((data) => ({ ...data, action })).post(`/transactions/${tx.id}/transition`, {
+            preserveScroll: true,
+            onSuccess: () => form.reset('remarks'),
+        });
+    };
+
+    return (
+        <AppLayout title={tx.reference_no}>
+            <div className="mx-auto max-w-6xl space-y-6">
+                <div className="flex items-center justify-between gap-4">
+                    <Link href="/transactions" className="text-sm font-semibold text-blue-700">← Back to My Work</Link>
+                    <div className="inline-flex items-center gap-2 rounded-full bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-800">
+                        <Radio size={14} className="animate-pulse" />
+                        Live status
+                    </div>
+                </div>
+
+                <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm md:p-8">
+                    <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
+                        <div>
+                            <div className="text-xs font-bold uppercase tracking-[0.18em] text-blue-700">{tx.reference_no}</div>
+                            <h1 className="mt-2 text-3xl font-bold text-slate-950">{tx.title}</h1>
+                            <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-600">{tx.description || 'No additional description.'}</p>
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                            <span className="rounded-full bg-slate-100 px-3 py-1.5 text-xs font-bold uppercase text-slate-700">{tx.status.replaceAll('_', ' ')}</span>
+                            <span className="rounded-full bg-amber-50 px-3 py-1.5 text-xs font-bold uppercase text-amber-800">{tx.priority}</span>
+                        </div>
+                    </div>
+                    <div className="mt-7 grid gap-4 border-t border-slate-100 pt-6 sm:grid-cols-3">
+                        <div><div className="text-xs uppercase text-slate-400">Origin</div><div className="mt-1 font-semibold text-slate-900">{tx.origin_department.name}</div></div>
+                        <div><div className="text-xs uppercase text-slate-400">Current Office</div><div className="mt-1 font-semibold text-blue-800">{tx.current_department.name}</div></div>
+                        <div><div className="text-xs uppercase text-slate-400">Created by</div><div className="mt-1 font-semibold text-slate-900">{tx.creator.name}</div></div>
+                    </div>
+                </section>
+
+                {(permissions.canTransition || permissions.canMayorDecision) && (
+                    <section className="rounded-3xl border border-blue-100 bg-blue-50/60 p-5 sm:p-6">
+                        <div className="flex items-center gap-2 font-bold text-slate-950"><Send size={18} /> Workflow actions</div>
+                        <textarea value={form.data.remarks} onChange={(e) => form.setData('remarks', e.target.value)} rows={2} className="mt-4 w-full rounded-xl border border-blue-200 bg-white px-4 py-3" placeholder="Review note / routing remarks" />
+                        {permissions.canTransition && (
+                            <div className="mt-4 flex flex-wrap gap-3">
+                                <button onClick={() => transition('mark_review')} className="rounded-xl border border-blue-200 bg-white px-4 py-2.5 text-sm font-semibold text-blue-900"><Clock3 className="mr-2 inline" size={16} />Mark for Review</button>
+                                <button onClick={() => transition('send_to_mayor')} className="rounded-xl bg-[#0b2852] px-4 py-2.5 text-sm font-semibold text-white">Send to Mayor's Office</button>
+                                <button onClick={() => transition('return_origin')} className="rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700"><RotateCcw className="mr-2 inline" size={16} />Return to Origin</button>
+                                <div className="flex min-w-0 basis-full gap-2 sm:min-w-[280px] sm:flex-1 sm:basis-auto">
+                                    <select value={form.data.target_department_id} onChange={(e) => form.setData('target_department_id', Number(e.target.value))} className="min-w-0 flex-1 rounded-xl border border-blue-200 bg-white px-3 py-2.5 text-sm">
+                                        <option value="">Forward to department…</option>
+                                        {departments.filter((d) => d.id !== tx.current_department.id).map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
+                                    </select>
+                                    <button disabled={!form.data.target_department_id} onClick={() => transition('forward')} className="rounded-xl border border-blue-200 bg-white px-4 py-2.5 text-sm font-semibold text-blue-900 disabled:opacity-40">Forward</button>
+                                </div>
+                            </div>
+                        )}
+                        {permissions.canMayorDecision && (
+                            <div className="mt-4 flex flex-wrap gap-3">
+                                <button onClick={() => transition('approve')} className="rounded-xl bg-emerald-700 px-5 py-2.5 text-sm font-semibold text-white"><CheckCircle2 className="mr-2 inline" size={16} />Approve</button>
+                                <button onClick={() => transition('disapprove')} className="rounded-xl bg-rose-700 px-5 py-2.5 text-sm font-semibold text-white">Disapprove</button>
+                                <button onClick={() => transition('request_information')} className="rounded-xl border border-blue-200 bg-white px-5 py-2.5 text-sm font-semibold text-blue-900">Request Information</button>
+                            </div>
+                        )}
+                    </section>
+                )}
+
+                <section className="rounded-3xl border border-slate-200 bg-white shadow-sm">
+                    <div className="border-b border-slate-100 px-5 py-4 sm:px-6 sm:py-5">
+                        <h2 className="font-bold text-slate-950">Routing history</h2>
+                        <p className="mt-1 text-sm text-slate-500">Append-only workflow evidence · updates automatically</p>
+                    </div>
+                    <div className="divide-y divide-slate-100">
+                        {tx.events.map((event) => (
+                            <div key={event.id} className="grid gap-4 px-5 py-5 sm:px-6 md:grid-cols-[32px_1fr_180px]">
+                                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-blue-50 text-blue-800"><ArrowRight size={15} /></div>
+                                <div>
+                                    <div className="font-semibold text-slate-950">{event.action.replaceAll('_', ' ')}</div>
+                                    <div className="mt-1 text-sm text-slate-600">{event.from_department?.short_name || event.from_department?.name || '—'} → {event.to_department?.short_name || event.to_department?.name || '—'}</div>
+                                    {event.remarks && <div className="mt-2 rounded-xl bg-slate-50 px-3 py-2 text-sm text-slate-600">{event.remarks}</div>}
+                                    <div className="mt-2 text-xs text-slate-400">By {event.actor.name}</div>
+                                </div>
+                                <div className="text-xs text-slate-500 md:text-right">{new Date(event.created_at).toLocaleString()}</div>
+                            </div>
+                        ))}
+                    </div>
+                </section>
+            </div>
+        </AppLayout>
+    );
 }
