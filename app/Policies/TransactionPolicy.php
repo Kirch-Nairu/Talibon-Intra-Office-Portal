@@ -37,8 +37,22 @@ class TransactionPolicy
             return true;
         }
 
+        if ($user->isRole('mayor_approver')) {
+            return false;
+        }
+
         return $user->employee?->department_id === $transaction->current_department_id
-            && $user->isRole('department_head', 'department_staff', 'hr_officer', 'legislative_staff', 'mayor_staff', 'mayor_approver');
+            && $user->isRole('department_head', 'department_staff', 'hr_officer', 'legislative_staff', 'mayor_staff');
+    }
+
+    public function assign(User $user, WorkflowTransaction $transaction): bool
+    {
+        if ($user->isRole('system_admin')) {
+            return true;
+        }
+
+        return $user->employee?->department_id === $transaction->current_department_id
+            && $user->isRole('department_head', 'hr_officer', 'legislative_staff', 'mayor_staff');
     }
 
     public function mayorDecision(User $user, WorkflowTransaction $transaction): bool
