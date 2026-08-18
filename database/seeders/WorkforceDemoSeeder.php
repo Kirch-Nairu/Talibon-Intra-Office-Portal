@@ -7,6 +7,7 @@ use App\Models\Employee;
 use App\Models\User;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
 
 class WorkforceDemoSeeder extends Seeder
 {
@@ -41,6 +42,8 @@ class WorkforceDemoSeeder extends Seeder
             Employee::query()->updateOrCreate(
                 ['employee_number' => sprintf('DEMO-%04d', $index + 1)],
                 [
+                    'full_name' => $account['name'],
+                    'work_email' => $account['email'],
                     'user_id' => $user->id,
                     'department_id' => $departments[$account['department']]->id,
                     'position_title' => $account['position'],
@@ -56,7 +59,7 @@ class WorkforceDemoSeeder extends Seeder
             'Rhea', 'Roberto', 'Samuel', 'Sheila', 'Therese', 'Vincent', 'Camille', 'Dennis', 'Leah', 'Mark',
         ];
         $lastNames = [
-            'Abella', 'Alvarez', 'Bautista', 'Cabahug', 'Cañete', 'Castillo', 'Dela Cruz', 'Domingo', 'Fernandez', 'Flores',
+            'Abella', 'Alvarez', 'Bautista', 'Cabahug', 'Canete', 'Castillo', 'Dela Cruz', 'Domingo', 'Fernandez', 'Flores',
             'Garcia', 'Gonzales', 'Lim', 'Lopez', 'Mendoza', 'Navarro', 'Ortega', 'Ramos', 'Reyes', 'Rivera',
             'Santos', 'Torres', 'Villanueva', 'Yap', 'Zamora', 'Baluyot', 'Concepcion', 'Lorenzo', 'Mercado', 'Rosales',
         ];
@@ -86,10 +89,14 @@ class WorkforceDemoSeeder extends Seeder
             $first = $firstNames[($i - 1) % count($firstNames)];
             $last = $lastNames[(int) floor(($i - 1) / count($firstNames)) % count($lastNames)];
             $position = $positions[($i + $department->id) % count($positions)];
+            $name = $first.' '.$last;
+            $email = sprintf('%s.%04d@talibon.demo', Str::slug(strtolower($first.'.'.$last), '.'), $i);
 
             Employee::query()->updateOrCreate(
                 ['employee_number' => sprintf('TAL-EMP-%04d', $i)],
                 [
+                    'full_name' => $name,
+                    'work_email' => $email,
                     'user_id' => null,
                     'department_id' => $department->id,
                     'position_title' => $position,
