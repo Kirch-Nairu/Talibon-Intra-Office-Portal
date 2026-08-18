@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Department;
+use App\Models\Employee;
 use App\Models\TransactionEvent;
 use App\Models\WorkflowTransaction;
 use Illuminate\Database\Eloquent\Builder;
@@ -21,6 +22,7 @@ class DashboardController extends Controller
         $isMayorOffice = $department->code === 'MAYOR';
         $isHr = $department->code === 'HRMO' || $user->isRole('hr_officer', 'system_admin');
         $isLegislative = $department->code === 'SB' || $user->isRole('legislative_staff', 'system_admin');
+        $canSeeMunicipalOverview = $user->isRole('system_admin', 'mayor_approver', 'mayor_staff');
 
         return Inertia::render('Dashboard', [
             'workspace' => [
@@ -29,13 +31,15 @@ class DashboardController extends Controller
                 'departmentCode' => $department->code,
                 'canAccessHris' => $isHr,
                 'canManageLegislation' => $isLegislative,
-                'canSeeMunicipalOverview' => $user->isRole('system_admin', 'mayor_approver', 'mayor_staff'),
+                'canSeeMunicipalOverview' => $canSeeMunicipalOverview,
             ],
             'stats' => $isMayorOffice
                 ? $this->mayorStats($department->id)
                 : $this->departmentStats($department->id),
             'recent' => $this->recentTransactions($department->id, $isMayorOffice),
             'departmentsCount' => Department::query()->where('is_active', true)->count(),
+            'municipalOverview' => $canSeeMunicipalOverview ? $this->municipalOverview($department->id) : null,
+            'departmentWorkload' => $canSeeMunicipalOverview ? $this->departmentWorkload() : [],
         ]);
     }
 
@@ -60,40 +64,74 @@ class DashboardController extends Controller
         return [
             [
                 'label' => 'For Review',
-                'value' => WorkflowTransaction::query()
-                    ->where('current_department_id', $departmentId)
-                    ->where('status', 'for_review')
-                    ->count(),
+                'value' => WorkflowTransaction::query()->where('current_department_id', $departmentId)->where('status', 'for_review')->count(),
                 'tone' => 'blue',
             ],
             [
                 'label' => 'Incoming',
-                'value' => WorkflowTransaction::query()
-                    ->where('current_department_id', $departmentId)
-                    ->where('origin_department_id', '!=', $departmentId)
-                    ->whereNotIn('status', $terminalStatuses)
-                    ->count(),
+                'value' => WorkflowTransaction::query()->where('current_department_id', $departmentId)->where('origin_department_id', '!=', $departmentId)->whereNotIn('status', $terminalStatuses)->count(),
                 'tone' => 'amber',
             ],
             [
                 'label' => 'Waiting on Others',
-                'value' => WorkflowTransaction::query()
-                    ->where('origin_department_id', $departmentId)
-                    ->where('current_department_id', '!=', $departmentId)
-                    ->whereNotIn('status', $terminalStatuses)
-                    ->count(),
+                'value' => WorkflowTransaction::query()->where('origin_department_id', $departmentId)->where('current_department_id', '!=', $departmentId)->whereNotIn('status', $terminalStatuses)->count(),
                 'tone' => 'rose',
             ],
             [
                 'label' => 'Completed This Month',
-                'value' => WorkflowTransaction::query()
-                    ->where('origin_department_id', $departmentId)
-                    ->whereIn('status', $terminalStatuses)
-                    ->where('updated_at', '>=', now()->startOfMonth())
-                    ->count(),
+                'value' => WorkflowTransaction::query()->where('origin_department_id', $departmentId)->whereIn('status', $terminalStatuses)->where('updated_at', '>=', now()->startOfMonth())->count(),
                 'tone' => 'emerald',
             ],
         ];
+    }
+
+    private function municipalOverview(int $mayorDepartmentId): array
+    {
+        $terminal = ['approved', 'disapproved', 'closed'];
+        $active = WorkflowTransaction::query()->whereNotIn('status', $terminal);
+
+        return [
+            'activeTransactions' => (clone $active)->count(),
+            'executiveQueue' => (clone $active)->where('current_department_id', $mayorDepartmentId)->count(),
+            'overdue' => (clone $active)->whereNotNull('due_at')->where('due_at', '<', now())->count(),
+            'highPriority' => (clone $active)->whereIn('priority', ['high', 'urgent'])->count(),
+            'completedThisMonth' => WorkflowTransaction::query()->whereIn('status', $terminal)->where('updated_at', '>=', now()->startOfMonth())->count(),
+            'workforce' => Employee::query()->where('employment_status', 'active')->count(),
+            'offices' => Department::query()->where('is_active', true)->count(),
+        ];
+    }
+
+    private function departmentWorkload(): array
+    {
+        $terminal = ['approved', 'disapproved', 'closed'];
+
+        return Department::query()
+            ->where('is_active', true)
+            ->withCount([
+                'employees as active_employees_count' => fn (Builder $query) => $query->where('employment_status', 'active'),
+            ])
+            ->orderByRaw("CASE WHEN code = 'MAYOR' THEN 0 WHEN code = 'SB' THEN 1 ELSE 2 END")
+            ->orderBy('name')
+            ->get(['id', 'code', 'name', 'short_name'])
+            ->map(function (Department $department) use ($terminal): array {
+                $active = WorkflowTransaction::query()
+                    ->where('current_department_id', $department->id)
+                    ->whereNotIn('status', $terminal);
+
+                return [
+                    'id' => $department->id,
+                    'code' => $department->code,
+                    'name' => $department->name,
+                    'shortName' => $department->short_name,
+                    'employees' => $department->active_employees_count,
+                    'active' => (clone $active)->count(),
+                    'overdue' => (clone $active)->whereNotNull('due_at')->where('due_at', '<', now())->count(),
+                    'dueSoon' => (clone $active)->whereBetween('due_at', [now(), now()->addDay()])->count(),
+                ];
+            })
+            ->sortByDesc(fn (array $office): int => ($office['overdue'] * 100) + ($office['active'] * 10) + $office['dueSoon'])
+            ->values()
+            ->all();
     }
 
     private function recentTransactions(int $departmentId, bool $isMayorOffice): array
