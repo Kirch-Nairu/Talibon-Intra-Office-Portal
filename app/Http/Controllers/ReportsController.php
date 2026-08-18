@@ -15,9 +15,9 @@ use App\Models\PayrollPeriod;
 use App\Models\WorkflowTransaction;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
-use Symfony\Component\HttpFoundation\StreamedResponse;
 use Inertia\Inertia;
 use Inertia\Response;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class ReportsController extends Controller
 {
@@ -26,8 +26,9 @@ class ReportsController extends Controller
         $user = $request->user()->loadMissing('employee.department');
         $isExecutive = $user->isRole('system_admin', 'mayor_approver', 'mayor_staff');
         $isHr = $user->isRole('system_admin', 'hr_officer');
-        $terminal = ['approved', 'disapproved', 'closed'];
+        abort_unless($isExecutive || $isHr, 403);
 
+        $terminal = ['approved', 'disapproved', 'closed'];
         $activeTransactions = WorkflowTransaction::query()->whereNotIn('status', $terminal);
         $period = PayrollPeriod::query()->latest('period_end')->first();
 
@@ -63,6 +64,7 @@ class ReportsController extends Controller
             ->limit(25)
             ->get()
             ->map(fn (WorkflowTransaction $tx): array => [
+                'id' => $tx->id,
                 'reference' => $tx->reference_no,
                 'title' => $tx->title,
                 'origin' => $tx->originDepartment?->short_name ?? $tx->originDepartment?->name,
@@ -98,8 +100,8 @@ class ReportsController extends Controller
                 'operations' => OperationalItem::query()->count(),
                 'operationsOverdue' => OperationalItem::query()->whereNotNull('target_date')->whereDate('target_date', '<', today())->whereNotIn('status', ['completed', 'closed', 'cancelled'])->count(),
                 'payrollPeriod' => $period?->label,
-                'payrollEmployees' => $payrollQuery ? (clone $payrollQuery)->count() : 0,
-                'payrollNet' => $payrollQuery ? (float) (clone $payrollQuery)->sum('net_pay') : 0,
+                'payrollEmployees' => $isHr && $payrollQuery ? (clone $payrollQuery)->count() : 0,
+                'payrollNet' => $isHr && $payrollQuery ? (float) (clone $payrollQuery)->sum('net_pay') : 0,
             ],
             'departmentWorkload' => $departmentWorkload,
             'transactionAging' => $aging,
@@ -118,19 +120,40 @@ class ReportsController extends Controller
     {
         abort_unless(in_array($report, ['department-workload', 'transaction-aging', 'employee-directory', 'operations', 'payroll-summary'], true), 404);
 
+        $user = $request->user()->loadMissing('employee.department');
+        $isExecutive = $user->isRole('system_admin', 'mayor_approver', 'mayor_staff');
+        $isHr = $user->isRole('system_admin', 'hr_officer');
+
+        $allowed = match ($report) {
+            'payroll-summary' => $isHr,
+            'employee-directory' => $isExecutive || $isHr,
+            default => $isExecutive,
+        };
+        abort_unless($allowed, 403);
+
         $filename = 'talibon-'.$report.'-'.now()->format('Ymd-His').'.csv';
 
         return response()->streamDownload(function () use ($report): void {
             $out = fopen('php://output', 'w');
             fwrite($out, "\xEF\xBB\xBF");
 
-            match ($report) {
-                'department-workload' => $this->writeDepartmentWorkloadCsv($out),
-                'transaction-aging' => $this->writeTransactionAgingCsv($out),
-                'employee-directory' => $this->writeEmployeeDirectoryCsv($out),
-                'operations' => $this->writeOperationsCsv($out),
-                'payroll-summary' => $this->writePayrollCsv($out),
-            };
+            switch ($report) {
+                case 'department-workload':
+                    $this->writeDepartmentWorkloadCsv($out);
+                    break;
+                case 'transaction-aging':
+                    $this->writeTransactionAgingCsv($out);
+                    break;
+                case 'employee-directory':
+                    $this->writeEmployeeDirectoryCsv($out);
+                    break;
+                case 'operations':
+                    $this->writeOperationsCsv($out);
+                    break;
+                case 'payroll-summary':
+                    $this->writePayrollCsv($out);
+                    break;
+            }
 
             fclose($out);
         }, $filename, ['Content-Type' => 'text/csv; charset=UTF-8']);
