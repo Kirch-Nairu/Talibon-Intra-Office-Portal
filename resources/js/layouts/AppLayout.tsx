@@ -11,6 +11,7 @@ export default function AppLayout({ title, children }: Props) {
     const [dismissedMemoId, setDismissedMemoId] = useState<number | null>(null);
     const user = auth.user;
     const isMayor = ['system_admin', 'mayor_approver', 'mayor_staff'].includes(user?.role ?? '');
+    const canAudit = ['system_admin', 'mayor_approver'].includes(user?.role ?? '');
 
     useEffect(() => {
         const timer = window.setInterval(() => router.reload({ only: ['pendingMemo', 'unreadMemoCount'], preserveState: true, preserveScroll: true }), 5000);
@@ -23,8 +24,8 @@ export default function AppLayout({ title, children }: Props) {
         { label: "Mayor's Office", href: '/mayor-office', icon: Building2, show: isMayor },
         { label: 'Memoranda', href: '/memoranda', icon: FileText, show: true },
         { label: 'Legislation', href: '/legislation', icon: Gavel, show: true },
-        { label: 'HRIS', href: '#', icon: Users, show: true },
-        { label: 'Audit & Security', href: '#', icon: ShieldCheck, show: true },
+        { label: 'HRIS', href: '/hris', icon: Users, show: true },
+        { label: 'Audit & Security', href: '/audit', icon: ShieldCheck, show: canAudit },
     ].filter((item) => item.show);
 
     const sidebar = <div className="flex h-full flex-col bg-[#0b2852] text-white"><div className="border-b border-white/10 px-6 py-6"><div className="text-xs font-semibold uppercase tracking-[0.22em] text-blue-200">Municipality of Talibon</div><div className="mt-2 text-xl font-bold">Intra-Office Portal</div><div className="mt-1 text-xs text-blue-200">Prototype Environment</div></div><nav className="flex-1 space-y-1 px-3 py-5">{nav.map(({ label, href, icon: Icon }) => <Link key={label} href={href} className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm text-blue-100 transition hover:bg-white/10 hover:text-white"><Icon size={18} /><span>{label}</span>{label === 'Memoranda' && unreadMemoCount > 0 && <span className="ml-auto rounded-full bg-amber-400 px-2 py-0.5 text-[10px] font-bold text-slate-950">{unreadMemoCount}</span>}</Link>)}</nav><div className="border-t border-white/10 p-4"><div className="rounded-xl bg-white/10 p-3"><div className="truncate text-sm font-semibold">{user?.name}</div><div className="mt-1 truncate text-xs text-blue-200">{user?.employee?.department?.name}</div><div className="truncate text-xs text-blue-300">{user?.employee?.position}</div></div><button onClick={() => router.post('/logout')} className="mt-3 flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-blue-100 hover:bg-white/10"><LogOut size={16} /> Sign out</button></div></div>;

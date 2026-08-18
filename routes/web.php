@@ -1,7 +1,11 @@
 <?php
 
+use App\Http\Controllers\AuditController;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\HrisAdminController;
+use App\Http\Controllers\HrisController;
+use App\Http\Controllers\LeaveRequestController;
 use App\Http\Controllers\LegislativeRecordController;
 use App\Http\Controllers\MayorOfficeController;
 use App\Http\Controllers\MemorandumController;
@@ -36,5 +40,14 @@ Route::middleware('auth')->group(function (): void {
     Route::post('/legislation', [LegislativeRecordController::class, 'store'])->name('legislation.store');
     Route::get('/legislation/{record}', [LegislativeRecordController::class, 'show'])->name('legislation.show');
 
+    Route::get('/hris', HrisController::class)->name('hris');
+    Route::post('/hris/leave-requests', [LeaveRequestController::class, 'store'])->name('hris.leave.store');
+    Route::middleware('hris.admin')->prefix('hris/admin')->group(function (): void {
+        Route::get('/', [HrisAdminController::class, 'index'])->name('hris.admin');
+        Route::post('/leave-requests/{leaveRequest}/approve', [HrisAdminController::class, 'approve'])->name('hris.leave.approve');
+        Route::post('/leave-requests/{leaveRequest}/reject', [HrisAdminController::class, 'reject'])->name('hris.leave.reject');
+    });
+
+    Route::get('/audit', AuditController::class)->name('audit');
     Route::post('/logout', [AuthenticatedSessionController::class, 'destroy'])->name('logout');
 });
