@@ -20,11 +20,12 @@ class EmployeeDirectoryController extends Controller
             ->with('department:id,code,name,short_name')
             ->where('employment_status', 'active')
             ->when($search !== '', function (Builder $query) use ($search): void {
-                $query->where(function (Builder $nested) use ($search): void {
-                    $nested->where('employee_number', 'ilike', "%{$search}%")
-                        ->orWhere('full_name', 'ilike', "%{$search}%")
-                        ->orWhere('work_email', 'ilike', "%{$search}%")
-                        ->orWhere('position_title', 'ilike', "%{$search}%");
+                $needle = '%'.mb_strtolower($search).'%';
+                $query->where(function (Builder $nested) use ($needle): void {
+                    $nested->whereRaw('LOWER(employee_number) LIKE ?', [$needle])
+                        ->orWhereRaw('LOWER(full_name) LIKE ?', [$needle])
+                        ->orWhereRaw('LOWER(work_email) LIKE ?', [$needle])
+                        ->orWhereRaw('LOWER(position_title) LIKE ?', [$needle]);
                 });
             })
             ->when($departmentCode !== '', function (Builder $query) use ($departmentCode): void {
