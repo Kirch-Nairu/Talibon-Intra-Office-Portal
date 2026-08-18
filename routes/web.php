@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\LegislativeRecordController;
 use App\Http\Controllers\MayorOfficeController;
 use App\Http\Controllers\MemorandumController;
 use App\Http\Controllers\TransactionController;
@@ -29,6 +30,11 @@ Route::middleware('auth')->group(function (): void {
     Route::post('/memoranda', [MemorandumController::class, 'store'])->name('memoranda.store');
     Route::get('/memoranda/{memorandum}', [MemorandumController::class, 'show'])->name('memoranda.show');
     Route::post('/memoranda/{memorandum}/acknowledge', [MemorandumController::class, 'acknowledge'])->name('memoranda.acknowledge');
+
+    Route::get('/legislation', [LegislativeRecordController::class, 'index'])->name('legislation.index');
+    Route::get('/legislation/create', [LegislativeRecordController::class, 'create'])->name('legislation.create');
+    Route::post('/legislation', [LegislativeRecordController::class, 'store'])->name('legislation.store');
+    Route::get('/legislation/{record}', [LegislativeRecordController::class, 'show'])->name('legislation.show');
 
     Route::post('/logout', [AuthenticatedSessionController::class, 'destroy'])->name('logout');
 });

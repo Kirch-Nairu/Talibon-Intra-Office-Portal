@@ -41,7 +41,6 @@ class DatabaseSeeder extends Seeder
                 'name' => $account['name'], 'role' => $account['role'], 'is_active' => true,
                 'password' => Hash::make('TalibonDemo2026!'),
             ]);
-
             Employee::query()->updateOrCreate(['user_id' => $user->id], [
                 'employee_number' => sprintf('DEMO-%04d', $index + 1),
                 'department_id' => $departments[$account['department']]->id,
@@ -53,6 +52,7 @@ class DatabaseSeeder extends Seeder
         $this->call([
             WorkflowDemoSeeder::class,
             MemorandumDemoSeeder::class,
+            LegislativeDemoSeeder::class,
         ]);
     }
 }
