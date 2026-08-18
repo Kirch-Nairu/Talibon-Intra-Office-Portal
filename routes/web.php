@@ -4,6 +4,7 @@ use App\Http\Controllers\AuditController;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DepartmentController;
+use App\Http\Controllers\EmployeeDirectoryController;
 use App\Http\Controllers\HrisAdminController;
 use App\Http\Controllers\HrisController;
 use App\Http\Controllers\LeaveRequestController;
@@ -22,6 +23,7 @@ Route::middleware('auth')->group(function (): void {
     Route::get('/', fn () => redirect()->route('dashboard'));
     Route::get('/dashboard', DashboardController::class)->name('dashboard');
     Route::get('/departments', DepartmentController::class)->name('departments.index');
+    Route::get('/employees', EmployeeDirectoryController::class)->name('employees.index');
 
     Route::get('/transactions', [TransactionController::class, 'index'])->name('transactions.index');
     Route::get('/transactions/create', [TransactionController::class, 'create'])->name('transactions.create');
