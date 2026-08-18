@@ -18,6 +18,7 @@ export type AuthUser = {
 };
 
 export type SharedProps = {
+    [key: string]: unknown;
     appName: string;
     auth: { user: AuthUser | null };
     flash: { success?: string; error?: string };

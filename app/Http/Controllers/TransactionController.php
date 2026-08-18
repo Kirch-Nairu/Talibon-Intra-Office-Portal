@@ -43,7 +43,7 @@ class TransactionController extends Controller
         return Inertia::render('Transactions/Create', [
             'departments' => Department::query()
                 ->where('is_active', true)
-                ->whereKeyNot($departmentId)
+                ->when($departmentId, fn ($query) => $query->where('id', '!=', $departmentId))
                 ->orderBy('name')
                 ->get(['id', 'code', 'name', 'short_name']),
         ]);
