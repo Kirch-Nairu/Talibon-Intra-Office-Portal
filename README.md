@@ -1,42 +1,168 @@
 # Talibon Intra-Office Portal
 
-Prototype of a secure municipal intra-office operations platform for LGU Talibon.
+Secure municipal intra-office operations prototype for LGU Talibon.
 
-## Prototype objective
+## Current prototype candidate
 
-Deliver a minimal working LAN-capable prototype that demonstrates the municipality's requested internal workflow:
+```text
+Branch: KIRCH-PROTOTYPE-M5-HRIS-LEAVE-AUDIT
+Pull Request: #2
+Status: Draft candidate pending dependency-backed verification
+```
 
-- employee accounts with department separation;
-- department dashboards and inboxes;
-- inter-office transaction routing;
-- Mayor's Office review and approval queue;
-- memorandum publishing, delivery, and acknowledgement;
-- centralized legislative records for ordinances and resolutions;
-- HRIS foundations including employee directory, leave credits, leave requests, and attendance records;
-- role- and department-aware authorization;
-- auditable workflow and security events;
-- responsive browser access for desktop and mobile devices.
+The current branch demonstrates the municipality's requested internal workflow using one shared Laravel application and PostgreSQL database.
 
-## Technology direction
+## Working prototype scope
+
+- employee authentication with department identity;
+- distinct department dashboards backed by shared workflow data;
+- municipality department / office overview;
+- inter-office transaction creation and routing;
+- append-only transaction history;
+- dedicated Mayor's Office review and approval queue;
+- memorandum publishing to all employees, selected departments, or selected employees;
+- in-portal memorandum notification, viewing, and acknowledgement tracking;
+- searchable legislative records for ordinances, resolutions, executive orders, and related issuances;
+- employee HRIS self-service with electronic leave credits;
+- leave request submission and HR-only approval / rejection;
+- leave-credit transaction ledger foundation;
+- attendance event records prepared for future biometric integration;
+- server-side HR administration restriction;
+- audit evidence for important workflow actions and denied HR access;
+- responsive desktop and phone browser interface;
+- LAN deployment runbook and synthetic demonstration data.
+
+## Technology
 
 - Laravel 13
 - PHP 8.3+
 - Inertia + React 19 + TypeScript
 - Tailwind CSS
 - PostgreSQL
-- Laravel Reverb / broadcasting for realtime events where appropriate
-- Modular monolith architecture
+- Laravel notifications / portal polling fallback for the prototype
+- modular monolith architecture
 
-## Deployment direction
+Realtime transport is intentionally not the source of truth. PostgreSQL is authoritative. Laravel Reverb can replace the prototype polling transport later without changing the memorandum records or acknowledgement model.
 
-The prototype will run as one authoritative application and PostgreSQL database on a LAN host. Other devices connect through the browser over the local network. Production cloud/hybrid deployment remains a later infrastructure decision and must not weaken authorization, audit, privacy, backup, or records controls.
+## Quick start
 
-## Scope boundary
+Prerequisites:
 
-The separate RHU / primary healthcare facility medical-record system is **not part of this repository**. Health information requires a separate application and data boundary.
+- PHP 8.3+
+- Composer
+- Node.js 22+
+- PostgreSQL 16+
 
-## Current development lane
+```powershell
+Copy-Item .env.example .env
+composer install
+php artisan key:generate
+npm install
+```
 
-Development begins with the municipal identity, organization, department separation, transaction-routing, Mayor's Office, memoranda, legislative records, HR leave foundations, and audit trail required for the working prototype.
+Create a PostgreSQL database named `talibon_portal`, configure the database credentials in `.env`, then run:
 
-See `docs/` for architecture, prototype scope, security model, and demo flow as they are added.
+```powershell
+php artisan migrate:fresh --seed
+npm run build
+php artisan serve --host=0.0.0.0 --port=8000
+```
+
+Other devices on the same trusted LAN open:
+
+```text
+http://HOST_IPV4:8000
+```
+
+See `docs/LAN_RUNBOOK.md` for the complete LAN procedure.
+
+## Synthetic demo accounts
+
+All prototype accounts use:
+
+```text
+Password: TalibonDemo2026!
+```
+
+Accounts:
+
+```text
+admin@talibon.demo
+mayor@talibon.demo
+engineering@talibon.demo
+budget@talibon.demo
+hr@talibon.demo
+legislative@talibon.demo
+employee@talibon.demo
+```
+
+All people, balances, attendance events, transactions, memoranda, and legislative records in the seed database are synthetic demonstration data.
+
+## Main demo path
+
+```text
+Engineering
+    -> creates transaction
+Budget
+    -> receives and reviews
+    -> routes to Mayor's Office
+Mayor's Office
+    -> reviews and approves
+Engineering
+    -> sees approved state and complete routing history
+```
+
+Second demo path:
+
+```text
+Mayor's Office
+    -> publishes memorandum
+Employee browser / phone
+    -> receives portal notification
+    -> opens and acknowledges
+Mayor's Office
+    -> sees delivery / view / acknowledgement statistics
+```
+
+Security proof:
+
+```text
+Engineering account -> /hris/admin -> DENIED + audit event
+HR account          -> /hris/admin -> ALLOWED
+```
+
+## Deliberate prototype boundaries
+
+Not claimed complete:
+
+- transaction or document file upload / archival ingestion;
+- government payroll computation;
+- live biometric hardware integration;
+- native mobile application, SMS, or native OS push notification;
+- production cloud or hybrid deployment;
+- legal digital signatures;
+- full procurement, accounting, or fund-utilization engines;
+- OCR / bulk archival migration;
+- RHU / medical-record functionality.
+
+The separate RHU / primary healthcare facility system must remain a separate application and data boundary.
+
+## Documentation
+
+Start with:
+
+- `docs/CURRENT_STATE.md`
+- `docs/PROTOTYPE_SCOPE.md`
+- `docs/ARCHITECTURE.md`
+- `docs/SECURITY_MODEL.md`
+- `docs/DATA_MODEL.md`
+- `docs/DEMO_FLOW.md`
+- `docs/LAN_RUNBOOK.md`
+- `docs/MEMORANDA.md`
+- `docs/LEGISLATIVE_RECORDS.md`
+- `docs/HRIS_PROTOTYPE.md`
+- `docs/DEVELOPMENT_PLAN.md`
+
+## Verification
+
+CI is configured to perform Composer installation, TypeScript checking, production frontend build, PostgreSQL migration/seed, demo-critical feature tests, and route inspection. Until an actual CI run or equivalent local dependency-backed verification is observed as passing, PR #2 remains a draft prototype candidate rather than a verified release.
