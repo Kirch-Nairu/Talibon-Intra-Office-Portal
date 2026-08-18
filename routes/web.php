@@ -12,6 +12,7 @@ use App\Http\Controllers\LegislativeRecordController;
 use App\Http\Controllers\MayorOfficeController;
 use App\Http\Controllers\MemorandumController;
 use App\Http\Controllers\OperationsMonitoringController;
+use App\Http\Controllers\PayrollController;
 use App\Http\Controllers\TransactionController;
 use Illuminate\Support\Facades\Route;
 
@@ -47,6 +48,7 @@ Route::middleware('auth')->group(function (): void {
     Route::get('/legislation/{record}', [LegislativeRecordController::class, 'show'])->name('legislation.show');
 
     Route::get('/hris', HrisController::class)->name('hris');
+    Route::get('/hris/payroll', PayrollController::class)->name('hris.payroll');
     Route::post('/hris/leave-requests', [LeaveRequestController::class, 'store'])->name('hris.leave.store');
     Route::middleware('hris.admin')->prefix('hris/admin')->group(function (): void {
         Route::get('/', [HrisAdminController::class, 'index'])->name('hris.admin');
