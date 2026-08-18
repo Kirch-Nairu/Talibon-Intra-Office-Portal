@@ -1,0 +1,48 @@
+import AppLayout from '../layouts/AppLayout';
+import { ArrowRight, Bell, Building2, CheckCircle2, Clock3, FileText, ShieldCheck } from 'lucide-react';
+
+type Stat = { label: string; value: number; tone: string };
+type Recent = { ref: string; title: string; status: string; from: string };
+type Props = {
+    workspace: { kind: 'mayor' | 'department'; departmentName: string; departmentCode: string | null; canAccessHris: boolean; canManageLegislation: boolean; canSeeMunicipalOverview: boolean };
+    stats: Stat[];
+    recent: Recent[];
+    departmentsCount: number;
+};
+
+const toneClass: Record<string, string> = {
+    blue: 'bg-blue-50 text-blue-800 ring-blue-100',
+    amber: 'bg-amber-50 text-amber-800 ring-amber-100',
+    rose: 'bg-rose-50 text-rose-800 ring-rose-100',
+    emerald: 'bg-emerald-50 text-emerald-800 ring-emerald-100',
+};
+
+export default function Dashboard({ workspace, stats, recent, departmentsCount }: Props) {
+    const isMayor = workspace.kind === 'mayor';
+
+    return (
+        <AppLayout title={isMayor ? "Mayor's Office Command Dashboard" : `${workspace.departmentName} Dashboard`}>
+            <div className="mx-auto max-w-7xl space-y-7">
+                <section className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
+                    <div className="grid gap-8 p-6 md:p-8 lg:grid-cols-[1.35fr_.65fr] lg:items-center">
+                        <div><div className="text-xs font-bold uppercase tracking-[0.2em] text-blue-700">{isMayor ? 'Municipal oversight' : 'Department workspace'}</div><h1 className="mt-3 text-3xl font-bold tracking-tight text-slate-950 md:text-4xl">{workspace.departmentName}</h1><p className="mt-3 max-w-2xl text-sm leading-6 text-slate-600">{isMayor ? 'Review municipal transactions, monitor department workload, and act on items requiring executive attention.' : 'Receive, review, route, and track your office transactions from one accountable workspace.'}</p></div>
+                        <div className="rounded-2xl bg-[#0b2852] p-5 text-white"><div className="flex items-center gap-2 text-sm font-semibold"><ShieldCheck size={18} /> Authorized workspace</div><div className="mt-3 text-sm text-blue-100">Access is scoped by employee identity, department, and role. Protected actions are enforced on the server.</div></div>
+                    </div>
+                </section>
+
+                <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+                    {stats.map((stat) => <div key={stat.label} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"><div className={`inline-flex rounded-lg px-2.5 py-1 text-xs font-semibold ring-1 ${toneClass[stat.tone]}`}>{stat.label}</div><div className="mt-4 text-3xl font-bold text-slate-950">{stat.value}</div></div>)}
+                </section>
+
+                <section className="grid gap-6 xl:grid-cols-[1.5fr_.75fr]">
+                    <div className="rounded-3xl border border-slate-200 bg-white shadow-sm"><div className="flex items-center justify-between border-b border-slate-100 px-6 py-5"><div><h2 className="font-bold text-slate-950">{isMayor ? 'Priority review queue' : 'Recent transactions'}</h2><p className="mt-1 text-sm text-slate-500">Shared municipal workflow state</p></div><button className="text-sm font-semibold text-blue-700">Open inbox</button></div><div className="divide-y divide-slate-100">{recent.map((item) => <div key={item.ref} className="flex flex-col gap-4 px-6 py-5 md:flex-row md:items-center md:justify-between"><div className="min-w-0"><div className="text-xs font-bold tracking-wide text-blue-700">{item.ref}</div><div className="mt-1 font-semibold text-slate-950">{item.title}</div><div className="mt-1 text-sm text-slate-500">From {item.from}</div></div><div className="flex items-center gap-3"><span className="rounded-full bg-slate-100 px-3 py-1.5 text-xs font-semibold text-slate-700">{item.status}</span><button className="rounded-full border border-slate-200 p-2 text-slate-700"><ArrowRight size={17} /></button></div></div>)}</div></div>
+                    <div className="space-y-6"><div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm"><div className="flex items-center gap-3"><div className="rounded-xl bg-blue-50 p-2.5 text-blue-800"><Bell size={20} /></div><div><div className="font-bold text-slate-950">Latest memorandum</div><div className="text-xs text-slate-500">Mayor's Office · Today</div></div></div><div className="mt-5 text-sm font-semibold text-slate-900">MEMO-2026-081 · Municipal General Assembly</div><p className="mt-2 text-sm leading-6 text-slate-600">All municipal employees are advised to review the newly issued memorandum.</p><button className="mt-4 text-sm font-semibold text-blue-700">View memorandum</button></div>
+                        <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm"><div className="flex items-center gap-3"><Building2 className="text-blue-800" size={20} /><div className="font-bold text-slate-950">Municipal structure</div></div><div className="mt-4 text-3xl font-bold text-slate-950">{departmentsCount}</div><div className="text-sm text-slate-500">prototype departments configured</div><div className="mt-5 grid grid-cols-2 gap-3 text-xs"><div className="rounded-xl bg-emerald-50 p-3 text-emerald-800"><CheckCircle2 size={16} /><div className="mt-2 font-semibold">Account active</div></div><div className="rounded-xl bg-amber-50 p-3 text-amber-800"><Clock3 size={16} /><div className="mt-2 font-semibold">Realtime next</div></div></div></div>
+                    </div>
+                </section>
+
+                <section className="grid gap-4 md:grid-cols-3"><div className="rounded-2xl border border-slate-200 bg-white p-5"><FileText className="text-blue-800" /><div className="mt-4 font-bold text-slate-950">Central Records</div><div className="mt-1 text-sm text-slate-500">Memoranda, ordinances, resolutions, and internal records.</div></div><div className="rounded-2xl border border-slate-200 bg-white p-5"><ShieldCheck className="text-blue-800" /><div className="mt-4 font-bold text-slate-950">Audit & Security</div><div className="mt-1 text-sm text-slate-500">Accountable actions, denied access, and workflow evidence.</div></div><div className="rounded-2xl border border-slate-200 bg-white p-5"><Building2 className="text-blue-800" /><div className="mt-4 font-bold text-slate-950">Department Separation</div><div className="mt-1 text-sm text-slate-500">Each employee enters their own authorized office workspace.</div></div></section>
+            </div>
+        </AppLayout>
+    );
+}
