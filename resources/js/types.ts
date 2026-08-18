@@ -26,11 +26,23 @@ export type PendingMemo = {
     requires_acknowledgement: boolean;
 };
 
+export type LiveNotification = {
+    key: string;
+    type: 'memorandum' | 'transaction' | string;
+    title: string;
+    message: string;
+    url: string;
+    created_at?: string | null;
+    urgent: boolean;
+};
+
 export type SharedProps = {
     [key: string]: unknown;
     appName: string;
     auth: { user: AuthUser | null };
     pendingMemo: PendingMemo | null;
     unreadMemoCount: number;
+    notifications: LiveNotification[];
+    notificationCount: number;
     flash: { success?: string; error?: string };
 };
