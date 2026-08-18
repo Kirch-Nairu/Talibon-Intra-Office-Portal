@@ -11,6 +11,7 @@ use App\Http\Controllers\LeaveRequestController;
 use App\Http\Controllers\LegislativeRecordController;
 use App\Http\Controllers\MayorOfficeController;
 use App\Http\Controllers\MemorandumController;
+use App\Http\Controllers\OperationsMonitoringController;
 use App\Http\Controllers\TransactionController;
 use Illuminate\Support\Facades\Route;
 
@@ -24,6 +25,7 @@ Route::middleware('auth')->group(function (): void {
     Route::get('/dashboard', DashboardController::class)->name('dashboard');
     Route::get('/departments', DepartmentController::class)->name('departments.index');
     Route::get('/employees', EmployeeDirectoryController::class)->name('employees.index');
+    Route::get('/operations', OperationsMonitoringController::class)->name('operations.index');
 
     Route::get('/transactions', [TransactionController::class, 'index'])->name('transactions.index');
     Route::get('/transactions/create', [TransactionController::class, 'create'])->name('transactions.create');
