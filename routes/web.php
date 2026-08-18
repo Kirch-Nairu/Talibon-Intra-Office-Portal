@@ -13,6 +13,7 @@ use App\Http\Controllers\MayorOfficeController;
 use App\Http\Controllers\MemorandumController;
 use App\Http\Controllers\OperationsMonitoringController;
 use App\Http\Controllers\PayrollController;
+use App\Http\Controllers\ReportsController;
 use App\Http\Controllers\TransactionController;
 use Illuminate\Support\Facades\Route;
 
@@ -27,6 +28,8 @@ Route::middleware('auth')->group(function (): void {
     Route::get('/departments', DepartmentController::class)->name('departments.index');
     Route::get('/employees', EmployeeDirectoryController::class)->name('employees.index');
     Route::get('/operations', OperationsMonitoringController::class)->name('operations.index');
+    Route::get('/reports', [ReportsController::class, 'index'])->name('reports.index');
+    Route::get('/reports/export/{report}', [ReportsController::class, 'export'])->name('reports.export');
 
     Route::get('/transactions', [TransactionController::class, 'index'])->name('transactions.index');
     Route::get('/transactions/create', [TransactionController::class, 'create'])->name('transactions.create');
