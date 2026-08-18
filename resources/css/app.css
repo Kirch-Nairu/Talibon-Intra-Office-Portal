@@ -6,6 +6,11 @@
     background: #f4f7fb;
 }
 
+html {
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+}
+
 body {
     min-width: 320px;
     min-height: 100vh;
@@ -15,6 +20,12 @@ body {
         #f4f7fb;
 }
 
-button, input {
+button, input, select, textarea {
     font: inherit;
+}
+
+@media (max-width: 640px) {
+    html {
+        font-size: 14px;
+    }
 }
