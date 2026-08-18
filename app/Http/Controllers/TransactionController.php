@@ -90,11 +90,12 @@ class TransactionController extends Controller
         $user = $request->user();
         $canTransition = $user->can('transition', $transaction);
         $canMayorDecision = $user->can('mayorDecision', $transaction);
+        $canAssign = $user->can('assign', $transaction);
 
         return Inertia::render('Transactions/Show', [
             'transaction' => $transaction,
             'departments' => Department::query()->where('is_active', true)->orderBy('name')->get(['id', 'code', 'name', 'short_name']),
-            'assignableEmployees' => $canTransition
+            'assignableEmployees' => $canAssign
                 ? Employee::query()
                     ->where('department_id', $transaction->current_department_id)
                     ->where('employment_status', 'active')
@@ -106,7 +107,7 @@ class TransactionController extends Controller
             'permissions' => [
                 'canTransition' => $canTransition,
                 'canMayorDecision' => $canMayorDecision,
-                'canAssign' => $canTransition,
+                'canAssign' => $canAssign,
             ],
         ]);
     }
@@ -120,7 +121,11 @@ class TransactionController extends Controller
             'remarks' => ['nullable', 'string', 'max:2000'],
         ]);
 
-        if (in_array($data['action'], ['approve', 'disapprove'], true)) {
+        if ($data['action'] === 'assign') {
+            $this->authorize('assign', $transaction);
+        } elseif (in_array($data['action'], ['approve', 'disapprove'], true)) {
+            $this->authorize('mayorDecision', $transaction);
+        } elseif ($data['action'] === 'request_information' && $request->user()->can('mayorDecision', $transaction)) {
             $this->authorize('mayorDecision', $transaction);
         } else {
             $this->authorize('transition', $transaction);
