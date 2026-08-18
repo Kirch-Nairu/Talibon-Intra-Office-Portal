@@ -7,19 +7,21 @@ use App\Models\Employee;
 use App\Models\User;
 use App\Models\WorkflowTransaction;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Hash;
 use Tests\TestCase;
 
 class M6ExecutivePrototypeTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_seed_represents_municipal_scale_with_seven_demo_accounts(): void
+    public function test_seed_represents_350_portal_identities_with_seven_featured_demo_credentials(): void
     {
         $this->seed();
 
         $this->assertSame(350, Employee::query()->where('employment_status', 'active')->count());
+        $this->assertSame(350, Employee::query()->whereNotNull('user_id')->count());
+        $this->assertSame(350, User::query()->where('is_active', true)->count());
         $this->assertGreaterThanOrEqual(28, Department::query()->where('is_active', true)->count());
-        $this->assertSame(7, User::query()->where('email', 'like', '%@talibon.demo')->count());
 
         foreach ([
             'admin@talibon.demo',
@@ -30,7 +32,9 @@ class M6ExecutivePrototypeTest extends TestCase
             'legislative@talibon.demo',
             'employee@talibon.demo',
         ] as $email) {
-            $this->assertDatabaseHas('users', ['email' => $email, 'is_active' => true]);
+            $user = User::query()->where('email', $email)->firstOrFail();
+            $this->assertTrue($user->is_active);
+            $this->assertTrue(Hash::check('TalibonDemo2026!', $user->password));
         }
     }
 
@@ -81,6 +85,17 @@ class M6ExecutivePrototypeTest extends TestCase
 
         $this->actingAs($mayor)->get('/operations')->assertOk();
         $this->actingAs($mayor)->get('/reports')->assertOk();
+    }
+
+    public function test_mayor_approver_has_executive_actions_without_generic_office_routing(): void
+    {
+        $this->seed();
+
+        $mayor = User::query()->where('email', 'mayor@talibon.demo')->firstOrFail();
+        $transaction = WorkflowTransaction::query()->whereHas('currentDepartment', fn ($query) => $query->where('code', 'MAYOR'))->firstOrFail();
+
+        $this->assertTrue($mayor->can('mayorDecision', $transaction));
+        $this->assertFalse($mayor->can('transition', $transaction));
     }
 
     public function test_hr_can_access_payroll_and_payroll_export_but_engineering_cannot_export_payroll(): void
