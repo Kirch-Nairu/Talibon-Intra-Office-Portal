@@ -47,10 +47,12 @@ class TransactionController extends Controller
 
         return Inertia::render('Transactions/Create', [
             'departments' => Department::query()
-                ->where('is_active', true)
+                ->activeRoutable()
                 ->when($departmentId, fn ($query) => $query->where('id', '!=', $departmentId))
+                ->orderBy('branch')
+                ->orderBy('sort_order')
                 ->orderBy('name')
-                ->get(['id', 'code', 'name', 'short_name']),
+                ->get(['id', 'code', 'name', 'short_name', 'branch', 'office_type']),
         ]);
     }
 
@@ -63,7 +65,13 @@ class TransactionController extends Controller
             'title' => ['required', 'string', 'max:255'],
             'description' => ['nullable', 'string', 'max:5000'],
             'priority' => ['required', Rule::in(['normal', 'high', 'urgent'])],
-            'target_department_id' => ['required', 'integer', 'exists:departments,id'],
+            'target_department_id' => [
+                'required',
+                'integer',
+                Rule::exists('departments', 'id')->where(
+                    fn ($query) => $query->where('is_active', true)->where('is_routable', true),
+                ),
+            ],
             'due_at' => ['nullable', 'date', 'after_or_equal:today'],
             'remarks' => ['nullable', 'string', 'max:2000'],
         ]);
@@ -94,7 +102,12 @@ class TransactionController extends Controller
 
         return Inertia::render('Transactions/Show', [
             'transaction' => $transaction,
-            'departments' => Department::query()->where('is_active', true)->orderBy('name')->get(['id', 'code', 'name', 'short_name']),
+            'departments' => Department::query()
+                ->activeRoutable()
+                ->orderBy('branch')
+                ->orderBy('sort_order')
+                ->orderBy('name')
+                ->get(['id', 'code', 'name', 'short_name', 'branch', 'office_type']),
             'assignableEmployees' => $canAssign
                 ? Employee::query()
                     ->where('department_id', $transaction->current_department_id)
@@ -116,7 +129,13 @@ class TransactionController extends Controller
     {
         $data = $request->validate([
             'action' => ['required', Rule::in(['assign', 'mark_review', 'forward', 'send_to_mayor', 'return_origin', 'request_information', 'approve', 'disapprove'])],
-            'target_department_id' => ['nullable', 'integer', 'exists:departments,id'],
+            'target_department_id' => [
+                'nullable',
+                'integer',
+                Rule::exists('departments', 'id')->where(
+                    fn ($query) => $query->where('is_active', true)->where('is_routable', true),
+                ),
+            ],
             'assigned_employee_id' => ['nullable', 'integer', 'exists:employees,id'],
             'remarks' => ['nullable', 'string', 'max:2000'],
         ]);

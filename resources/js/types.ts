@@ -3,6 +3,9 @@ export type Department = {
     code: string;
     name: string;
     short_name?: string | null;
+    branch?: string;
+    office_type?: string;
+    is_routable?: boolean;
 };
 
 export type AuthUser = {

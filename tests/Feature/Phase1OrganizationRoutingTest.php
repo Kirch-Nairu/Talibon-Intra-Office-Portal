@@ -53,4 +53,22 @@ class Phase1OrganizationRoutingTest extends TestCase
             'action' => 'submitted',
         ]);
     }
+
+    public function test_non_routable_office_is_rejected_as_a_new_transaction_destination(): void
+    {
+        $this->seed();
+
+        $engineering = User::query()->where('email', 'engineering@talibon.demo')->firstOrFail();
+        $dpo = Department::query()->where('code', 'DPO')->firstOrFail();
+        $dpo->update(['is_routable' => false]);
+
+        $this->actingAs($engineering)->post('/transactions', [
+            'transaction_type' => 'internal_request',
+            'title' => 'Should Not Route',
+            'priority' => 'normal',
+            'target_department_id' => $dpo->id,
+        ])->assertSessionHasErrors('target_department_id');
+
+        $this->assertDatabaseMissing('transactions', ['title' => 'Should Not Route']);
+    }
 }

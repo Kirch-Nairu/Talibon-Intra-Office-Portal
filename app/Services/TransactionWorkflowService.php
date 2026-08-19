@@ -21,15 +21,24 @@ class TransactionWorkflowService
     {
         $originDepartmentId = $actor->employee?->department_id;
 
-        if (! $originDepartmentId) {
-            throw ValidationException::withMessages(['department' => 'An active employee department is required.']);
+        if (! $originDepartmentId || ! Department::query()->activeRoutable()->whereKey($originDepartmentId)->exists()) {
+            throw ValidationException::withMessages(['department' => 'An active routable employee office is required.']);
         }
 
         if ((int) $data['target_department_id'] === (int) $originDepartmentId) {
-            throw ValidationException::withMessages(['target_department_id' => 'Select a different receiving department.']);
+            throw ValidationException::withMessages(['target_department_id' => 'Select a different receiving office.']);
         }
 
-        return DB::transaction(function () use ($actor, $data, $originDepartmentId): WorkflowTransaction {
+        $targetDepartment = Department::query()
+            ->activeRoutable()
+            ->whereKey((int) $data['target_department_id'])
+            ->first();
+
+        if (! $targetDepartment) {
+            throw ValidationException::withMessages(['target_department_id' => 'Select an active routable receiving office.']);
+        }
+
+        return DB::transaction(function () use ($actor, $data, $originDepartmentId, $targetDepartment): WorkflowTransaction {
             $dueAt = isset($data['due_at']) && $data['due_at']
                 ? Carbon::parse($data['due_at'])->endOfDay()
                 : now()->addDays(match ($data['priority']) {
@@ -44,7 +53,7 @@ class TransactionWorkflowService
                 'description' => $data['description'] ?? null,
                 'priority' => $data['priority'],
                 'origin_department_id' => $originDepartmentId,
-                'current_department_id' => $data['target_department_id'],
+                'current_department_id' => $targetDepartment->id,
                 'created_by_user_id' => $actor->id,
                 'status' => 'submitted',
                 'received_at' => now(),
@@ -59,7 +68,7 @@ class TransactionWorkflowService
                 'transaction_id' => $transaction->id,
                 'actor_user_id' => $actor->id,
                 'from_department_id' => $originDepartmentId,
-                'to_department_id' => $data['target_department_id'],
+                'to_department_id' => $targetDepartment->id,
                 'action' => 'submitted',
                 'previous_status' => 'draft',
                 'new_status' => 'submitted',
@@ -125,9 +134,13 @@ class TransactionWorkflowService
 
                 case 'forward':
                     if (! $targetDepartmentId || $targetDepartmentId === $fromDepartmentId) {
-                        throw ValidationException::withMessages(['target_department_id' => 'Choose a different receiving department.']);
+                        throw ValidationException::withMessages(['target_department_id' => 'Choose a different receiving office.']);
                     }
-                    Department::query()->whereKey($targetDepartmentId)->where('is_active', true)->firstOrFail();
+
+                    if (! Department::query()->activeRoutable()->whereKey($targetDepartmentId)->exists()) {
+                        throw ValidationException::withMessages(['target_department_id' => 'Choose an active routable receiving office.']);
+                    }
+
                     $toDepartmentId = $targetDepartmentId;
                     $newStatus = 'submitted';
                     $assignment = null;
@@ -135,7 +148,7 @@ class TransactionWorkflowService
                     break;
 
                 case 'send_to_mayor':
-                    $mayor = Department::query()->where('code', 'MAYOR')->where('is_active', true)->firstOrFail();
+                    $mayor = Department::query()->activeRoutable()->where('code', 'MAYOR')->firstOrFail();
                     $toDepartmentId = $mayor->id;
                     $newStatus = 'for_approval';
                     $assignment = null;

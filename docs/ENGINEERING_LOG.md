@@ -47,3 +47,13 @@ Authority: `SSOT_BY_KIRCH.md`.
 - Verification performed: Repository-level code inspection completed before implementation. A feature test was added for 33 routable nodes, 30 executive + 3 legislative split, and legislative routing. CI was enabled for `KIRCH-PHASE1-**`; runtime results are not yet claimed in this commit.
 - Known gaps / risks: Routing controllers/services still need explicit `is_routable` enforcement; office hierarchy parent links remain unset until the actual organizational chart is formally validated; acting/delegated assignments and office-specific workspace depth are not yet implemented.
 - Next action: Enforce routable-office selection server-side, update routing/directory UI for branch-aware destinations, observe CI, then proceed to shared documents/notifications/calendar and HR lifecycle foundations.
+
+## 2026-08-19 21:12 PHT — `feat: enforce branch-aware universal office routing`
+
+- Milestone / requirement: P1-M1 universal office routing.
+- Intent: Enforce active/routable destination selection in validation and the workflow service, make the routing UI branch-aware, expose the 30 executive + 3 legislative structure in the office directory, and reject disabled routing destinations even when requests are tampered with.
+- Important files / modules: `TransactionController`, `TransactionWorkflowService`, department directory UI, new-transaction UI, shared TypeScript department type, Phase 1 organization/routing feature test.
+- Schema / migration impact: None beyond the additive department metadata migration introduced by the immediately preceding documented commit.
+- Verification performed: Added a feature test proving non-routable destinations are rejected and existing legislative routing remains auditable. Static inspection completed; CI/runtime result is not claimed until observed.
+- Known gaps / risks: Existing transaction detail transition UI is not yet visually grouped by branch even though the backend now filters to routable offices; acting/delegated assignments remain pending; office-specific workspace pages are still shared-directory level.
+- Next action: Observe CI for the first Phase 1 runtime commits, fix any gate failures, then start P1-M2 shared documents/notifications/calendar followed by employee-profile and HR lifecycle work.
