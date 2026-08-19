@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class Employee extends Model
 {
@@ -63,4 +64,8 @@ class Employee extends Model
     public function leaveCreditAccounts(): HasMany { return $this->hasMany(LeaveCreditAccount::class); }
     public function leaveRequests(): HasMany { return $this->hasMany(LeaveRequest::class); }
     public function attendanceLogs(): HasMany { return $this->hasMany(AttendanceLog::class); }
+    public function onboardingCase(): HasOne { return $this->hasOne(OnboardingCase::class); }
+    public function movements(): HasMany { return $this->hasMany(EmployeeMovement::class); }
+    public function assetAssignments(): HasMany { return $this->hasMany(AssetAssignment::class); }
+    public function accountableAssets(): HasMany { return $this->hasMany(Asset::class, 'accountable_employee_id'); }
 }

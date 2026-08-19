@@ -77,3 +77,13 @@ Authority: `SSOT_BY_KIRCH.md`.
 - Verification performed: Static inspection and feature-test authoring only. Added tests for self private-profile access, department-head denial of another employee's private/201 profile, and HR access without implicit health-vault permission. No runtime test/build/CI pass is claimed yet.
 - Known gaps / risks: Production key-management/rotation policy is not yet finalized; employee profile editing and protected binary 201-file upload are not yet implemented; health vault remains a separate later Phase 1 milestone; supervisor assignments are schema-ready but not yet seeded from validated municipal reporting lines.
 - Next action: Start P1-M4 onboarding and employment movement cases with blocker tasks and basic property accountability hooks.
+
+## 2026-08-19 21:31 PHT — `feat: add onboarding movement and property domain foundations`
+
+- Milestone / requirement: P1-M4 onboarding, employment movement, and basic property accountability foundation.
+- Intent: Add blocker-driven onboarding cases, auditable employee movements with post-movement review tasks, and the first GSO-oriented asset accountability ledger so HR lifecycle changes can coordinate identity, open-work review, property review, calendar, notifications, and audit rather than behave as isolated CRUD updates.
+- Important files / modules: onboarding/movement/property migrations and models; `EmployeeLifecycleService`; `AssetAccountabilityService`; employee lifecycle relationships; Phase 1 lifecycle/property feature tests.
+- Schema / migration impact: Adds `onboarding_cases`, `onboarding_tasks`, `employee_movements`, `employee_movement_tasks`, `assets`, `asset_assignments`, and append-only `asset_events`. Existing employee, workflow, HR, and shared-platform tables remain compatible.
+- Verification performed: Static design review and feature-test authoring only. Tests cover onboarding blocker enforcement and activation, movement-triggered open-work/property review tasks, persistent employee movement notification, and property issue/return event history. No runtime migration/test/build/CI pass is claimed yet.
+- Known gaps / risks: Runtime controllers and user-facing P1-M4 surfaces are the next commit; property permissions currently exist at the domain-service boundary and will also be enforced at HTTP/controller level; asset inventory/maintenance/disposal depth remains P1-M8; onboarding task completion is manual confirmation except portal identity creation and must not be represented as live biometric/payroll integration.
+- Next action: Add restricted HR lifecycle and property HTTP surfaces, server-side request validation, navigation entry points, then run/observe migration and feature gates before advancing to P1-M5.
