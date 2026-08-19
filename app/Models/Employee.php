@@ -17,14 +17,49 @@ class Employee extends Model
         'work_email',
         'user_id',
         'department_id',
+        'supervisor_employee_id',
         'position_title',
         'employment_status',
+        'employment_type',
+        'appointment_date',
+        'employment_start_date',
+        'contract_end_date',
+        'date_of_birth',
+        'personal_email',
+        'home_address',
         'mobile_number',
+        'emergency_contact_name',
+        'emergency_contact_relationship',
+        'emergency_contact_phone',
+        'gsis_number',
+        'philhealth_number',
+        'pagibig_number',
+        'tin_number',
         'biometric_external_id',
     ];
 
+    protected function casts(): array
+    {
+        return [
+            'appointment_date' => 'date',
+            'employment_start_date' => 'date',
+            'contract_end_date' => 'date',
+            'date_of_birth' => 'date',
+            'personal_email' => 'encrypted',
+            'home_address' => 'encrypted',
+            'emergency_contact_name' => 'encrypted',
+            'emergency_contact_phone' => 'encrypted',
+            'gsis_number' => 'encrypted',
+            'philhealth_number' => 'encrypted',
+            'pagibig_number' => 'encrypted',
+            'tin_number' => 'encrypted',
+        ];
+    }
+
     public function user(): BelongsTo { return $this->belongsTo(User::class); }
     public function department(): BelongsTo { return $this->belongsTo(Department::class); }
+    public function supervisor(): BelongsTo { return $this->belongsTo(self::class, 'supervisor_employee_id'); }
+    public function directReports(): HasMany { return $this->hasMany(self::class, 'supervisor_employee_id'); }
     public function leaveCreditAccounts(): HasMany { return $this->hasMany(LeaveCreditAccount::class); }
     public function leaveRequests(): HasMany { return $this->hasMany(LeaveRequest::class); }
     public function attendanceLogs(): HasMany { return $this->hasMany(AttendanceLog::class); }

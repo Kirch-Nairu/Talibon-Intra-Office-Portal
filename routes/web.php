@@ -6,6 +6,7 @@ use App\Http\Controllers\CalendarController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DepartmentController;
 use App\Http\Controllers\EmployeeDirectoryController;
+use App\Http\Controllers\EmployeeProfileController;
 use App\Http\Controllers\HrisAdminController;
 use App\Http\Controllers\HrisController;
 use App\Http\Controllers\LeaveRequestController;
@@ -29,6 +30,7 @@ Route::middleware('auth')->group(function (): void {
     Route::get('/dashboard', DashboardController::class)->name('dashboard');
     Route::get('/departments', DepartmentController::class)->name('departments.index');
     Route::get('/employees', EmployeeDirectoryController::class)->name('employees.index');
+    Route::get('/employees/{employee}', EmployeeProfileController::class)->name('employees.show');
     Route::get('/calendar', CalendarController::class)->name('calendar.index');
     Route::get('/operations', OperationsMonitoringController::class)->name('operations.index');
     Route::get('/reports', [ReportsController::class, 'index'])->name('reports.index');

@@ -67,3 +67,13 @@ Authority: `SSOT_BY_KIRCH.md`.
 - Verification performed: Static repository inspection and test authoring only. Added tests for persistent transaction notifications, notification deduplication/acknowledgement, deadline calendar generation/visibility, and shared document linking. No runtime test/build/CI pass is claimed yet.
 - Known gaps / risks: Actual binary upload/download authorization is not implemented in this foundation commit; calendar currently surfaces routed-work deadlines and is ready for HR/legislative/property publishers; notification acknowledgement UI beyond memoranda is not yet surfaced; Reverb/WebSocket transport is still deferred and polling remains the UI fallback.
 - Next action: Observe/fix runtime gates, then proceed directly to P1-M3 employee profile/201-file foundation and P1-M4 onboarding/movement/basic property accountability.
+
+## 2026-08-19 21:14 PHT — `feat: establish permission-aware employee profile and 201 foundation`
+
+- Milestone / requirement: P1-M3 employee master, profile, and 201-file foundation.
+- Intent: Extend the employee master with employment/supervisor/private-contact/government-identifier fields, encrypt high-sensitivity profile values at the application layer, add a permission-aware employee profile surface, reuse the shared document domain for 201-file metadata, and explicitly keep health/clinical data outside the general profile.
+- Important files / modules: employee profile migration/model, employee profile controller/page, employee directory links, route, profile authorization tests.
+- Schema / migration impact: Additive fields on `employees` for supervisor, employment metadata, personal/emergency contact, date of birth, and government identifiers. Sensitive text fields use Laravel encrypted casts; no existing employee keys are removed or renamed.
+- Verification performed: Static inspection and feature-test authoring only. Added tests for self private-profile access, department-head denial of another employee's private/201 profile, and HR access without implicit health-vault permission. No runtime test/build/CI pass is claimed yet.
+- Known gaps / risks: Production key-management/rotation policy is not yet finalized; employee profile editing and protected binary 201-file upload are not yet implemented; health vault remains a separate later Phase 1 milestone; supervisor assignments are schema-ready but not yet seeded from validated municipal reporting lines.
+- Next action: Start P1-M4 onboarding and employment movement cases with blocker tasks and basic property accountability hooks.
