@@ -97,3 +97,13 @@ Authority: `SSOT_BY_KIRCH.md`.
 - Verification performed: Static implementation review and feature-test authoring only. Added HTTP tests for HR lifecycle restriction, onboarding blocker response, property read/mutation restrictions, and property registration. Updated domain tests for immediate movement semantics. No runtime migration/test/build/CI pass is claimed yet.
 - Known gaps / risks: GSO-specific featured demo credentials are not yet seeded; inventory/maintenance/disposal and Accounting reconciliation depth remain P1-M8; cross-office task completion UI is still HR-coordinated even though service authorization supports owner-office completion; actual biometric/payroll integrations remain explicit boundaries rather than simulated live integrations.
 - Next action: Run the dedicated migration/feature/type/build gates, fix observed failures, then proceed to P1-M5 leave/attendance/DTR/payroll lifecycle integration.
+
+## 2026-08-19 21:53 PHT — `fix: align onboarding task UI type contract`
+
+- Milestone / requirement: P1-M4 frontend contract hardening before verification.
+- Intent: Align the onboarding checklist TypeScript contract with the backend task payload by declaring the completion timestamp used by the rendered audit/status line.
+- Important files / modules: `resources/js/pages/Hris/Lifecycle/Show.tsx`, engineering log.
+- Schema / migration impact: None.
+- Verification performed: Static TypeScript contract review only; no compiler/build/test pass is claimed until the dedicated verification gates run.
+- Known gaps / risks: Full TypeScript and production-build verification remains pending.
+- Next action: Run type checking, frontend build, migrations, and the feature suite against the dedicated test environment; fix only observed gate failures before P1-M5.

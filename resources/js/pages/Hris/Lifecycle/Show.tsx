@@ -1,7 +1,7 @@
 import { Link, router } from '@inertiajs/react';
 import AppLayout from '../../../layouts/AppLayout';
 
-type Task = { id: number; task_key: string; title: string; category: string; is_required: boolean; status: string; due_at?: string | null; notes?: string | null; owner_department?: { name: string; short_name?: string | null } | null; completer?: { name: string } | null };
+type Task = { id: number; task_key: string; title: string; category: string; is_required: boolean; status: string; due_at?: string | null; completed_at?: string | null; notes?: string | null; owner_department?: { name: string; short_name?: string | null } | null; completer?: { name: string } | null };
 type Props = { case: { id: number; status: string; appointment_reference?: string | null; planned_start_date?: string | null; employee: any; target_department: any; supervisor?: any; tasks: Task[] }; summary: { required: number; completed: number; openRequired: number } };
 
 export default function OnboardingShow({ case: onboardingCase, summary }: Props) {
