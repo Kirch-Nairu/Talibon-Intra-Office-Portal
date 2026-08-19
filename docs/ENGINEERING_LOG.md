@@ -107,3 +107,13 @@ Authority: `SSOT_BY_KIRCH.md`.
 - Verification performed: Static TypeScript contract review only; no compiler/build/test pass is claimed until the dedicated verification gates run.
 - Known gaps / risks: Full TypeScript and production-build verification remains pending.
 - Next action: Run type checking, frontend build, migrations, and the feature suite against the dedicated test environment; fix only observed gate failures before P1-M5.
+
+## 2026-08-19 22:04 PHT — `fix: align frontend calls with Inertia v3 contracts`
+
+- Milestone / requirement: P1-M4 verification-gate repair after observed TypeScript failures.
+- Intent: Correct five observed TypeScript errors caused by legacy Inertia call patterns: explicitly type Vite page resolution for Inertia React v3, remove unsupported `preserveState` / `preserveScroll` keys from `router.reload()` calls because reload already preserves both internally, and split `useForm().transform()` from `post()` because v3 `transform()` returns void and is no longer chainable.
+- Important files / modules: `resources/js/app.tsx`, `resources/js/layouts/AppLayout.tsx`, `resources/js/pages/MayorOffice.tsx`, `resources/js/pages/Transactions/Show.tsx`, `docs/ENGINEERING_LOG.md`.
+- Schema / migration impact: None.
+- Verification performed: User-observed pre-fix gate: `npm run types:check` reported 5 errors across 4 files; `npm run build` succeeded in 16.76s. Inertia v3 source/type contracts were inspected before the fix. Post-fix type/build/test success is not claimed until rerun output is observed.
+- Known gaps / risks: The production Vite bundle already built before this fix, but TypeScript remained red; additional type errors may surface once these five are removed. Backend feature tests and migration gates are still pending in this verification pass.
+- Next action: Pull this commit and rerun `npm run types:check`, `npm run build`, and `php artisan test --testsuite=Feature`; fix any remaining observed gates before starting P1-M5.

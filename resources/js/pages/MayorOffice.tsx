@@ -31,8 +31,6 @@ export default function MayorOffice({ queue, stats }: Props) {
 
             router.reload({
                 only: ['queue', 'stats'],
-                preserveScroll: true,
-                preserveState: true,
             });
         };
 

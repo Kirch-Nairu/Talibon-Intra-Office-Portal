@@ -45,8 +45,6 @@ export default function AppLayout({ title, children }: Props) {
 
             router.reload({
                 only: ['pendingMemo', 'unreadMemoCount', 'notifications', 'notificationCount'],
-                preserveState: true,
-                preserveScroll: true,
             });
         };
 

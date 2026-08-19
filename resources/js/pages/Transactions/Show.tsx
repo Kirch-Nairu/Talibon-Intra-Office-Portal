@@ -63,8 +63,6 @@ export default function Show({ transaction: tx, departments, assignableEmployees
             if (document.visibilityState !== 'visible' || form.processing) return;
             router.reload({
                 only: ['transaction', 'permissions', 'accountability', 'assignableEmployees'],
-                preserveScroll: true,
-                preserveState: true,
             });
         };
 
@@ -81,7 +79,8 @@ export default function Show({ transaction: tx, departments, assignableEmployees
     }, [tx.assigned_employee?.id]);
 
     const transition = (action: string) => {
-        form.transform((data) => ({ ...data, action })).post(`/transactions/${tx.id}/transition`, {
+        form.transform((data) => ({ ...data, action }));
+        form.post(`/transactions/${tx.id}/transition`, {
             preserveScroll: true,
             onSuccess: () => form.reset('remarks'),
         });
