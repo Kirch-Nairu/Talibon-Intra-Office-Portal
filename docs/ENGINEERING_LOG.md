@@ -37,3 +37,13 @@ Authority: `SSOT_BY_KIRCH.md`.
 - Verification performed: Documentation-only planning change; no application build/test result is claimed.
 - Known gaps / risks: M0 code inspection still required before schema implementation; existing 29-office prototype seeding must be reconciled with the approximately 33-node routing baseline; hard deadline is highly compressed.
 - Next action: Begin P1-M0 repository inspection, establish the compatibility organization model, then implement P1-M1.
+
+## 2026-08-19 20:56 PHT — `feat: establish Phase 1 organization routing foundation`
+
+- Milestone / requirement: P1-M0 / P1-M1 organization and routing foundation.
+- Intent: Preserve the existing `departments` compatibility anchor while adding branch, office-type, hierarchy, routability, and ordering metadata; reconcile the prototype 29-office seed with the 33-node Phase 1 baseline; and enable CI for the active Phase 1 branch.
+- Important files / modules: department schema/model, municipality structure seeder, department directory controller, Phase 1 organization routing feature test, GitHub Actions CI.
+- Schema / migration impact: Additive migration on `departments`: `branch`, `office_type`, `parent_department_id`, `is_routable`, and `sort_order`. No existing department foreign keys are renamed or removed.
+- Verification performed: Repository-level code inspection completed before implementation. A feature test was added for 33 routable nodes, 30 executive + 3 legislative split, and legislative routing. CI was enabled for `KIRCH-PHASE1-**`; runtime results are not yet claimed in this commit.
+- Known gaps / risks: Routing controllers/services still need explicit `is_routable` enforcement; office hierarchy parent links remain unset until the actual organizational chart is formally validated; acting/delegated assignments and office-specific workspace depth are not yet implemented.
+- Next action: Enforce routable-office selection server-side, update routing/directory UI for branch-aware destinations, observe CI, then proceed to shared documents/notifications/calendar and HR lifecycle foundations.
