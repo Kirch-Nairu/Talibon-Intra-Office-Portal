@@ -3,6 +3,8 @@
 namespace App\Services;
 
 use App\Models\CalendarEvent;
+use App\Models\LeaveRequest;
+use App\Models\User;
 use App\Models\WorkflowTransaction;
 
 class CalendarService
@@ -34,6 +36,33 @@ class CalendarService
                 'action_url' => '/transactions/'.$transaction->id,
                 'status' => $terminal ? 'completed' : 'scheduled',
                 'created_by_user_id' => $transaction->created_by_user_id,
+            ],
+        );
+    }
+
+    public function syncApprovedLeave(LeaveRequest $leave, User $reviewer): CalendarEvent
+    {
+        $leave->loadMissing(['employee.user', 'employee.department', 'leaveType']);
+
+        return CalendarEvent::query()->updateOrCreate(
+            ['event_key' => 'leave-approved-'.$leave->id],
+            [
+                'event_type' => 'approved_leave',
+                'title' => $leave->employee->full_name.' · '.$leave->leaveType->name,
+                'description' => 'Approved employee leave / office availability event.',
+                'scope' => 'department',
+                'department_id' => $leave->employee->department_id,
+                'user_id' => $leave->employee->user_id,
+                'source_domain' => 'leave',
+                'source_type' => LeaveRequest::class,
+                'source_id' => $leave->id,
+                'priority' => 'normal',
+                'starts_at' => $leave->start_date->copy()->startOfDay(),
+                'ends_at' => $leave->end_date->copy()->endOfDay(),
+                'all_day' => true,
+                'action_url' => '/hris',
+                'status' => 'scheduled',
+                'created_by_user_id' => $reviewer->id,
             ],
         );
     }

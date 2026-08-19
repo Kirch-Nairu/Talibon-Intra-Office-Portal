@@ -11,14 +11,19 @@ class PayrollEntry extends Model
     use HasFactory;
 
     protected $fillable = [
-        'payroll_period_id', 'employee_id', 'basic_pay', 'allowances', 'gross_pay',
-        'gsis', 'philhealth', 'pagibig', 'withholding_tax', 'other_deductions',
+        'payroll_period_id', 'employee_id',
+        'dtr_days_with_logs', 'dtr_complete_days', 'dtr_partial_days', 'approved_leave_units', 'dtr_snapshot_status',
+        'basic_pay', 'allowances', 'gross_pay', 'gsis', 'philhealth', 'pagibig', 'withholding_tax', 'other_deductions',
         'total_deductions', 'net_pay', 'status',
     ];
 
     protected function casts(): array
     {
         return [
+            'dtr_days_with_logs' => 'integer',
+            'dtr_complete_days' => 'integer',
+            'dtr_partial_days' => 'integer',
+            'approved_leave_units' => 'decimal:3',
             'basic_pay' => 'decimal:2',
             'allowances' => 'decimal:2',
             'gross_pay' => 'decimal:2',
@@ -32,13 +37,6 @@ class PayrollEntry extends Model
         ];
     }
 
-    public function payrollPeriod(): BelongsTo
-    {
-        return $this->belongsTo(PayrollPeriod::class);
-    }
-
-    public function employee(): BelongsTo
-    {
-        return $this->belongsTo(Employee::class);
-    }
+    public function payrollPeriod(): BelongsTo { return $this->belongsTo(PayrollPeriod::class); }
+    public function employee(): BelongsTo { return $this->belongsTo(Employee::class); }
 }

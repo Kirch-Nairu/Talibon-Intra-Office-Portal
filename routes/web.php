@@ -5,6 +5,7 @@ use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\CalendarController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DepartmentController;
+use App\Http\Controllers\DtrController;
 use App\Http\Controllers\EmployeeDirectoryController;
 use App\Http\Controllers\EmployeeProfileController;
 use App\Http\Controllers\HrisAdminController;
@@ -65,12 +66,17 @@ Route::middleware('auth')->group(function (): void {
     Route::get('/legislation/{record}', [LegislativeRecordController::class, 'show'])->name('legislation.show');
 
     Route::get('/hris', HrisController::class)->name('hris');
+    Route::get('/hris/dtr', [DtrController::class, 'index'])->name('hris.dtr');
     Route::get('/hris/payroll', PayrollController::class)->name('hris.payroll');
     Route::post('/hris/leave-requests', [LeaveRequestController::class, 'store'])->name('hris.leave.store');
     Route::middleware('hris.admin')->prefix('hris/admin')->group(function (): void {
         Route::get('/', [HrisAdminController::class, 'index'])->name('hris.admin');
         Route::post('/leave-requests/{leaveRequest}/approve', [HrisAdminController::class, 'approve'])->name('hris.leave.approve');
         Route::post('/leave-requests/{leaveRequest}/reject', [HrisAdminController::class, 'reject'])->name('hris.leave.reject');
+
+        Route::post('/dtr/generate', [DtrController::class, 'generate'])->name('hris.dtr.generate');
+        Route::post('/dtr/{period}/lock', [DtrController::class, 'lock'])->name('hris.dtr.lock');
+        Route::post('/payroll/{payroll}/link-dtr', [DtrController::class, 'linkPayroll'])->name('hris.payroll.link-dtr');
 
         Route::get('/lifecycle', [HrisLifecycleController::class, 'index'])->name('hris.lifecycle.index');
         Route::post('/lifecycle/onboarding', [HrisLifecycleController::class, 'storeOnboarding'])->name('hris.lifecycle.onboarding.store');

@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\Department;
 use App\Models\LeaveCreditAccount;
 use App\Models\LeaveCreditTransaction;
 use App\Models\LeaveRequest;
@@ -12,8 +13,11 @@ use Illuminate\Validation\ValidationException;
 
 class LeaveService
 {
-    public function __construct(private readonly AuditLogger $audit)
-    {
+    public function __construct(
+        private readonly AuditLogger $audit,
+        private readonly PlatformNotificationService $notifications,
+        private readonly CalendarService $calendar,
+    ) {
     }
 
     public function submit(User $actor, array $data): LeaveRequest
@@ -43,6 +47,20 @@ class LeaveService
             'status' => 'pending',
         ]);
 
+        $hrmo = Department::query()->where('code', 'HRMO')->first();
+        if ($hrmo) {
+            $this->notifications->notifyDepartment($hrmo, [
+                'event_key' => 'leave-submitted-'.$leave->id,
+                'source_domain' => 'leave',
+                'source_type' => LeaveRequest::class,
+                'source_id' => $leave->id,
+                'priority' => 'action_required',
+                'title' => 'Leave request awaiting review',
+                'message' => $employee->full_name.' submitted '.$type->name.' for '.$leave->start_date->format('M d').' - '.$leave->end_date->format('M d, Y').'.',
+                'action_url' => '/hris/admin',
+            ]);
+        }
+
         $this->audit->record($actor, 'leave.submitted', "Submitted leave request #{$leave->id}.", 'allowed', LeaveRequest::class, $leave->id);
         return $leave->fresh(['leaveType']);
     }
@@ -50,7 +68,7 @@ class LeaveService
     public function approve(User $reviewer, LeaveRequest $leave, ?string $notes = null): LeaveRequest
     {
         return DB::transaction(function () use ($reviewer, $leave, $notes): LeaveRequest {
-            $locked = LeaveRequest::query()->lockForUpdate()->with('leaveType')->findOrFail($leave->id);
+            $locked = LeaveRequest::query()->lockForUpdate()->with(['leaveType', 'employee.user', 'employee.department'])->findOrFail($leave->id);
             if ($locked->status !== 'pending') {
                 throw ValidationException::withMessages(['status' => 'Only pending leave requests may be approved.']);
             }
@@ -75,16 +93,46 @@ class LeaveService
             }
 
             $locked->update(['status' => 'approved', 'reviewed_by_user_id' => $reviewer->id, 'reviewed_at' => now(), 'review_notes' => $notes]);
+            $locked->refresh()->load(['leaveType', 'employee.user', 'employee.department']);
+
+            if ($locked->employee->user) {
+                $this->notifications->notifyUser($locked->employee->user, [
+                    'event_key' => 'leave-approved-'.$locked->id,
+                    'source_domain' => 'leave',
+                    'source_type' => LeaveRequest::class,
+                    'source_id' => $locked->id,
+                    'priority' => 'info',
+                    'title' => 'Leave request approved',
+                    'message' => $locked->leaveType->name.' has been approved for '.$locked->start_date->format('M d').' - '.$locked->end_date->format('M d, Y').'.',
+                    'action_url' => '/hris',
+                ]);
+            }
+
+            $this->calendar->syncApprovedLeave($locked, $reviewer);
             $this->audit->record($reviewer, 'leave.approved', "Approved leave request #{$locked->id}.", 'allowed', LeaveRequest::class, $locked->id);
-            return $locked->fresh(['leaveType', 'employee.user', 'employee.department']);
+            return $locked;
         });
     }
 
     public function reject(User $reviewer, LeaveRequest $leave, ?string $notes = null): LeaveRequest
     {
-        $leave = LeaveRequest::query()->whereKey($leave->id)->where('status', 'pending')->firstOrFail();
+        $leave = LeaveRequest::query()->whereKey($leave->id)->where('status', 'pending')->with(['leaveType', 'employee.user'])->firstOrFail();
         $leave->update(['status' => 'rejected', 'reviewed_by_user_id' => $reviewer->id, 'reviewed_at' => now(), 'review_notes' => $notes]);
+
+        if ($leave->employee->user) {
+            $this->notifications->notifyUser($leave->employee->user, [
+                'event_key' => 'leave-rejected-'.$leave->id,
+                'source_domain' => 'leave',
+                'source_type' => LeaveRequest::class,
+                'source_id' => $leave->id,
+                'priority' => 'info',
+                'title' => 'Leave request reviewed',
+                'message' => $leave->leaveType->name.' request was not approved. Review the HRIS request history for details.',
+                'action_url' => '/hris',
+            ]);
+        }
+
         $this->audit->record($reviewer, 'leave.rejected', "Rejected leave request #{$leave->id}.", 'allowed', LeaveRequest::class, $leave->id);
-        return $leave;
+        return $leave->fresh(['leaveType', 'employee.user']);
     }
 }

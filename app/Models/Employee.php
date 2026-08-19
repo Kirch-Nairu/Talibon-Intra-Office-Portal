@@ -64,6 +64,8 @@ class Employee extends Model
     public function leaveCreditAccounts(): HasMany { return $this->hasMany(LeaveCreditAccount::class); }
     public function leaveRequests(): HasMany { return $this->hasMany(LeaveRequest::class); }
     public function attendanceLogs(): HasMany { return $this->hasMany(AttendanceLog::class); }
+    public function dtrDailySummaries(): HasMany { return $this->hasMany(DtrDailySummary::class); }
+    public function payrollEntries(): HasMany { return $this->hasMany(PayrollEntry::class); }
     public function onboardingCase(): HasOne { return $this->hasOne(OnboardingCase::class); }
     public function movements(): HasMany { return $this->hasMany(EmployeeMovement::class); }
     public function assetAssignments(): HasMany { return $this->hasMany(AssetAssignment::class); }
