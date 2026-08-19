@@ -34,7 +34,7 @@ Authority: `SSOT_BY_KIRCH.md`.
 - Intent: Convert the Kirch SSOT into an engineering sequence for the Aug 21 12:00 PHT target, define workstreams, migration ownership, priority cut line, data/event contracts, authorization principles, acceptance scenarios, verification gates, and honest release labels.
 - Important files / modules: `docs/PHASE_1_PLAN.md`, `docs/ENGINEERING_LOG.md`.
 - Schema / migration impact: None; plan proposes candidate structures but explicitly requires inspection before migrations are created.
-- Verification performed: Documentation-only planning change; no application build/test result is claimed.
+- Verification performed: Documentation-only planning change; no runtime behavior changed and no application test result is claimed.
 - Known gaps / risks: M0 code inspection still required before schema implementation; existing 29-office prototype seeding must be reconciled with the approximately 33-node routing baseline; hard deadline is highly compressed.
 - Next action: Begin P1-M0 repository inspection, establish the compatibility organization model, then implement P1-M1.
 
@@ -87,3 +87,13 @@ Authority: `SSOT_BY_KIRCH.md`.
 - Verification performed: Static design review and feature-test authoring only. Tests cover onboarding blocker enforcement and activation, movement-triggered open-work/property review tasks, persistent employee movement notification, and property issue/return event history. No runtime migration/test/build/CI pass is claimed yet.
 - Known gaps / risks: Runtime controllers and user-facing P1-M4 surfaces are the next commit; property permissions currently exist at the domain-service boundary and will also be enforced at HTTP/controller level; asset inventory/maintenance/disposal depth remains P1-M8; onboarding task completion is manual confirmation except portal identity creation and must not be represented as live biometric/payroll integration.
 - Next action: Add restricted HR lifecycle and property HTTP surfaces, server-side request validation, navigation entry points, then run/observe migration and feature gates before advancing to P1-M5.
+
+## 2026-08-19 21:47 PHT — `feat: expose lifecycle and property accountability workspaces`
+
+- Milestone / requirement: P1-M4 user-facing onboarding/movement/property workflows and authorization hardening.
+- Intent: Expose restricted HR lifecycle controls and the property-accountability workspace, enforce HTTP and domain authorization, prevent future-dated movements from being silently applied, validate supervisors against destination offices, route cross-office review tasks to their owning offices, and prevent private employee fields from leaking through broad directory/HR-admin serialization.
+- Important files / modules: `HrisLifecycleController`, `PropertyController`, lifecycle and property React pages, routes, `EmployeeLifecycleService`, `AssetAccountabilityService`, `HrisAdminController`, `EmployeeDirectoryController`, HTTP/domain feature tests.
+- Schema / migration impact: No new schema beyond the P1-M4 migrations in the preceding commit. This commit consumes and hardens those tables.
+- Verification performed: Static implementation review and feature-test authoring only. Added HTTP tests for HR lifecycle restriction, onboarding blocker response, property read/mutation restrictions, and property registration. Updated domain tests for immediate movement semantics. No runtime migration/test/build/CI pass is claimed yet.
+- Known gaps / risks: GSO-specific featured demo credentials are not yet seeded; inventory/maintenance/disposal and Accounting reconciliation depth remain P1-M8; cross-office task completion UI is still HR-coordinated even though service authorization supports owner-office completion; actual biometric/payroll integrations remain explicit boundaries rather than simulated live integrations.
+- Next action: Run the dedicated migration/feature/type/build gates, fix observed failures, then proceed to P1-M5 leave/attendance/DTR/payroll lifecycle integration.

@@ -83,7 +83,7 @@ class Phase1LifecyclePropertyDomainTest extends TestCase
 
         $movement = app(EmployeeLifecycleService::class)->applyMovement($hr, $employee, [
             'movement_type' => 'transfer',
-            'effective_date' => now()->addDay()->toDateString(),
+            'effective_date' => now()->toDateString(),
             'to_department_id' => $targetDepartment->id,
             'to_position_title' => 'Technical Administrative Officer',
             'reason' => 'Synthetic Phase 1 movement test.',

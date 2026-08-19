@@ -43,6 +43,15 @@ class EmployeeLifecycleService
                 throw ValidationException::withMessages(['work_email' => 'That work email is already assigned to an employee record.']);
             }
 
+            $supervisorId = $data['supervisor_employee_id'] ?? null;
+            if ($supervisorId && ! Employee::query()
+                ->whereKey((int) $supervisorId)
+                ->where('department_id', $department->id)
+                ->where('employment_status', 'active')
+                ->exists()) {
+                throw ValidationException::withMessages(['supervisor_employee_id' => 'The supervisor must be an active employee of the target office.']);
+            }
+
             do {
                 $employeeNumber = sprintf('TAL-ONB-%s-%s', now()->format('ymd'), Str::upper(Str::random(5)));
             } while (Employee::query()->where('employee_number', $employeeNumber)->exists());
@@ -52,7 +61,7 @@ class EmployeeLifecycleService
                 'full_name' => $data['full_name'],
                 'work_email' => $data['work_email'],
                 'department_id' => $department->id,
-                'supervisor_employee_id' => $data['supervisor_employee_id'] ?? null,
+                'supervisor_employee_id' => $supervisorId,
                 'position_title' => $data['position_title'],
                 'employment_status' => 'onboarding',
                 'employment_type' => $data['employment_type'] ?? null,
@@ -66,7 +75,7 @@ class EmployeeLifecycleService
                 'appointment_reference' => $data['appointment_reference'] ?? null,
                 'target_department_id' => $department->id,
                 'target_position_title' => $data['position_title'],
-                'supervisor_employee_id' => $data['supervisor_employee_id'] ?? null,
+                'supervisor_employee_id' => $supervisorId,
                 'planned_start_date' => $data['planned_start_date'] ?? null,
                 'started_by_user_id' => $actor->id,
                 'started_at' => now(),
@@ -132,6 +141,30 @@ class EmployeeLifecycleService
                 'action_url' => '/hris/admin/lifecycle/onboarding/'.$case->id,
             ]);
 
+            $this->notifications->notifyDepartment($department, [
+                'event_key' => 'onboarding-target-office-'.$case->id,
+                'source_domain' => 'hr_onboarding',
+                'source_type' => OnboardingCase::class,
+                'source_id' => $case->id,
+                'priority' => 'info',
+                'title' => 'Employee onboarding planned',
+                'message' => $employee->full_name.' is being onboarded as '.$employee->position_title.'.',
+                'action_url' => '/employees/'.$employee->id,
+            ]);
+
+            if ($gso) {
+                $this->notifications->notifyDepartment($gso, [
+                    'event_key' => 'onboarding-property-review-'.$case->id,
+                    'source_domain' => 'hr_onboarding',
+                    'source_type' => OnboardingCase::class,
+                    'source_id' => $case->id,
+                    'priority' => 'action_required',
+                    'title' => 'Onboarding property review',
+                    'message' => 'Review property issuance requirements for '.$employee->full_name.'.',
+                    'action_url' => '/property',
+                ]);
+            }
+
             $this->audit->record(
                 $actor,
                 'hr.onboarding.started',
@@ -147,10 +180,10 @@ class EmployeeLifecycleService
 
     public function completeOnboardingTask(User $actor, OnboardingTask $task, ?string $notes = null): OnboardingTask
     {
-        $this->assertHrActor($actor);
-
         return DB::transaction(function () use ($actor, $task, $notes): OnboardingTask {
             $locked = OnboardingTask::query()->lockForUpdate()->findOrFail($task->id);
+            $this->assertTaskActor($actor, $locked->owner_department_id);
+
             if (in_array($locked->status, ['completed', 'waived'], true)) {
                 return $locked;
             }
@@ -167,6 +200,10 @@ class EmployeeLifecycleService
                 }
 
                 $existing = User::query()->where('email', $employee->work_email)->first();
+                if ($existing) {
+                    $existing->loadMissing('employee');
+                }
+
                 if ($existing?->employee && (int) $existing->employee->id !== (int) $employee->id) {
                     throw ValidationException::withMessages(['task' => 'The work email is already linked to another employee.']);
                 }
@@ -182,6 +219,7 @@ class EmployeeLifecycleService
                 if ($user->is_active) {
                     $user->update(['is_active' => false]);
                 }
+
                 $employee->update(['user_id' => $user->id]);
             }
 
@@ -240,6 +278,11 @@ class EmployeeLifecycleService
             $employee->update(['employment_status' => 'active']);
             $employee->user->update(['is_active' => true]);
 
+            CalendarEvent::query()
+                ->where('event_key', 'onboarding-start-'.$locked->id)
+                ->where('starts_at', '<=', now())
+                ->update(['status' => 'completed']);
+
             $this->notifications->notifyUser($employee->user, [
                 'event_key' => 'onboarding-completed-'.$locked->id,
                 'source_domain' => 'hr_onboarding',
@@ -270,6 +313,15 @@ class EmployeeLifecycleService
 
         return DB::transaction(function () use ($actor, $employee, $data): EmployeeMovement {
             $lockedEmployee = Employee::query()->with(['department', 'user'])->lockForUpdate()->findOrFail($employee->id);
+            if ($lockedEmployee->employment_status !== 'active') {
+                throw ValidationException::withMessages(['employee' => 'Employment movement can only be applied to an active employee.']);
+            }
+
+            $effectiveDate = Carbon::parse($data['effective_date'])->startOfDay();
+            if ($effectiveDate->isFuture()) {
+                throw ValidationException::withMessages(['effective_date' => 'This action applies immediately. Use today or an earlier effective date. Scheduled movements require a separate approval workflow.']);
+            }
+
             $targetDepartment = Department::query()->activeRoutable()->whereKey((int) $data['to_department_id'])->first();
             if (! $targetDepartment) {
                 throw ValidationException::withMessages(['to_department_id' => 'Select an active routable destination office.']);
@@ -281,6 +333,14 @@ class EmployeeLifecycleService
 
             $newPosition = $data['to_position_title'] ?? $lockedEmployee->position_title;
             $newSupervisor = $data['new_supervisor_employee_id'] ?? $lockedEmployee->supervisor_employee_id;
+            if ($newSupervisor && ! Employee::query()
+                ->whereKey((int) $newSupervisor)
+                ->where('department_id', $targetDepartment->id)
+                ->where('employment_status', 'active')
+                ->exists()) {
+                throw ValidationException::withMessages(['new_supervisor_employee_id' => 'The new supervisor must be an active employee of the destination office.']);
+            }
+
             if ((int) $targetDepartment->id === (int) $lockedEmployee->department_id
                 && $newPosition === $lockedEmployee->position_title
                 && (int) ($newSupervisor ?? 0) === (int) ($lockedEmployee->supervisor_employee_id ?? 0)) {
@@ -288,10 +348,11 @@ class EmployeeLifecycleService
             }
 
             $fromDepartmentId = $lockedEmployee->department_id;
+            $officeChanged = (int) $targetDepartment->id !== (int) $fromDepartmentId;
             $movement = EmployeeMovement::query()->create([
                 'employee_id' => $lockedEmployee->id,
                 'movement_type' => $data['movement_type'],
-                'effective_date' => $data['effective_date'],
+                'effective_date' => $effectiveDate->toDateString(),
                 'from_department_id' => $fromDepartmentId,
                 'to_department_id' => $targetDepartment->id,
                 'from_position_title' => $lockedEmployee->position_title,
@@ -322,12 +383,15 @@ class EmployeeLifecycleService
 
             $hr = Department::query()->where('code', 'HRMO')->first();
             $gso = Department::query()->where('code', 'GSO')->first();
-            $dueAt = Carbon::parse($data['effective_date'])->addDays(3)->endOfDay();
+            $oldOffice = Department::query()->find($fromDepartmentId);
+            $dueAt = now()->addDays(3)->endOfDay();
+            $workReviewRequired = $officeChanged && $openWorkCount > 0;
+            $propertyReviewRequired = $officeChanged && $propertyCount > 0;
 
             foreach ([
                 ['access_review', 'Review roles and office access after movement', $hr?->id, true, 'pending'],
-                ['open_work_reassignment', 'Review and reassign open work items', $hr?->id, $openWorkCount > 0, $openWorkCount > 0 ? 'pending' : 'not_required'],
-                ['property_accountability_review', 'Review assigned property and office accountability', $gso?->id, $propertyCount > 0, $propertyCount > 0 ? 'pending' : 'not_required'],
+                ['open_work_reassignment', 'Review and reassign open work items', $oldOffice?->id, $workReviewRequired, $workReviewRequired ? 'pending' : 'not_required'],
+                ['property_accountability_review', 'Review assigned property and office accountability', $gso?->id, $propertyReviewRequired, $propertyReviewRequired ? 'pending' : 'not_required'],
             ] as [$key, $title, $ownerDepartmentId, $required, $status]) {
                 EmployeeMovementTask::query()->create([
                     'employee_movement_id' => $movement->id,
@@ -348,12 +412,25 @@ class EmployeeLifecycleService
                     'source_id' => $movement->id,
                     'priority' => 'action_required',
                     'title' => 'Employment movement recorded',
-                    'message' => 'Your office or employment assignment has been updated effective '.Carbon::parse($data['effective_date'])->toFormattedDateString().'.',
+                    'message' => 'Your office or employment assignment was updated effective '.$effectiveDate->toFormattedDateString().'.',
                     'action_url' => '/employees/'.$lockedEmployee->id,
                 ]);
             }
 
-            if ($propertyCount > 0 && $gso) {
+            if ($workReviewRequired && $oldOffice) {
+                $this->notifications->notifyDepartment($oldOffice, [
+                    'event_key' => 'movement-work-review-'.$movement->id,
+                    'source_domain' => 'hr_movement',
+                    'source_type' => EmployeeMovement::class,
+                    'source_id' => $movement->id,
+                    'priority' => 'action_required',
+                    'title' => 'Open work reassignment required',
+                    'message' => $lockedEmployee->full_name.' moved offices with '.$openWorkCount.' open assigned work item(s).',
+                    'action_url' => '/transactions',
+                ]);
+            }
+
+            if ($propertyReviewRequired && $gso) {
                 $this->notifications->notifyDepartment($gso, [
                     'event_key' => 'movement-property-review-'.$movement->id,
                     'source_domain' => 'hr_movement',
@@ -369,7 +446,7 @@ class EmployeeLifecycleService
             $this->audit->record(
                 $actor,
                 'hr.employee.movement_applied',
-                'Applied '.$movement->movement_type.' for '.$lockedEmployee->employee_number.' from office '.($fromDepartmentId ?? 'none').' to '.$targetDepartment->code.'.',
+                'Applied '.$movement->movement_type.' for '.$lockedEmployee->employee_number.' from office '.($oldOffice?->code ?? 'none').' to '.$targetDepartment->code.'.',
                 'allowed',
                 EmployeeMovement::class,
                 $movement->id,
@@ -381,10 +458,10 @@ class EmployeeLifecycleService
 
     public function completeMovementTask(User $actor, EmployeeMovementTask $task, ?string $notes = null): EmployeeMovementTask
     {
-        $this->assertHrActor($actor);
-
         return DB::transaction(function () use ($actor, $task, $notes): EmployeeMovementTask {
             $locked = EmployeeMovementTask::query()->lockForUpdate()->findOrFail($task->id);
+            $this->assertTaskActor($actor, $locked->owner_department_id);
+
             if (in_array($locked->status, ['completed', 'not_required', 'waived'], true)) {
                 return $locked;
             }
@@ -411,12 +488,32 @@ class EmployeeLifecycleService
 
     private function assertHrActor(User $actor): void
     {
-        $actor->loadMissing('employee.department');
-        $allowed = $actor->isRole('system_admin', 'hr_officer')
-            && ($actor->isRole('system_admin') || $actor->employee?->department?->code === 'HRMO');
-
-        if (! $allowed) {
+        if (! $this->isHrActor($actor)) {
             throw ValidationException::withMessages(['authorization' => 'Authorized HR administration is required.']);
         }
+    }
+
+    private function assertTaskActor(User $actor, ?int $ownerDepartmentId): void
+    {
+        if ($this->isHrActor($actor)) {
+            return;
+        }
+
+        $actor->loadMissing('employee.department');
+        $isOwnerOffice = $ownerDepartmentId !== null
+            && (int) ($actor->employee?->department_id ?? 0) === (int) $ownerDepartmentId;
+        $hasOfficeAuthority = $actor->isRole('department_head', 'department_staff', 'legislative_staff', 'mayor_staff');
+
+        if (! $isOwnerOffice || ! $hasOfficeAuthority) {
+            throw ValidationException::withMessages(['authorization' => 'The owning office or authorized HR administration must complete this task.']);
+        }
+    }
+
+    private function isHrActor(User $actor): bool
+    {
+        $actor->loadMissing('employee.department');
+
+        return $actor->isRole('system_admin')
+            || ($actor->isRole('hr_officer') && $actor->employee?->department?->code === 'HRMO');
     }
 }

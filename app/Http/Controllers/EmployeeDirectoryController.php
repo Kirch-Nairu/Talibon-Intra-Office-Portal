@@ -18,6 +18,7 @@ class EmployeeDirectoryController extends Controller
         $departmentCode = trim((string) $request->query('department', ''));
 
         $employees = Employee::query()
+            ->select(['id', 'employee_number', 'full_name', 'work_email', 'user_id', 'department_id', 'position_title', 'employment_status'])
             ->with('department:id,code,name,short_name')
             ->where('employment_status', 'active')
             ->when($search !== '', function (Builder $query) use ($search): void {
@@ -53,14 +54,14 @@ class EmployeeDirectoryController extends Controller
                 'department' => $departmentCode,
             ],
             'departments' => Department::query()
-                ->where('is_active', true)
+                ->activeRoutable()
                 ->orderBy('name')
                 ->get(['code', 'name', 'short_name']),
             'summary' => [
                 'employees' => Employee::query()->where('employment_status', 'active')->count(),
                 'portalAccounts' => Employee::query()->where('employment_status', 'active')->whereNotNull('user_id')->count(),
                 'featuredLogins' => User::query()->whereIn('email', $featuredEmails)->where('is_active', true)->count(),
-                'offices' => Department::query()->where('is_active', true)->count(),
+                'offices' => Department::query()->activeRoutable()->count(),
             ],
         ]);
     }

@@ -9,6 +9,7 @@ use App\Http\Controllers\EmployeeDirectoryController;
 use App\Http\Controllers\EmployeeProfileController;
 use App\Http\Controllers\HrisAdminController;
 use App\Http\Controllers\HrisController;
+use App\Http\Controllers\HrisLifecycleController;
 use App\Http\Controllers\LeaveRequestController;
 use App\Http\Controllers\LegislativeRecordController;
 use App\Http\Controllers\MayorOfficeController;
@@ -16,6 +17,7 @@ use App\Http\Controllers\MemorandumController;
 use App\Http\Controllers\OperationsMonitoringController;
 use App\Http\Controllers\PayrollController;
 use App\Http\Controllers\PlatformNotificationController;
+use App\Http\Controllers\PropertyController;
 use App\Http\Controllers\ReportsController;
 use App\Http\Controllers\TransactionController;
 use Illuminate\Support\Facades\Route;
@@ -33,6 +35,10 @@ Route::middleware('auth')->group(function (): void {
     Route::get('/employees/{employee}', EmployeeProfileController::class)->name('employees.show');
     Route::get('/calendar', CalendarController::class)->name('calendar.index');
     Route::get('/operations', OperationsMonitoringController::class)->name('operations.index');
+    Route::get('/property', [PropertyController::class, 'index'])->name('property.index');
+    Route::post('/property', [PropertyController::class, 'store'])->name('property.store');
+    Route::post('/property/{asset}/assign', [PropertyController::class, 'assign'])->name('property.assign');
+    Route::post('/property/{asset}/return', [PropertyController::class, 'returnAsset'])->name('property.return');
     Route::get('/reports', [ReportsController::class, 'index'])->name('reports.index');
     Route::get('/reports/export/{report}', [ReportsController::class, 'export'])->name('reports.export');
 
@@ -65,6 +71,14 @@ Route::middleware('auth')->group(function (): void {
         Route::get('/', [HrisAdminController::class, 'index'])->name('hris.admin');
         Route::post('/leave-requests/{leaveRequest}/approve', [HrisAdminController::class, 'approve'])->name('hris.leave.approve');
         Route::post('/leave-requests/{leaveRequest}/reject', [HrisAdminController::class, 'reject'])->name('hris.leave.reject');
+
+        Route::get('/lifecycle', [HrisLifecycleController::class, 'index'])->name('hris.lifecycle.index');
+        Route::post('/lifecycle/onboarding', [HrisLifecycleController::class, 'storeOnboarding'])->name('hris.lifecycle.onboarding.store');
+        Route::get('/lifecycle/onboarding/{case}', [HrisLifecycleController::class, 'showOnboarding'])->name('hris.lifecycle.onboarding.show');
+        Route::post('/lifecycle/onboarding/tasks/{task}/complete', [HrisLifecycleController::class, 'completeOnboardingTask'])->name('hris.lifecycle.onboarding.tasks.complete');
+        Route::post('/lifecycle/onboarding/{case}/complete', [HrisLifecycleController::class, 'completeOnboarding'])->name('hris.lifecycle.onboarding.complete');
+        Route::post('/lifecycle/employees/{employee}/movements', [HrisLifecycleController::class, 'applyMovement'])->name('hris.lifecycle.movements.store');
+        Route::post('/lifecycle/movement-tasks/{task}/complete', [HrisLifecycleController::class, 'completeMovementTask'])->name('hris.lifecycle.movement.tasks.complete');
     });
 
     Route::get('/audit', AuditController::class)->name('audit');

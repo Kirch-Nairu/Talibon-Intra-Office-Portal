@@ -201,10 +201,12 @@ class AssetAccountabilityService
     private function assertPropertyManager(User $actor): void
     {
         $actor->loadMissing('employee.department');
-        $allowed = $actor->isRole('system_admin') || $actor->employee?->department?->code === 'GSO';
+        $isGsoManager = $actor->employee?->department?->code === 'GSO'
+            && $actor->isRole('department_head', 'department_staff');
+        $allowed = $actor->isRole('system_admin') || $isGsoManager;
 
         if (! $allowed) {
-            throw ValidationException::withMessages(['authorization' => 'GSO or system administration authority is required for property mutations.']);
+            throw ValidationException::withMessages(['authorization' => 'Authorized GSO property personnel or system administration is required for property mutations.']);
         }
     }
 }

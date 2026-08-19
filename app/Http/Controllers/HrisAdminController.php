@@ -15,8 +15,20 @@ class HrisAdminController extends Controller
     public function index(): Response
     {
         return Inertia::render('Hris/Admin', [
-            'employees' => Employee::query()->with(['user:id,name,email', 'department:id,code,name,short_name'])->orderBy('employee_number')->get(),
-            'pending' => LeaveRequest::query()->where('status', 'pending')->with(['employee.user:id,name', 'employee.department:id,name,short_name', 'leaveType'])->oldest()->get(),
+            'employees' => Employee::query()
+                ->with(['user:id,name,email', 'department:id,code,name,short_name'])
+                ->orderBy('employee_number')
+                ->get(['id', 'employee_number', 'full_name', 'user_id', 'department_id', 'position_title', 'employment_status']),
+            'pending' => LeaveRequest::query()
+                ->where('status', 'pending')
+                ->with([
+                    'employee:id,employee_number,full_name,user_id,department_id,position_title',
+                    'employee.user:id,name',
+                    'employee.department:id,name,short_name',
+                    'leaveType',
+                ])
+                ->oldest()
+                ->get(),
         ]);
     }
 
