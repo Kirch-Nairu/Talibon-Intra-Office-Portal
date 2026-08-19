@@ -13,8 +13,11 @@ use Illuminate\Validation\ValidationException;
 
 class TransactionWorkflowService
 {
-    public function __construct(private readonly AuditLogger $audit)
-    {
+    public function __construct(
+        private readonly AuditLogger $audit,
+        private readonly PlatformNotificationService $notifications,
+        private readonly CalendarService $calendar,
+    ) {
     }
 
     public function create(User $actor, array $data): WorkflowTransaction
@@ -64,7 +67,7 @@ class TransactionWorkflowService
                 'reference_no' => sprintf('TAL-%s-%06d', now()->format('Y'), $transaction->id),
             ]);
 
-            TransactionEvent::query()->create([
+            $event = TransactionEvent::query()->create([
                 'transaction_id' => $transaction->id,
                 'actor_user_id' => $actor->id,
                 'from_department_id' => $originDepartmentId,
@@ -84,6 +87,18 @@ class TransactionWorkflowService
                 WorkflowTransaction::class,
                 $transaction->id,
             );
+
+            $this->notifications->notifyDepartment($targetDepartment, [
+                'event_key' => 'transaction-event-'.$event->id,
+                'source_domain' => 'transaction',
+                'source_type' => WorkflowTransaction::class,
+                'source_id' => $transaction->id,
+                'priority' => $this->notificationPriority($transaction->priority),
+                'title' => $targetDepartment->code === 'MAYOR' ? 'Executive action required' : 'New transaction received',
+                'message' => $transaction->reference_no.' · '.$transaction->title,
+                'action_url' => '/transactions/'.$transaction->id,
+            ]);
+            $this->calendar->syncTransactionDue($transaction);
 
             return $transaction->fresh(['originDepartment', 'currentDepartment', 'creator', 'assignedEmployee']);
         });
@@ -191,7 +206,7 @@ class TransactionWorkflowService
                 'completed_at' => $completedAt,
             ]);
 
-            TransactionEvent::query()->create([
+            $event = TransactionEvent::query()->create([
                 'transaction_id' => $locked->id,
                 'actor_user_id' => $actor->id,
                 'from_department_id' => $fromDepartmentId,
@@ -212,7 +227,63 @@ class TransactionWorkflowService
                 $locked->id,
             );
 
+            if ($action === 'assign' && $assignment) {
+                $assigned = Employee::query()->with('user')->find($assignment);
+                if ($assigned?->user) {
+                    $this->notifications->notifyUser($assigned->user, [
+                        'event_key' => 'transaction-event-'.$event->id,
+                        'department_id' => $toDepartmentId,
+                        'source_domain' => 'transaction',
+                        'source_type' => WorkflowTransaction::class,
+                        'source_id' => $locked->id,
+                        'priority' => 'action_required',
+                        'title' => 'Work assigned to you',
+                        'message' => $locked->reference_no.' · '.$locked->title,
+                        'action_url' => '/transactions/'.$locked->id,
+                    ]);
+                }
+            } elseif (in_array($action, ['forward', 'send_to_mayor', 'return_origin', 'request_information'], true)) {
+                $recipientOffice = Department::query()->activeRoutable()->find($toDepartmentId);
+                if ($recipientOffice) {
+                    $this->notifications->notifyDepartment($recipientOffice, [
+                        'event_key' => 'transaction-event-'.$event->id,
+                        'source_domain' => 'transaction',
+                        'source_type' => WorkflowTransaction::class,
+                        'source_id' => $locked->id,
+                        'priority' => $this->notificationPriority($locked->priority),
+                        'title' => $recipientOffice->code === 'MAYOR' ? 'Executive action required' : 'Transaction routed to your office',
+                        'message' => $locked->reference_no.' · '.$locked->title,
+                        'action_url' => '/transactions/'.$locked->id,
+                    ]);
+                }
+            } elseif (in_array($action, ['approve', 'disapprove'], true)) {
+                $originOffice = Department::query()->activeRoutable()->find($locked->origin_department_id);
+                if ($originOffice) {
+                    $this->notifications->notifyDepartment($originOffice, [
+                        'event_key' => 'transaction-event-'.$event->id,
+                        'source_domain' => 'transaction',
+                        'source_type' => WorkflowTransaction::class,
+                        'source_id' => $locked->id,
+                        'priority' => 'action_required',
+                        'title' => $action === 'approve' ? 'Transaction approved' : 'Transaction disapproved',
+                        'message' => $locked->reference_no.' · '.$locked->title,
+                        'action_url' => '/transactions/'.$locked->id,
+                    ]);
+                }
+            }
+
+            $this->calendar->syncTransactionDue($locked);
+
             return $locked->fresh(['originDepartment', 'currentDepartment', 'creator', 'assignedEmployee']);
         });
+    }
+
+    private function notificationPriority(string $priority): string
+    {
+        return match ($priority) {
+            'urgent' => 'urgent',
+            'high' => 'action_required',
+            default => 'info',
+        };
     }
 }

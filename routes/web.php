@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\AuditController;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
+use App\Http\Controllers\CalendarController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DepartmentController;
 use App\Http\Controllers\EmployeeDirectoryController;
@@ -13,6 +14,7 @@ use App\Http\Controllers\MayorOfficeController;
 use App\Http\Controllers\MemorandumController;
 use App\Http\Controllers\OperationsMonitoringController;
 use App\Http\Controllers\PayrollController;
+use App\Http\Controllers\PlatformNotificationController;
 use App\Http\Controllers\ReportsController;
 use App\Http\Controllers\TransactionController;
 use Illuminate\Support\Facades\Route;
@@ -27,9 +29,13 @@ Route::middleware('auth')->group(function (): void {
     Route::get('/dashboard', DashboardController::class)->name('dashboard');
     Route::get('/departments', DepartmentController::class)->name('departments.index');
     Route::get('/employees', EmployeeDirectoryController::class)->name('employees.index');
+    Route::get('/calendar', CalendarController::class)->name('calendar.index');
     Route::get('/operations', OperationsMonitoringController::class)->name('operations.index');
     Route::get('/reports', [ReportsController::class, 'index'])->name('reports.index');
     Route::get('/reports/export/{report}', [ReportsController::class, 'export'])->name('reports.export');
+
+    Route::post('/notifications/{notification}/read', [PlatformNotificationController::class, 'markRead'])->name('notifications.read');
+    Route::post('/notifications/{notification}/acknowledge', [PlatformNotificationController::class, 'acknowledge'])->name('notifications.acknowledge');
 
     Route::get('/transactions', [TransactionController::class, 'index'])->name('transactions.index');
     Route::get('/transactions/create', [TransactionController::class, 'create'])->name('transactions.create');

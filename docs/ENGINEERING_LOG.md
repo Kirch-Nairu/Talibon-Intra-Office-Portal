@@ -57,3 +57,13 @@ Authority: `SSOT_BY_KIRCH.md`.
 - Verification performed: Added a feature test proving non-routable destinations are rejected and existing legislative routing remains auditable. Static inspection completed; CI/runtime result is not claimed until observed.
 - Known gaps / risks: Existing transaction detail transition UI is not yet visually grouped by branch even though the backend now filters to routable offices; acting/delegated assignments remain pending; office-specific workspace pages are still shared-directory level.
 - Next action: Observe CI for the first Phase 1 runtime commits, fix any gate failures, then start P1-M2 shared documents/notifications/calendar followed by employee-profile and HR lifecycle work.
+
+## 2026-08-19 21:14 PHT — `feat: add persistent notifications calendar and shared document foundation`
+
+- Milestone / requirement: P1-M2 shared documents, notifications, and calendar foundation.
+- Intent: Replace transaction-arrival notification truth with persistent deduplicated per-user records for new Phase 1 events, preserve legacy M6 event-derived notifications only as a pre-cutover fallback, create a shared municipal calendar domain, generate workflow-deadline events, and establish reusable protected document metadata/link records for later HR/property/legislative attachments.
+- Important files / modules: notification/calendar/document migrations and models; `PlatformNotificationService`; `CalendarService`; transaction workflow side effects; Inertia shared notifications; calendar page/controller; notification read/ack endpoints; shared platform feature tests.
+- Schema / migration impact: Adds `platform_notifications`, `calendar_events`, `documents`, and `document_links`. No existing memo, transaction, HR, or legislative tables are removed or renamed.
+- Verification performed: Static repository inspection and test authoring only. Added tests for persistent transaction notifications, notification deduplication/acknowledgement, deadline calendar generation/visibility, and shared document linking. No runtime test/build/CI pass is claimed yet.
+- Known gaps / risks: Actual binary upload/download authorization is not implemented in this foundation commit; calendar currently surfaces routed-work deadlines and is ready for HR/legislative/property publishers; notification acknowledgement UI beyond memoranda is not yet surfaced; Reverb/WebSocket transport is still deferred and polling remains the UI fallback.
+- Next action: Observe/fix runtime gates, then proceed directly to P1-M3 employee profile/201-file foundation and P1-M4 onboarding/movement/basic property accountability.

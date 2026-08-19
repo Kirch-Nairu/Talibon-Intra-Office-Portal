@@ -30,13 +30,17 @@ export type PendingMemo = {
 };
 
 export type LiveNotification = {
+    id?: number;
     key: string;
     type: 'memorandum' | 'transaction' | string;
     title: string;
     message: string;
     url: string;
+    read_url?: string | null;
+    acknowledgement_url?: string | null;
     created_at?: string | null;
     urgent: boolean;
+    requires_acknowledgement?: boolean;
 };
 
 export type SharedProps = {
@@ -45,6 +49,7 @@ export type SharedProps = {
     auth: { user: AuthUser | null };
     pendingMemo: PendingMemo | null;
     unreadMemoCount: number;
+    unreadPlatformNotificationCount: number;
     notifications: LiveNotification[];
     notificationCount: number;
     flash: { success?: string; error?: string };

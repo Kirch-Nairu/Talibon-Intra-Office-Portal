@@ -3,6 +3,7 @@
 namespace App\Http\Middleware;
 
 use App\Models\MemoRecipient;
+use App\Models\PlatformNotification;
 use App\Models\TransactionEvent;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
@@ -16,6 +17,7 @@ class HandleInertiaRequests extends Middleware
         $user = $request->user()?->loadMissing('employee.department');
         $pendingMemo = null;
         $unreadMemoCount = 0;
+        $unreadPlatformNotificationCount = 0;
         $notifications = [];
 
         if ($user) {
@@ -61,13 +63,44 @@ class HandleInertiaRequests extends Middleware
                     'url' => '/memoranda/'.$recipient->memorandum->id,
                     'created_at' => $recipient->delivered_at?->toIso8601String(),
                     'urgent' => (bool) $recipient->memorandum->requires_acknowledgement,
+                    'requires_acknowledgement' => (bool) $recipient->memorandum->requires_acknowledgement,
+                ])
+                ->all();
+
+            $platformBase = PlatformNotification::query()
+                ->where('user_id', $user->id)
+                ->where(function ($expiry): void {
+                    $expiry->whereNull('expires_at')->orWhere('expires_at', '>', now());
+                });
+
+            $hasPlatformHistory = (clone $platformBase)->exists();
+            $unreadPlatformNotificationCount = (clone $platformBase)->whereNull('read_at')->count();
+            $platformNotifications = (clone $platformBase)
+                ->whereNull('read_at')
+                ->latest('created_at')
+                ->limit(6)
+                ->get()
+                ->map(fn (PlatformNotification $notification): array => [
+                    'id' => $notification->id,
+                    'key' => 'platform-'.$notification->id,
+                    'type' => $notification->source_domain,
+                    'title' => $notification->title,
+                    'message' => $notification->message,
+                    'url' => $notification->action_url ?? '/dashboard',
+                    'read_url' => '/notifications/'.$notification->id.'/read',
+                    'acknowledgement_url' => $notification->requires_acknowledgement
+                        ? '/notifications/'.$notification->id.'/acknowledge'
+                        : null,
+                    'created_at' => $notification->created_at?->toIso8601String(),
+                    'urgent' => in_array($notification->priority, ['urgent', 'critical', 'action_required', 'acknowledgement_required'], true),
+                    'requires_acknowledgement' => $notification->requires_acknowledgement,
                 ])
                 ->all();
 
             $workflowNotifications = [];
             $departmentId = $user->employee?->department_id;
 
-            if ($departmentId) {
+            if (! $hasPlatformHistory && $departmentId) {
                 $workflowNotifications = TransactionEvent::query()
                     ->with([
                         'transaction:id,reference_no,title,priority,status,current_department_id',
@@ -103,9 +136,9 @@ class HandleInertiaRequests extends Middleware
                     ->all();
             }
 
-            $notifications = collect([...$memoNotifications, ...$workflowNotifications])
+            $notifications = collect([...$memoNotifications, ...$platformNotifications, ...$workflowNotifications])
                 ->sortByDesc('created_at')
-                ->take(8)
+                ->take(10)
                 ->values()
                 ->all();
         }
@@ -127,12 +160,16 @@ class HandleInertiaRequests extends Middleware
                             'code' => $user->employee->department->code,
                             'name' => $user->employee->department->name,
                             'short_name' => $user->employee->department->short_name,
+                            'branch' => $user->employee->department->branch,
+                            'office_type' => $user->employee->department->office_type,
+                            'is_routable' => $user->employee->department->is_routable,
                         ] : null,
                     ] : null,
                 ] : null,
             ],
             'pendingMemo' => $pendingMemo,
             'unreadMemoCount' => $unreadMemoCount,
+            'unreadPlatformNotificationCount' => $unreadPlatformNotificationCount,
             'notifications' => $notifications,
             'notificationCount' => count($notifications),
             'flash' => [
