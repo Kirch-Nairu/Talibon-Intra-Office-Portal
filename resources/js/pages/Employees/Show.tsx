@@ -1,5 +1,5 @@
 import { Link } from '@inertiajs/react';
-import { BriefcaseBusiness, FileText, IdCard, LockKeyhole, ShieldCheck, UserRound } from 'lucide-react';
+import { Award, BriefcaseBusiness, FileText, HeartPulse, IdCard, LockKeyhole, ShieldCheck, UserRound } from 'lucide-react';
 import AppLayout from '../../layouts/AppLayout';
 
 type Employee = {
@@ -17,6 +17,8 @@ type EmploymentProfile = { employment_type?: string | null; appointment_date?: s
 type PrivateProfile = { date_of_birth?: string | null; personal_email?: string | null; mobile_number?: string | null; home_address?: string | null; emergency_contact_name?: string | null; emergency_contact_relationship?: string | null; emergency_contact_phone?: string | null; government_ids: { gsis?: string | null; philhealth?: string | null; pagibig?: string | null; tin?: string | null } };
 type Document = { id: number; public_id: string; title: string; document_type: string; classification: string; retention_code?: string | null; created_at?: string | null };
 type Assignment = { id: number; reference_no: string; title: string; priority: string; status: string; due_at?: string | null };
+type Performance = { id: number; period_start: string; period_end: string; rating?: string | null; rating_scale?: string | null; status: string; summary?: string | null; reviewed_at?: string | null };
+type Development = { id: number; record_type: string; title: string; provider?: string | null; reference_no?: string | null; attained_at?: string | null; expires_at?: string | null; status: string };
 
 type Props = {
     employee: Employee;
@@ -24,12 +26,14 @@ type Props = {
     privateProfile: PrivateProfile | null;
     documents: Document[];
     activeAssignments: Assignment[];
-    permissions: { isSelf: boolean; canViewPrivate: boolean; canViewHrRecord: boolean; canViewWorkContext: boolean; healthVaultAccess: boolean };
+    performanceRecords: Performance[];
+    developmentRecords: Development[];
+    permissions: { isSelf: boolean; canViewPrivate: boolean; canViewHrRecord: boolean; canViewWorkContext: boolean; healthVaultAccess: boolean; canManageHealthAccess: boolean };
 };
 
 const value = (input?: string | null) => input || 'Not recorded';
 
-export default function Show({ employee, employmentProfile, privateProfile, documents, activeAssignments, permissions }: Props) {
+export default function Show({ employee, employmentProfile, privateProfile, documents, activeAssignments, performanceRecords, developmentRecords, permissions }: Props) {
     return <AppLayout title="Employee Profile">
         <div className="mx-auto max-w-6xl space-y-6">
             <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm md:p-8">
@@ -47,12 +51,16 @@ export default function Show({ employee, employmentProfile, privateProfile, docu
             </div>
 
             <div className="grid gap-6 lg:grid-cols-2">
+                <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm"><div className="flex items-center gap-2"><Award size={19} className="text-blue-800" /><h2 className="font-bold text-slate-950">Performance & development</h2></div>{permissions.canViewHrRecord ? <div className="mt-4 space-y-4"><div><div className="text-xs font-bold uppercase text-slate-400">Performance records</div><div className="mt-2 space-y-2">{performanceRecords.map((record) => <div key={record.id} className="rounded-xl border border-slate-200 px-4 py-3"><div className="font-semibold text-slate-900">{record.period_start} – {record.period_end}</div><div className="mt-1 text-xs text-slate-500">{record.rating ? `Rating ${record.rating}${record.rating_scale ? ` · ${record.rating_scale}` : ''}` : 'No numeric rating'} · {record.status}</div>{record.summary && <div className="mt-2 text-xs text-slate-600">{record.summary}</div>}</div>)}{performanceRecords.length === 0 && <div className="rounded-xl bg-slate-50 p-3 text-sm text-slate-500">No performance record yet.</div>}</div></div><div><div className="text-xs font-bold uppercase text-slate-400">Training / certification / competency / eligibility</div><div className="mt-2 space-y-2">{developmentRecords.map((record) => <div key={record.id} className="rounded-xl border border-slate-200 px-4 py-3"><div className="text-[10px] font-bold uppercase text-blue-700">{record.record_type}</div><div className="mt-1 font-semibold text-slate-900">{record.title}</div><div className="mt-1 text-xs text-slate-500">{record.provider || 'Provider not recorded'}{record.expires_at ? ` · expires ${record.expires_at}` : ''}</div></div>)}{developmentRecords.length === 0 && <div className="rounded-xl bg-slate-50 p-3 text-sm text-slate-500">No development or eligibility record yet.</div>}</div></div></div> : <div className="mt-5 text-sm text-slate-500">Performance and development history is restricted.</div>}</section>
+
+                <section className="rounded-3xl border border-rose-200 bg-rose-50 p-6"><div className="flex items-center gap-2"><HeartPulse size={19} className="text-rose-800" /><h2 className="font-bold text-rose-950">Restricted employee health vault</h2></div><p className="mt-3 text-sm leading-6 text-rose-900">Employment/occupational-health records use an explicit access grant separate from normal HR and system-administration privileges. RHU clinical patient history is outside this system.</p>{permissions.healthVaultAccess ? <Link href={`/hris/health/${employee.id}`} className="mt-4 inline-flex rounded-xl bg-rose-900 px-4 py-2.5 text-sm font-semibold text-white">Open restricted vault</Link> : <div className="mt-4 rounded-xl border border-rose-200 bg-white/70 p-3 text-sm font-semibold text-rose-900">No active explicit vault grant for this account.</div>}{permissions.canManageHealthAccess && <Link href="/hris/health-access" className="mt-3 block w-fit text-sm font-semibold text-rose-800 underline">Manage explicit access policy</Link>}</section>
+            </div>
+
+            <div className="grid gap-6 lg:grid-cols-2">
                 <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm"><div className="flex items-center gap-2"><FileText size={19} className="text-blue-800" /><h2 className="font-bold text-slate-950">201-file document foundation</h2></div>{permissions.canViewHrRecord ? <div className="mt-4 space-y-2">{documents.map((document) => <div key={document.id} className="rounded-xl border border-slate-200 px-4 py-3"><div className="font-semibold text-slate-900">{document.title}</div><div className="mt-1 text-xs uppercase text-slate-400">{document.document_type.replaceAll('_', ' ')} · {document.classification}</div></div>)}{documents.length === 0 && <div className="rounded-xl bg-slate-50 p-4 text-sm text-slate-500">No employee-linked document metadata yet. Binary upload and protected retrieval are a later document-service step.</div>}</div> : <div className="mt-5 text-sm text-slate-500">201-file metadata is restricted.</div>}</section>
 
                 <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm"><div className="flex items-center gap-2"><BriefcaseBusiness size={19} className="text-blue-800" /><h2 className="font-bold text-slate-950">Active assigned work</h2></div>{permissions.canViewWorkContext ? <div className="mt-4 space-y-2">{activeAssignments.map((assignment) => <Link key={assignment.id} href={`/transactions/${assignment.id}`} className="block rounded-xl border border-slate-200 px-4 py-3 hover:bg-slate-50"><div className="text-xs font-bold text-blue-700">{assignment.reference_no}</div><div className="mt-1 font-semibold text-slate-900">{assignment.title}</div><div className="mt-1 text-xs uppercase text-slate-400">{assignment.priority} · {assignment.status}</div></Link>)}{activeAssignments.length === 0 && <div className="rounded-xl bg-slate-50 p-4 text-sm text-slate-500">No active assignments visible.</div>}</div> : <div className="mt-5 text-sm text-slate-500">Work context is limited to the employee, authorized office leadership, HR, and executive oversight.</div>}</section>
             </div>
-
-            <section className="rounded-3xl border border-amber-200 bg-amber-50 p-5"><div className="flex items-start gap-3"><LockKeyhole className="mt-0.5 shrink-0 text-amber-800" size={20} /><div><div className="font-bold text-amber-950">Employee health information is a separate restricted vault.</div><p className="mt-1 text-sm leading-6 text-amber-900">This general employee profile intentionally does not expose medical content. Phase 1 health records will be permission-isolated and limited to employment/occupational-health records; RHU clinical patient history remains outside HRIS.</p></div></div></section>
         </div>
     </AppLayout>;
 }

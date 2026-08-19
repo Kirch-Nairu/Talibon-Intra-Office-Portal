@@ -16,9 +16,10 @@ export default function Admin({ employees, pending }: { employees: Employee[]; p
         <section className="rounded-3xl bg-[#0b2852] p-7 text-white">
             <div className="text-xs font-bold uppercase tracking-[0.2em] text-blue-200">Restricted HR workspace</div>
             <h1 className="mt-3 text-3xl font-bold">HRIS Administration</h1>
-            <p className="mt-2 max-w-3xl text-sm text-blue-100">Personnel administration is server-side restricted. Phase 1 lifecycle controls coordinate onboarding, employee movement, identity activation, attendance/DTR evidence, payroll context, property review, notifications, and audit evidence.</p>
+            <p className="mt-2 max-w-3xl text-sm text-blue-100">Personnel administration is server-side restricted. Phase 1 lifecycle controls coordinate onboarding, employee movement, identity activation, attendance/DTR evidence, payroll context, performance and development records, property review, notifications, and audit evidence.</p>
             <div className="mt-5 flex flex-wrap gap-2">
                 <Link href="/hris/admin/lifecycle" className="rounded-xl bg-white px-4 py-2.5 text-sm font-semibold text-[#0b2852]">Employee lifecycle</Link>
+                <Link href="/hris/admin/development" className="rounded-xl border border-white/25 bg-white/10 px-4 py-2.5 text-sm font-semibold text-white">Performance & development</Link>
                 <Link href="/hris/dtr" className="rounded-xl border border-white/25 bg-white/10 px-4 py-2.5 text-sm font-semibold text-white">Attendance & DTR</Link>
                 <Link href="/hris/payroll" className="rounded-xl border border-white/25 bg-white/10 px-4 py-2.5 text-sm font-semibold text-white">Payroll</Link>
                 <Link href="/property" className="rounded-xl border border-white/25 bg-white/10 px-4 py-2.5 text-sm font-semibold text-white">Property accountability</Link>

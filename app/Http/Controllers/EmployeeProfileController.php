@@ -4,14 +4,17 @@ namespace App\Http\Controllers;
 
 use App\Models\Document;
 use App\Models\Employee;
+use App\Models\EmployeeDevelopmentRecord;
+use App\Models\PerformanceRecord;
 use App\Models\WorkflowTransaction;
+use App\Services\EmployeeHealthVaultService;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
 
 class EmployeeProfileController extends Controller
 {
-    public function __invoke(Request $request, Employee $employee): Response
+    public function __invoke(Request $request, Employee $employee, EmployeeHealthVaultService $healthVault): Response
     {
         $viewer = $request->user()->loadMissing('employee.department');
         $employee->load(['department:id,code,name,short_name', 'supervisor:id,employee_number,full_name,position_title']);
@@ -61,6 +64,24 @@ class EmployeeProfileController extends Controller
                 ])
             : collect();
 
+        $performanceRecords = $canViewHrRecord
+            ? PerformanceRecord::query()
+                ->where('employee_id', $employee->id)
+                ->latest('period_end')
+                ->limit(12)
+                ->get(['id', 'period_start', 'period_end', 'rating', 'rating_scale', 'status', 'summary', 'reviewed_at'])
+            : collect();
+
+        $developmentRecords = $canViewHrRecord
+            ? EmployeeDevelopmentRecord::query()
+                ->where('employee_id', $employee->id)
+                ->latest('id')
+                ->limit(30)
+                ->get(['id', 'record_type', 'title', 'provider', 'reference_no', 'attained_at', 'expires_at', 'status'])
+            : collect();
+
+        $healthVaultAccess = $healthVault->canView($viewer, $employee);
+
         return Inertia::render('Employees/Show', [
             'employee' => [
                 'id' => $employee->id,
@@ -101,12 +122,15 @@ class EmployeeProfileController extends Controller
             ] : null,
             'documents' => $documents,
             'activeAssignments' => $activeAssignments,
+            'performanceRecords' => $performanceRecords,
+            'developmentRecords' => $developmentRecords,
             'permissions' => [
                 'isSelf' => $isSelf,
                 'canViewPrivate' => $canViewPrivate,
                 'canViewHrRecord' => $canViewHrRecord,
                 'canViewWorkContext' => $canViewWorkContext,
-                'healthVaultAccess' => false,
+                'healthVaultAccess' => $healthVaultAccess,
+                'canManageHealthAccess' => $healthVault->canManageAccess($viewer),
             ],
         ]);
     }

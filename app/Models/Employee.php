@@ -70,4 +70,8 @@ class Employee extends Model
     public function movements(): HasMany { return $this->hasMany(EmployeeMovement::class); }
     public function assetAssignments(): HasMany { return $this->hasMany(AssetAssignment::class); }
     public function accountableAssets(): HasMany { return $this->hasMany(Asset::class, 'accountable_employee_id'); }
+    public function performanceRecords(): HasMany { return $this->hasMany(PerformanceRecord::class); }
+    public function developmentRecords(): HasMany { return $this->hasMany(EmployeeDevelopmentRecord::class); }
+    public function healthRecords(): HasMany { return $this->hasMany(EmployeeHealthRecord::class); }
+    public function healthAccessGrants(): HasMany { return $this->hasMany(EmployeeHealthAccessGrant::class); }
 }

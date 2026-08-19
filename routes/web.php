@@ -7,9 +7,12 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DepartmentController;
 use App\Http\Controllers\DtrController;
 use App\Http\Controllers\EmployeeDirectoryController;
+use App\Http\Controllers\EmployeeHealthVaultController;
 use App\Http\Controllers\EmployeeProfileController;
+use App\Http\Controllers\HealthAccessController;
 use App\Http\Controllers\HrisAdminController;
 use App\Http\Controllers\HrisController;
+use App\Http\Controllers\HrisDevelopmentController;
 use App\Http\Controllers\HrisLifecycleController;
 use App\Http\Controllers\LeaveRequestController;
 use App\Http\Controllers\LegislativeRecordController;
@@ -69,6 +72,13 @@ Route::middleware('auth')->group(function (): void {
     Route::get('/hris/dtr', [DtrController::class, 'index'])->name('hris.dtr');
     Route::get('/hris/payroll', PayrollController::class)->name('hris.payroll');
     Route::post('/hris/leave-requests', [LeaveRequestController::class, 'store'])->name('hris.leave.store');
+
+    Route::get('/hris/health-access', [HealthAccessController::class, 'index'])->name('hris.health.access');
+    Route::post('/hris/health-access', [HealthAccessController::class, 'store'])->name('hris.health.access.store');
+    Route::post('/hris/health-access/{grant}/revoke', [HealthAccessController::class, 'revoke'])->name('hris.health.access.revoke');
+    Route::get('/hris/health/{employee}', [EmployeeHealthVaultController::class, 'show'])->name('hris.health.show');
+    Route::post('/hris/health/{employee}', [EmployeeHealthVaultController::class, 'store'])->name('hris.health.store');
+
     Route::middleware('hris.admin')->prefix('hris/admin')->group(function (): void {
         Route::get('/', [HrisAdminController::class, 'index'])->name('hris.admin');
         Route::post('/leave-requests/{leaveRequest}/approve', [HrisAdminController::class, 'approve'])->name('hris.leave.approve');
@@ -77,6 +87,11 @@ Route::middleware('auth')->group(function (): void {
         Route::post('/dtr/generate', [DtrController::class, 'generate'])->name('hris.dtr.generate');
         Route::post('/dtr/{period}/lock', [DtrController::class, 'lock'])->name('hris.dtr.lock');
         Route::post('/payroll/{payroll}/link-dtr', [DtrController::class, 'linkPayroll'])->name('hris.payroll.link-dtr');
+
+        Route::get('/development', [HrisDevelopmentController::class, 'index'])->name('hris.development.index');
+        Route::post('/development/employees/{employee}/performance', [HrisDevelopmentController::class, 'storePerformance'])->name('hris.development.performance.store');
+        Route::post('/development/employees/{employee}/records', [HrisDevelopmentController::class, 'storeDevelopment'])->name('hris.development.record.store');
+        Route::post('/development/sync-expiries', [HrisDevelopmentController::class, 'syncExpiryAlerts'])->name('hris.development.expiry.sync');
 
         Route::get('/lifecycle', [HrisLifecycleController::class, 'index'])->name('hris.lifecycle.index');
         Route::post('/lifecycle/onboarding', [HrisLifecycleController::class, 'storeOnboarding'])->name('hris.lifecycle.onboarding.store');
