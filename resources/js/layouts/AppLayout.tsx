@@ -1,15 +1,38 @@
 import { Head, Link, router, usePage } from '@inertiajs/react';
 import { Bell, BriefcaseBusiness, Building2, FileBarChart, FileText, Gavel, LayoutDashboard, LogOut, Menu, ShieldCheck, Users, X } from 'lucide-react';
-import { PropsWithChildren, useEffect, useState } from 'react';
-import type { SharedProps } from '../types';
+import { PropsWithChildren, useEffect, useRef, useState } from 'react';
+import type { LiveNotification, SharedProps } from '../types';
 
 type Props = PropsWithChildren<{ title: string }>;
 
+function relativeTime(value?: string | null): string {
+    if (!value) return '';
+
+    const time = new Date(value).getTime();
+    if (Number.isNaN(time)) return '';
+
+    const seconds = Math.max(0, Math.floor((Date.now() - time) / 1000));
+    if (seconds < 10) return 'Just now';
+    if (seconds < 60) return `${seconds}s ago`;
+
+    const minutes = Math.floor(seconds / 60);
+    if (minutes < 60) return `${minutes}m ago`;
+
+    const hours = Math.floor(minutes / 60);
+    if (hours < 24) return `${hours}h ago`;
+
+    return new Date(value).toLocaleString();
+}
+
 export default function AppLayout({ title, children }: Props) {
-    const { auth, pendingMemo, unreadMemoCount, notifications, notificationCount, flash } = usePage<SharedProps>().props;
+    const { auth, pendingMemo, unreadMemoCount, notifications, flash } = usePage<SharedProps>().props;
     const [mobileOpen, setMobileOpen] = useState(false);
     const [notificationsOpen, setNotificationsOpen] = useState(false);
     const [dismissedMemoId, setDismissedMemoId] = useState<number | null>(null);
+    const [liveAlert, setLiveAlert] = useState<LiveNotification | null>(null);
+    const [unseenWorkflowCount, setUnseenWorkflowCount] = useState(0);
+    const knownNotificationKeys = useRef<Set<string>>(new Set());
+    const notificationsInitialized = useRef(false);
     const user = auth.user;
     const isMayor = ['system_admin', 'mayor_approver', 'mayor_staff'].includes(user?.role ?? '');
     const isHr = ['system_admin', 'hr_officer'].includes(user?.role ?? '');
@@ -17,13 +40,62 @@ export default function AppLayout({ title, children }: Props) {
     const canReports = isMayor || isHr;
 
     useEffect(() => {
-        const timer = window.setInterval(() => router.reload({
-            only: ['pendingMemo', 'unreadMemoCount', 'notifications', 'notificationCount'],
-            preserveState: true,
-            preserveScroll: true,
-        }), 5000);
-        return () => window.clearInterval(timer);
+        const refresh = () => {
+            if (document.visibilityState !== 'visible') return;
+
+            router.reload({
+                only: ['pendingMemo', 'unreadMemoCount', 'notifications', 'notificationCount'],
+                preserveState: true,
+                preserveScroll: true,
+            });
+        };
+
+        const timer = window.setInterval(refresh, 2000);
+        window.addEventListener('focus', refresh);
+
+        return () => {
+            window.clearInterval(timer);
+            window.removeEventListener('focus', refresh);
+        };
     }, []);
+
+    useEffect(() => {
+        const workflowNotifications = notifications.filter((notification) => notification.type === 'transaction');
+
+        if (!notificationsInitialized.current) {
+            workflowNotifications.forEach((notification) => knownNotificationKeys.current.add(notification.key));
+            notificationsInitialized.current = true;
+
+            const justArrived = workflowNotifications.find((notification) => {
+                if (!notification.created_at) return false;
+                const age = Date.now() - new Date(notification.created_at).getTime();
+                return age >= -5000 && age <= 15000;
+            });
+
+            if (justArrived) {
+                setLiveAlert(justArrived);
+                setUnseenWorkflowCount(1);
+            }
+
+            return;
+        }
+
+        const newWorkflowNotifications = workflowNotifications.filter(
+            (notification) => !knownNotificationKeys.current.has(notification.key),
+        );
+
+        if (newWorkflowNotifications.length === 0) return;
+
+        newWorkflowNotifications.forEach((notification) => knownNotificationKeys.current.add(notification.key));
+        setLiveAlert(newWorkflowNotifications[0]);
+        setUnseenWorkflowCount((count) => count + newWorkflowNotifications.length);
+    }, [notifications]);
+
+    useEffect(() => {
+        if (!liveAlert) return;
+        const timer = window.setTimeout(() => setLiveAlert(null), 12000);
+        return () => window.clearTimeout(timer);
+    }, [liveAlert]);
 
     const nav = [
         { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard, show: true },
@@ -67,6 +139,7 @@ export default function AppLayout({ title, children }: Props) {
     );
 
     const showMemo = pendingMemo && dismissedMemoId !== pendingMemo.id;
+    const bellCount = unreadMemoCount + unseenWorkflowCount;
 
     return (
         <>
@@ -94,15 +167,15 @@ export default function AppLayout({ title, children }: Props) {
 
                         <div className="flex items-center gap-2 sm:gap-3">
                             <div className="relative">
-                                <button onClick={() => setNotificationsOpen((open) => !open)} className="relative rounded-full p-1.5 text-slate-600 hover:bg-slate-100 sm:p-2" aria-label="Open notifications">
+                                <button onClick={() => { setNotificationsOpen((open) => !open); setUnseenWorkflowCount(0); }} className="relative rounded-full p-1.5 text-slate-600 hover:bg-slate-100 sm:p-2" aria-label="Open notifications">
                                     <Bell size={18} />
-                                    {notificationCount > 0 && <span className="absolute -right-0.5 -top-0.5 min-w-4 rounded-full bg-rose-600 px-1 text-center text-[9px] font-bold text-white sm:text-[10px]">{notificationCount > 9 ? '9+' : notificationCount}</span>}
+                                    {bellCount > 0 && <span className="absolute -right-0.5 -top-0.5 min-w-4 rounded-full bg-rose-600 px-1 text-center text-[9px] font-bold text-white sm:text-[10px]">{bellCount > 9 ? '9+' : bellCount}</span>}
                                 </button>
 
                                 {notificationsOpen && (
                                     <div className="absolute right-0 top-10 z-50 w-[min(350px,calc(100vw-24px))] overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl">
                                         <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3">
-                                            <div><div className="text-[12px] font-bold text-slate-950 sm:text-sm">Live activity</div><div className="text-[9px] text-slate-500 sm:text-xs">Updates automatically every few seconds</div></div>
+                                            <div><div className="text-[12px] font-bold text-slate-950 sm:text-sm">Recent activity</div><div className="text-[9px] text-slate-500 sm:text-xs">New office arrivals and unread memoranda</div></div>
                                             <button onClick={() => setNotificationsOpen(false)} className="rounded-full p-1 text-slate-400 hover:bg-slate-100"><X size={16} /></button>
                                         </div>
                                         <div className="max-h-[60vh] divide-y divide-slate-100 overflow-y-auto">
@@ -112,13 +185,13 @@ export default function AppLayout({ title, children }: Props) {
                                                         <div className="min-w-0">
                                                             <div className="text-[10px] font-bold uppercase tracking-wide text-blue-700 sm:text-xs">{notification.title}</div>
                                                             <div className="mt-1 text-[11px] leading-4 text-slate-700 sm:text-sm">{notification.message}</div>
-                                                            {notification.created_at && <div className="mt-1.5 text-[9px] text-slate-400 sm:text-[10px]">{new Date(notification.created_at).toLocaleString()}</div>}
+                                                            {notification.created_at && <div className="mt-1.5 text-[9px] text-slate-400 sm:text-[10px]">{relativeTime(notification.created_at)}</div>}
                                                         </div>
                                                         {notification.urgent && <span className="shrink-0 rounded-full bg-rose-50 px-2 py-1 text-[8px] font-bold uppercase text-rose-700 sm:text-[9px]">Action</span>}
                                                     </div>
                                                 </Link>
                                             ))}
-                                            {notifications.length === 0 && <div className="px-4 py-8 text-center text-[11px] text-slate-500 sm:text-sm">No current notifications.</div>}
+                                            {notifications.length === 0 && <div className="px-4 py-8 text-center text-[11px] text-slate-500 sm:text-sm">No recent notifications.</div>}
                                         </div>
                                     </div>
                                 )}
@@ -131,6 +204,25 @@ export default function AppLayout({ title, children }: Props) {
                     <div className="p-3 sm:p-4 md:p-8">{children}</div>
                 </main>
             </div>
+
+            {liveAlert && (
+                <div className="fixed left-3 right-3 top-16 z-[60] sm:left-auto sm:right-4 sm:top-20 sm:w-[390px]">
+                    <div className="overflow-hidden rounded-2xl border border-blue-200 bg-white shadow-2xl shadow-slate-900/15">
+                        <div className="h-1 bg-blue-700" />
+                        <div className="p-4 sm:p-5">
+                            <div className="flex items-start justify-between gap-3">
+                                <div className="min-w-0">
+                                    <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.16em] text-blue-700 sm:text-xs"><span className="h-2 w-2 animate-pulse rounded-full bg-emerald-500" /> {liveAlert.title}</div>
+                                    <div className="mt-2 text-[12px] font-semibold leading-5 text-slate-950 sm:text-sm">{liveAlert.message}</div>
+                                    <div className="mt-1 text-[9px] text-slate-400 sm:text-[10px]">{relativeTime(liveAlert.created_at)}</div>
+                                </div>
+                                <button onClick={() => setLiveAlert(null)} className="shrink-0 rounded-full p-1 text-slate-400 hover:bg-slate-100" aria-label="Dismiss notification"><X size={16} /></button>
+                            </div>
+                            <div className="mt-3 flex justify-end"><Link href={liveAlert.url} onClick={() => { setLiveAlert(null); setUnseenWorkflowCount(0); }} className="rounded-xl bg-[#0b2852] px-4 py-2 text-[11px] font-semibold text-white sm:text-xs">Open request</Link></div>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {showMemo && (
                 <div className="fixed inset-0 z-[70] flex items-center justify-center bg-slate-950/45 p-3 backdrop-blur-sm sm:p-4">
