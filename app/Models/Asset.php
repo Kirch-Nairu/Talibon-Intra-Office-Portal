@@ -45,4 +45,8 @@ class Asset extends Model
     public function accountableEmployee(): BelongsTo { return $this->belongsTo(Employee::class, 'accountable_employee_id'); }
     public function assignments(): HasMany { return $this->hasMany(AssetAssignment::class); }
     public function events(): HasMany { return $this->hasMany(AssetEvent::class)->orderBy('created_at'); }
+    public function maintenanceRecords(): HasMany { return $this->hasMany(AssetMaintenanceRecord::class); }
+    public function inventoryScans(): HasMany { return $this->hasMany(AssetInventoryScan::class); }
+    public function reconciliations(): HasMany { return $this->hasMany(AssetReconciliation::class); }
+    public function disposals(): HasMany { return $this->hasMany(AssetDisposal::class); }
 }
