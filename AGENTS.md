@@ -5,13 +5,17 @@
 Before doing any work in this repository, read:
 
 1. `SSOT_BY_KIRCH.md`
-2. `docs/PHASE_1_PLAN.md`
-3. relevant module docs
-4. `docs/ENGINEERING_LOG.md`
+2. `SSOT_COMMERCIAL_PHASE_AMENDMENT.md`
+3. `docs/CODE_REVIEW_2026-08-22.md`
+4. `docs/PHASE_1_PLAN.md`
+5. relevant module docs
+6. `docs/ENGINEERING_LOG.md`
 
-`SSOT_BY_KIRCH.md` is the controlling product and engineering source of truth.
+`SSOT_BY_KIRCH.md` remains the controlling product and engineering source of truth except for the explicit commercial-phase/nomenclature amendment in `SSOT_COMMERCIAL_PHASE_AMENDMENT.md`, authorized by Kirch Ivan Balite on 2026-08-22 to integrate the client-facing Engineering & Project Architecture Plan with Detailed Quotation.
 
-If another document conflicts with it, stop and follow the SSOT unless Kirch Ivan Balite explicitly changes the authority.
+Do not confuse the historical internal `P1-M0` through `P1-M12` milestones with the client-facing quotation's Contract Phase 1. The internal branch accelerated work from multiple quoted phases.
+
+If another document conflicts with the SSOT or its explicit amendment, stop and follow the SSOT/amendment unless Kirch Ivan Balite explicitly changes the authority.
 
 ## Current branch / target
 
@@ -19,11 +23,19 @@ Primary active build branch:
 
 `KIRCH-PHASE1-INTERNAL-OPS-HRIS`
 
-Phase 1 hard target:
+Historical internal Build Wave A target:
 
 `2026-08-21 12:00 PHT (UTC+08:00)`
 
-Do not interpret the deadline as permission to bypass authorization, data integrity, migration safety, auditability, or honest verification.
+Current internal label:
+
+`PHASE1_CANDIDATE_OPEN_GATES`
+
+Current commercial architecture label:
+
+`CONTRACT_PHASE_1_OPEN_GATES`
+
+Do not interpret a deadline or accelerated later-phase implementation as permission to bypass authorization, data integrity, migration safety, auditability, quoted Contract Phase 1 commitments, or honest verification.
 
 ## Every commit must be documented
 
@@ -40,7 +52,7 @@ Each log entry must include:
 - known gaps / risks
 - next action when applicable
 
-Do not claim green tests, builds, CI, device behavior, or integrations unless observed.
+Do not claim green tests, builds, CI, device behavior, integrations, cloud benchmarks, restore drills, UAT, or commercial phase completion unless observed.
 
 ## Implementation discipline
 
@@ -57,21 +69,36 @@ Do not claim green tests, builds, CI, device behavior, or integrations unless ob
 - Do not represent synthetic payroll formulas as government payroll rules.
 - Do not represent simulated biometric data as live hardware integration.
 - Do not put RHU patient clinical records into HRIS.
+- Never give a future public/external integration direct database access.
 
-## Phase 1 focus
+## Commercial Contract Phase 1 focus
 
-Build the internal municipal platform first:
+Before Contract Phase 1 may be called complete/pilot-ready, close the core items identified in `SSOT_COMMERCIAL_PHASE_AMENDMENT.md` and `docs/CODE_REVIEW_2026-08-22.md`, especially:
 
-- all office routing
-- executive and legislative workspaces
-- packaged HRIS
-- onboarding / movement / offboarding
-- employee profile
-- restricted employee health vault
-- property and asset accountability
-- calendar
-- notifications / popups
-- documents / records
-- reports / audit / security
+- privileged MFA;
+- controlled API Gateway / scoped integration credentials;
+- correspondence RECEIVE / REGISTER / CLASSIFY / ROUTE / ACT / RELEASE / ARCHIVE lifecycle;
+- classification-aware authorization and protected document handling;
+- structured legislative authorship, committee, voting, certification, attestation, mayoral approval and effectivity lifecycle;
+- cloud benchmark measurements;
+- backup/restore evidence;
+- dependency/security review;
+- structured UAT / pilot sign-off.
 
-Public citizen / talibon.gov.ph integration is later phase work unless Kirch explicitly changes the SSOT.
+## Accelerated internal scope already present
+
+Preserve and harden the implemented internal work, including:
+
+- all-office routing;
+- executive and legislative workspaces;
+- packaged HRIS foundations;
+- onboarding / movement / offboarding;
+- employee profile;
+- restricted employee health vault;
+- property and asset accountability;
+- calendar;
+- notifications / popups;
+- documents / records metadata;
+- reports / audit / security evidence.
+
+Public citizen / `talibon.gov.ph` integration remains later-stage work and must connect only through the controlled integration layer unless Kirch explicitly changes the SSOT/amendment.
