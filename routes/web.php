@@ -2,6 +2,9 @@
 
 use App\Http\Controllers\AuditController;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
+use App\Http\Controllers\Auth\MfaChallengeController;
+use App\Http\Controllers\Auth\MfaEnrollmentController;
+use App\Http\Controllers\Auth\MfaSecurityController;
 use App\Http\Controllers\CalendarController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DepartmentController;
@@ -35,6 +38,25 @@ Route::middleware('guest')->group(function (): void {
 });
 
 Route::middleware('auth')->group(function (): void {
+    Route::post('/logout', [AuthenticatedSessionController::class, 'destroy'])->name('logout');
+});
+
+Route::middleware(['auth', 'active', 'mfa.subject'])->group(function (): void {
+    Route::get('/security/mfa/enroll', [MfaEnrollmentController::class, 'create'])->name('mfa.enroll');
+    Route::post('/security/mfa/enroll', [MfaEnrollmentController::class, 'confirm'])->name('mfa.enroll.confirm');
+    Route::get('/security/mfa/challenge', [MfaChallengeController::class, 'create'])->name('mfa.challenge');
+    Route::post('/security/mfa/challenge', [MfaChallengeController::class, 'store'])->name('mfa.challenge.verify');
+});
+
+Route::middleware(['auth', 'active', 'mfa.subject', 'mfa.assured'])->group(function (): void {
+    Route::get('/security/mfa', [MfaSecurityController::class, 'index'])->name('mfa.settings');
+    Route::get('/security/mfa/recovery-codes', [MfaSecurityController::class, 'recovery'])->name('mfa.recovery.show');
+    Route::post('/security/mfa/recovery-codes', [MfaSecurityController::class, 'regenerateRecoveryCodes'])->name('mfa.recovery.regenerate');
+    Route::post('/security/mfa/reset', [MfaSecurityController::class, 'reset'])->name('mfa.reset');
+    Route::delete('/security/mfa', [MfaSecurityController::class, 'disable'])->name('mfa.disable');
+});
+
+Route::middleware(['auth', 'active', 'mfa.assured'])->group(function (): void {
     Route::get('/', fn () => redirect()->route('dashboard'));
     Route::get('/dashboard', DashboardController::class)->name('dashboard');
     Route::get('/departments', DepartmentController::class)->name('departments.index');
@@ -126,5 +148,4 @@ Route::middleware('auth')->group(function (): void {
     });
 
     Route::get('/audit', AuditController::class)->name('audit');
-    Route::post('/logout', [AuthenticatedSessionController::class, 'destroy'])->name('logout');
 });

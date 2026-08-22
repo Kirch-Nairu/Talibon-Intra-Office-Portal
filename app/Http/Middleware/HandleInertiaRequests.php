@@ -5,6 +5,7 @@ namespace App\Http\Middleware;
 use App\Models\MemoRecipient;
 use App\Models\PlatformNotification;
 use App\Models\TransactionEvent;
+use App\Services\AuthenticationAssurance;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
 
@@ -14,13 +15,21 @@ class HandleInertiaRequests extends Middleware
 
     public function share(Request $request): array
     {
-        $user = $request->user()?->loadMissing('employee.department');
+        $user = $request->user();
+        $applicationAssured = $user
+            ? app(AuthenticationAssurance::class)->isSatisfied($request, $user)
+            : false;
+
+        if ($applicationAssured) {
+            $user->loadMissing('employee.department');
+        }
+
         $pendingMemo = null;
         $unreadMemoCount = 0;
         $unreadPlatformNotificationCount = 0;
         $notifications = [];
 
-        if ($user) {
+        if ($user && $applicationAssured) {
             $recipientQuery = MemoRecipient::query()
                 ->where('user_id', $user->id)
                 ->whereHas('memorandum', function ($query): void {
@@ -152,7 +161,7 @@ class HandleInertiaRequests extends Middleware
                     'name' => $user->name,
                     'email' => $user->email,
                     'role' => $user->role,
-                    'employee' => $user->employee ? [
+                    'employee' => $applicationAssured && $user->employee ? [
                         'employee_number' => $user->employee->employee_number,
                         'position' => $user->employee->position_title,
                         'department' => $user->employee->department ? [
