@@ -8,11 +8,11 @@ use App\Services\AuthenticationAssurance;
 use App\Services\AuthenticationAttemptLimiter;
 use App\Services\MfaRecoveryCodeBroker;
 use App\Services\MfaService;
+use App\Services\SensitiveInertiaResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
-use Inertia\Inertia;
-use Inertia\Response;
+use Symfony\Component\HttpFoundation\Response;
 
 final class MfaEnrollmentController extends Controller
 {
@@ -22,12 +22,14 @@ final class MfaEnrollmentController extends Controller
         private readonly MfaService $mfa,
         private readonly MfaRecoveryCodeBroker $recoveryBroker,
         private readonly AuditLogger $audit,
+        private readonly SensitiveInertiaResponse $sensitiveResponse,
     ) {
     }
 
     public function create(Request $request): Response|RedirectResponse
     {
         $user = $request->user();
+        $user->refresh();
 
         if (! $this->assurance->requiresMfa($user)) {
             return redirect()->route('dashboard');
@@ -39,14 +41,15 @@ final class MfaEnrollmentController extends Controller
 
         $newEnrollment = blank($user->mfa_secret);
         $secret = $this->mfa->ensureEnrollmentSecret($user);
+        $user->refresh();
 
         if ($newEnrollment) {
             $this->audit->record($user, 'auth.mfa.enrollment.started', 'Privileged MFA enrollment was initialized.');
         }
 
-        return Inertia::render('Auth/MfaEnrollment', [
+        return $this->sensitiveResponse->render($request, 'Auth/MfaEnrollment', [
             'secret' => $secret,
-            'provisioningUri' => $this->mfa->provisioningUri($user->fresh()),
+            'provisioningUri' => $this->mfa->provisioningUri($user),
             'issuer' => config('identity.mfa.issuer'),
         ]);
     }
@@ -54,6 +57,7 @@ final class MfaEnrollmentController extends Controller
     public function confirm(Request $request): RedirectResponse
     {
         $user = $request->user();
+        $user->refresh();
 
         if (! $this->assurance->requiresMfa($user)) {
             return redirect()->route('dashboard');
@@ -65,23 +69,24 @@ final class MfaEnrollmentController extends Controller
 
         $data = $request->validate(['code' => ['required', 'digits:6']]);
         $this->rejectLimitedAttempt($request);
-        $codes = $this->mfa->confirmEnrollment($user, $data['code']);
+        $confirmation = $this->mfa->confirmEnrollment($user, $data['code']);
 
-        if ($codes === null) {
+        if ($confirmation === null) {
             $this->limiter->hitMfa($request, $user);
             $this->audit->record($user, 'auth.mfa.enrollment_confirmation_failed', 'MFA enrollment confirmation failed.', 'denied');
             throw ValidationException::withMessages(['code' => 'The verification code could not be accepted.']);
         }
 
         $this->limiter->clearMfa($request, $user);
+        $user->refresh();
         $request->session()->regenerate();
-        $this->assurance->markSatisfied($request, $user);
+        $this->assurance->markSatisfied($request, $user, $confirmation);
         $this->audit->record($user, 'auth.mfa.enrollment.confirmed', 'Privileged MFA enrollment was confirmed.');
         $this->audit->record($user, 'auth.assurance.satisfied', 'Required privileged MFA assurance was satisfied after enrollment.');
 
         return redirect()->route('mfa.recovery.show')->with(
             'mfa_recovery_codes_sealed',
-            $this->recoveryBroker->seal($codes),
+            $this->recoveryBroker->seal($confirmation->recoveryCodes),
         );
     }
 

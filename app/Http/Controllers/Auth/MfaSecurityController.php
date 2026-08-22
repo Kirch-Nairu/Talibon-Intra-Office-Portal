@@ -7,10 +7,12 @@ use App\Services\AuditLogger;
 use App\Services\AuthenticationAssurance;
 use App\Services\MfaRecoveryCodeBroker;
 use App\Services\MfaService;
+use App\Services\SensitiveInertiaResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
-use Inertia\Response;
+use Inertia\Response as InertiaResponse;
+use Symfony\Component\HttpFoundation\Response;
 
 final class MfaSecurityController extends Controller
 {
@@ -19,15 +21,19 @@ final class MfaSecurityController extends Controller
         private readonly MfaService $mfa,
         private readonly MfaRecoveryCodeBroker $recoveryBroker,
         private readonly AuditLogger $audit,
+        private readonly SensitiveInertiaResponse $sensitiveResponse,
     ) {
     }
 
-    public function index(Request $request): Response
+    public function index(Request $request): InertiaResponse
     {
+        $user = $request->user();
+        $user->refresh();
+
         return Inertia::render('Auth/MfaSettings', [
-            'configured' => $this->assurance->enrollmentExists($request->user()),
-            'confirmedAt' => $request->user()->mfa_confirmed_at?->toIso8601String(),
-            'recoveryGeneratedAt' => $request->user()->mfa_recovery_codes_generated_at?->toIso8601String(),
+            'configured' => $this->assurance->enrollmentExists($user),
+            'confirmedAt' => $user->mfa_confirmed_at?->toIso8601String(),
+            'recoveryGeneratedAt' => $user->mfa_recovery_codes_generated_at?->toIso8601String(),
         ]);
     }
 
@@ -40,8 +46,9 @@ final class MfaSecurityController extends Controller
             return redirect()->route('mfa.settings');
         }
 
-        return Inertia::render('Auth/MfaRecoveryCodes', [
-            'codes' => $codes,
+        Inertia::flash('mfaRecoveryCodes', $codes);
+
+        return $this->sensitiveResponse->render($request, 'Auth/MfaRecoveryCodes', [
             'continueUrl' => $request->session()->get('url.intended', route('dashboard')),
         ]);
     }
@@ -62,6 +69,7 @@ final class MfaSecurityController extends Controller
     {
         $user = $request->user();
         $this->mfa->resetEnrollment($user);
+        $user->refresh();
         $this->assurance->clear($request);
         $this->audit->record($user, 'auth.mfa.reset', 'Privileged MFA enrollment was reset.');
 
@@ -72,6 +80,7 @@ final class MfaSecurityController extends Controller
     {
         $user = $request->user();
         $this->mfa->disable($user);
+        $user->refresh();
         $this->assurance->clear($request);
         $this->audit->record($user, 'auth.mfa.disabled', 'Privileged MFA enrollment was disabled.');
 

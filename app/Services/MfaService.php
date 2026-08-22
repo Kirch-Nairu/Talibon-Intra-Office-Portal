@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Domain\Identity\ConfirmedMfaEnrollment;
 use App\Models\User;
 use DateTimeInterface;
 use Illuminate\Support\Facades\DB;
@@ -31,6 +32,7 @@ final class MfaService
                 'mfa_confirmed_at' => null,
                 'mfa_recovery_codes' => null,
                 'mfa_recovery_codes_generated_at' => null,
+                'mfa_version' => $this->nextVersion($locked),
             ])->save();
 
             return $secret;
@@ -63,45 +65,43 @@ final class MfaService
         );
     }
 
-    /**
-     * @return array<int, string>|null
-     */
-    public function confirmEnrollment(User $user, string $code): ?array
+    public function confirmEnrollment(User $user, string $code): ?ConfirmedMfaEnrollment
     {
-        return DB::transaction(function () use ($user, $code): ?array {
+        return DB::transaction(function () use ($user, $code): ?ConfirmedMfaEnrollment {
             $locked = User::query()->lockForUpdate()->findOrFail($user->id);
 
-            if (! $this->verifyTotp($locked, $code)) {
+            if ($locked->mfa_confirmed_at !== null || ! $this->verifyTotp($locked, $code)) {
                 return null;
             }
 
             $codes = $this->newRecoveryCodes();
+            $version = $this->nextVersion($locked);
             $this->persistRecoveryCodes($locked, $codes, now());
-            $locked->forceFill(['mfa_confirmed_at' => now()])->save();
+            $locked->forceFill([
+                'mfa_confirmed_at' => now(),
+                'mfa_version' => $version,
+            ])->save();
 
-            return $codes;
+            return new ConfirmedMfaEnrollment((int) $locked->id, $version, $codes);
         });
     }
 
-    public function consumeRecoveryCode(User $user, string $code): bool
+    public function verifyChallenge(User $user, ?string $totpCode, ?string $recoveryCode): ?ConfirmedMfaEnrollment
     {
-        return DB::transaction(function () use ($user, $code): bool {
+        return DB::transaction(function () use ($user, $totpCode, $recoveryCode): ?ConfirmedMfaEnrollment {
             $locked = User::query()->lockForUpdate()->findOrFail($user->id);
-            $hashes = array_values($locked->mfa_recovery_codes ?? []);
-            $needle = $this->normalizeRecoveryCode($code);
 
-            foreach ($hashes as $index => $hash) {
-                if (! Hash::check($needle, $hash)) {
-                    continue;
-                }
-
-                unset($hashes[$index]);
-                $locked->forceFill(['mfa_recovery_codes' => array_values($hashes)])->save();
-
-                return true;
+            if ($locked->mfa_confirmed_at === null || ! filled($locked->mfa_secret)) {
+                return null;
             }
 
-            return false;
+            $accepted = filled($recoveryCode)
+                ? $this->consumeRecoveryCodeFromLockedUser($locked, (string) $recoveryCode)
+                : $this->verifyTotp($locked, (string) $totpCode);
+
+            return $accepted
+                ? new ConfirmedMfaEnrollment((int) $locked->id, (int) $locked->mfa_version)
+                : null;
         });
     }
 
@@ -134,6 +134,7 @@ final class MfaService
                 'mfa_confirmed_at' => null,
                 'mfa_recovery_codes' => null,
                 'mfa_recovery_codes_generated_at' => null,
+                'mfa_version' => $this->nextVersion($locked),
             ])->save();
 
             return $secret;
@@ -143,11 +144,13 @@ final class MfaService
     public function disable(User $user): void
     {
         DB::transaction(function () use ($user): void {
-            User::query()->lockForUpdate()->findOrFail($user->id)->forceFill([
+            $locked = User::query()->lockForUpdate()->findOrFail($user->id);
+            $locked->forceFill([
                 'mfa_secret' => null,
                 'mfa_confirmed_at' => null,
                 'mfa_recovery_codes' => null,
                 'mfa_recovery_codes_generated_at' => null,
+                'mfa_version' => $this->nextVersion($locked),
             ])->save();
         });
     }
@@ -162,6 +165,25 @@ final class MfaService
         return collect(range(1, $count))
             ->map(fn (): string => Str::upper(Str::random(6)).'-'.Str::upper(Str::random(6)))
             ->all();
+    }
+
+    private function consumeRecoveryCodeFromLockedUser(User $user, string $code): bool
+    {
+        $hashes = array_values($user->mfa_recovery_codes ?? []);
+        $needle = $this->normalizeRecoveryCode($code);
+
+        foreach ($hashes as $index => $hash) {
+            if (! Hash::check($needle, $hash)) {
+                continue;
+            }
+
+            unset($hashes[$index]);
+            $user->forceFill(['mfa_recovery_codes' => array_values($hashes)])->save();
+
+            return true;
+        }
+
+        return false;
     }
 
     /**
@@ -183,5 +205,10 @@ final class MfaService
     private function normalizeRecoveryCode(string $code): string
     {
         return Str::upper(str_replace(' ', '', trim($code)));
+    }
+
+    private function nextVersion(User $user): int
+    {
+        return ((int) $user->mfa_version) + 1;
     }
 }

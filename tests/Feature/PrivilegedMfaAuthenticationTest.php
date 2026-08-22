@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\User;
+use App\Services\AuthenticationAssurance;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Hash;
@@ -52,6 +53,10 @@ class PrivilegedMfaAuthenticationTest extends TestCase
         ])->assertRedirect(route('dashboard'));
 
         $this->get('/security/mfa')->assertOk();
+        $this->assertSame(
+            (int) $user->fresh()->mfa_version,
+            (int) session()->get(AuthenticationAssurance::SESSION_VERSION_KEY),
+        );
         $this->assertDatabaseHas('audit_logs', [
             'actor_user_id' => $user->id,
             'action' => 'auth.assurance.satisfied',
@@ -106,16 +111,23 @@ class PrivilegedMfaAuthenticationTest extends TestCase
         $user = $this->user('system_admin');
         $this->post('/login', $this->credentials($user))->assertRedirect(route('mfa.enroll'));
         $this->get('/security/mfa/enroll')->assertOk();
-        $secret = $user->fresh()->mfa_secret;
+        $pending = $user->fresh();
+        $secret = $pending->mfa_secret;
+        $this->assertGreaterThan(0, (int) $pending->mfa_version);
 
         $this->post('/security/mfa/enroll', [
             'code' => $this->totp()->getCurrentOtp($secret),
         ])->assertRedirect(route('mfa.recovery.show'));
 
         $configured = $user->fresh();
+        $this->assertGreaterThan((int) $pending->mfa_version, (int) $configured->mfa_version);
         $this->assertNotNull($configured->mfa_confirmed_at);
         $this->assertCount(10, $configured->mfa_recovery_codes);
         $this->get('/security/mfa')->assertOk();
+        $this->assertSame(
+            (int) $configured->mfa_version,
+            (int) session()->get(AuthenticationAssurance::SESSION_VERSION_KEY),
+        );
         $this->assertDatabaseHas('audit_logs', [
             'actor_user_id' => $user->id,
             'action' => 'auth.mfa.enrollment.confirmed',
@@ -159,6 +171,7 @@ class PrivilegedMfaAuthenticationTest extends TestCase
             'mfa_confirmed_at' => now(),
             'mfa_recovery_codes' => array_map(fn (string $code): string => Hash::make(Str::upper($code)), $recoveryCodes),
             'mfa_recovery_codes_generated_at' => now(),
+            'mfa_version' => max(1, (int) $user->mfa_version),
         ])->save();
 
         return $secret;

@@ -47,17 +47,19 @@ final class MfaChallengeController extends Controller
 
         $this->rejectLimitedAttempt($request);
         $usedRecovery = filled($data['recovery_code'] ?? null);
-        $accepted = $usedRecovery
-            ? $this->mfa->consumeRecoveryCode($user, $data['recovery_code'])
-            : $this->mfa->verifyTotp($user, $data['code']);
+        $proof = $this->mfa->verifyChallenge(
+            $user,
+            $data['code'] ?? null,
+            $data['recovery_code'] ?? null,
+        );
 
-        if (! $accepted) {
+        if ($proof === null) {
             $this->rejectInvalidAttempt($request, $usedRecovery);
         }
 
         $this->limiter->clearMfa($request, $user);
         $request->session()->regenerate();
-        $this->assurance->markSatisfied($request, $user);
+        $this->assurance->markSatisfied($request, $user, $proof);
         $this->recordSuccess($user, $usedRecovery);
 
         return redirect()->intended(route('dashboard'));
@@ -66,6 +68,7 @@ final class MfaChallengeController extends Controller
     private function challengeRedirect(Request $request): ?RedirectResponse
     {
         $user = $request->user();
+        $user->refresh();
 
         if (! $this->assurance->requiresMfa($user)) {
             return redirect()->route('dashboard');

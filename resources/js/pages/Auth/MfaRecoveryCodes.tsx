@@ -1,12 +1,17 @@
-import { Head, Link } from '@inertiajs/react';
+import { Head, Link, usePage } from '@inertiajs/react';
 import { KeyRound, ShieldCheck } from 'lucide-react';
 
 type Props = {
-    codes: string[];
     continueUrl: string;
 };
 
-export default function MfaRecoveryCodes({ codes, continueUrl }: Props) {
+type RecoveryFlash = {
+    mfaRecoveryCodes?: string[];
+};
+
+export default function MfaRecoveryCodes({ continueUrl }: Props) {
+    const flash = usePage().flash as RecoveryFlash | undefined;
+    const codes = Array.isArray(flash?.mfaRecoveryCodes) ? flash.mfaRecoveryCodes : [];
     const block = codes.join('\n');
 
     return (

@@ -20,7 +20,11 @@ final class RequireMfaAssurance
     {
         $user = $request->user();
 
-        if (! $user || $this->assurance->isSatisfied($request, $user)) {
+        if (! $user) {
+            return redirect()->guest(route('login'));
+        }
+
+        if ($this->assurance->isSatisfied($request, $user)) {
             return $next($request);
         }
 

@@ -2,12 +2,15 @@
 
 namespace Tests\Feature;
 
+use App\Domain\Identity\ConfirmedMfaEnrollment;
 use App\Models\AuditLog;
 use App\Models\User;
 use App\Services\AuthenticationAssurance;
+use App\Services\MfaRecoveryCodeBroker;
+use App\Services\MfaService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Inertia\Testing\AssertableInertia as Assert;
@@ -86,6 +89,38 @@ class MfaSecurityControlsTest extends TestCase
         ]);
     }
 
+    public function test_enrollment_confirmation_returns_exact_proven_epoch(): void
+    {
+        $user = $this->user('system_admin');
+        $mfa = app(MfaService::class);
+        $secret = $mfa->ensureEnrollmentSecret($user);
+        $pending = $user->fresh();
+
+        $proof = $mfa->confirmEnrollment($pending, $this->totp()->getCurrentOtp($secret));
+
+        $this->assertInstanceOf(ConfirmedMfaEnrollment::class, $proof);
+        $confirmed = $user->fresh();
+        $this->assertSame((int) $user->id, $proof->userId);
+        $this->assertSame((int) $confirmed->mfa_version, $proof->mfaVersion);
+        $this->assertGreaterThan((int) $pending->mfa_version, $proof->mfaVersion);
+        $this->assertCount(10, $proof->recoveryCodes);
+    }
+
+    public function test_totp_challenge_returns_exact_proven_epoch(): void
+    {
+        $user = $this->configuredPrivilegedUser();
+        $proof = app(MfaService::class)->verifyChallenge(
+            $user,
+            $this->totp()->getCurrentOtp($user->mfa_secret),
+            null,
+        );
+
+        $this->assertInstanceOf(ConfirmedMfaEnrollment::class, $proof);
+        $this->assertSame((int) $user->id, $proof->userId);
+        $this->assertSame((int) $user->mfa_version, $proof->mfaVersion);
+        $this->assertSame([], $proof->recoveryCodes);
+    }
+
     public function test_mfa_secret_and_recovery_material_are_not_exposed_or_stored_in_plaintext(): void
     {
         $user = $this->configuredPrivilegedUser();
@@ -94,6 +129,7 @@ class MfaSecurityControlsTest extends TestCase
 
         $this->assertArrayNotHasKey('mfa_secret', $serialized);
         $this->assertArrayNotHasKey('mfa_recovery_codes', $serialized);
+        $this->assertArrayNotHasKey('mfa_version', $serialized);
         $this->assertNotSame($secret, DB::table('users')->where('id', $user->id)->value('mfa_secret'));
 
         $this->actingAs($user)
@@ -104,27 +140,39 @@ class MfaSecurityControlsTest extends TestCase
                 ->missing('secret')
                 ->missing('mfa_secret')
                 ->missing('mfa_recovery_codes')
+                ->missing('mfa_version')
                 ->missing('auth.user.mfa_secret')
-                ->missing('auth.user.mfa_recovery_codes'));
+                ->missing('auth.user.mfa_recovery_codes')
+                ->missing('auth.user.mfa_version'));
     }
 
-    public function test_mfa_reset_and_disable_operations_are_audited_and_restrict_access(): void
+    public function test_reset_and_disable_advance_epoch_and_invalidate_assurance(): void
     {
         $user = $this->configuredPrivilegedUser();
+        $beforeReset = $user->fresh();
 
         $this->actingAs($user)
-            ->withSession($this->assuredSession($user))
+            ->withSession($this->assuredSession($beforeReset))
             ->post('/security/mfa/reset')
             ->assertRedirect(route('mfa.enroll'));
+
+        $afterReset = $user->fresh();
+        $this->assertGreaterThan((int) $beforeReset->mfa_version, (int) $afterReset->mfa_version);
+        $this->assertNull($afterReset->mfa_confirmed_at);
         $this->assertDatabaseHas('audit_logs', ['actor_user_id' => $user->id, 'action' => 'auth.mfa.reset']);
-        $this->assertNull($user->fresh()->mfa_confirmed_at);
+        $this->get('/dashboard')->assertRedirect(route('mfa.enroll'));
 
         $this->configure($user);
-        $this->withSession($this->assuredSession($user))
+        $beforeDisable = $user->fresh();
+        $this->withSession($this->assuredSession($beforeDisable))
             ->delete('/security/mfa')
             ->assertRedirect(route('mfa.enroll'));
+
+        $afterDisable = $user->fresh();
+        $this->assertGreaterThan((int) $beforeDisable->mfa_version, (int) $afterDisable->mfa_version);
+        $this->assertNull($afterDisable->mfa_secret);
         $this->assertDatabaseHas('audit_logs', ['actor_user_id' => $user->id, 'action' => 'auth.mfa.disabled']);
-        $this->assertNull($user->fresh()->mfa_secret);
+        $this->get('/dashboard')->assertRedirect(route('mfa.enroll'));
     }
 
     public function test_success_failure_recovery_and_assurance_events_leave_audit_evidence_without_secrets(): void
@@ -144,6 +192,83 @@ class MfaSecurityControlsTest extends TestCase
         $this->assertStringNotContainsString($secret, AuditLog::query()->pluck('summary')->implode('\n'));
     }
 
+    public function test_old_assured_session_is_invalid_after_other_session_reset_and_reenrollment(): void
+    {
+        $user = $this->configuredPrivilegedUser();
+        $secret = $user->mfa_secret;
+        Auth::guard('web')->login($user);
+
+        $this->post('/security/mfa/challenge', [
+            'code' => $this->totp()->getCurrentOtp($secret),
+        ])->assertRedirect(route('dashboard'));
+
+        $sessionA = session()->only([
+            AuthenticationAssurance::SESSION_USER_KEY,
+            AuthenticationAssurance::SESSION_VERSION_KEY,
+            AuthenticationAssurance::SESSION_VERIFIED_AT_KEY,
+        ]);
+        $oldVersion = (int) $sessionA[AuthenticationAssurance::SESSION_VERSION_KEY];
+
+        $newSecret = app(MfaService::class)->resetEnrollment($user);
+        $afterReset = $user->fresh();
+        $this->assertGreaterThan($oldVersion, (int) $afterReset->mfa_version);
+
+        Auth::guard('web')->login($afterReset);
+        $this->withSession($sessionA)
+            ->get('/dashboard')
+            ->assertRedirect(route('mfa.enroll'));
+
+        $newProof = app(MfaService::class)->confirmEnrollment(
+            $afterReset,
+            $this->totp()->getCurrentOtp($newSecret),
+        );
+        $this->assertInstanceOf(ConfirmedMfaEnrollment::class, $newProof);
+        $reenrolled = $user->fresh();
+        $this->assertGreaterThan((int) $afterReset->mfa_version, (int) $reenrolled->mfa_version);
+        $this->assertNotNull($reenrolled->mfa_confirmed_at);
+
+        Auth::guard('web')->login($reenrolled);
+        $this->withSession($sessionA)
+            ->get('/dashboard')
+            ->assertRedirect(route('mfa.challenge'));
+    }
+
+    public function test_sensitive_enrollment_response_disables_caching_and_encrypts_inertia_history(): void
+    {
+        $user = $this->user('system_admin');
+        $this->post('/login', ['email' => $user->email, 'password' => self::PASSWORD]);
+
+        $response = $this->get('/security/mfa/enroll', ['X-Inertia' => 'true']);
+
+        $response->assertOk()
+            ->assertJsonPath('encryptHistory', true)
+            ->assertJsonStructure(['props' => ['secret', 'provisioningUri']]);
+        $this->assertSensitiveCacheHeaders($response);
+    }
+
+    public function test_recovery_codes_use_one_time_inertia_flash_and_sensitive_response_headers(): void
+    {
+        $user = $this->configuredPrivilegedUser();
+        $codes = ['ONETIME-ALPHA1', 'ONETIME-BRAVO2'];
+        $sealed = app(MfaRecoveryCodeBroker::class)->seal($codes);
+        Auth::guard('web')->login($user);
+
+        $response = $this->withSession([
+            ...$this->assuredSession($user),
+            'mfa_recovery_codes_sealed' => $sealed,
+        ])->get('/security/mfa/recovery-codes', ['X-Inertia' => 'true']);
+
+        $response->assertOk()
+            ->assertJsonPath('encryptHistory', true)
+            ->assertJsonPath('flash.mfaRecoveryCodes.0', $codes[0])
+            ->assertJsonPath('flash.mfaRecoveryCodes.1', $codes[1])
+            ->assertJsonMissingPath('props.codes');
+        $this->assertSensitiveCacheHeaders($response);
+
+        $this->get('/security/mfa/recovery-codes')
+            ->assertRedirect(route('mfa.settings'));
+    }
+
     private function configuredPrivilegedUser(): User
     {
         $user = $this->user('system_admin');
@@ -159,6 +284,7 @@ class MfaSecurityControlsTest extends TestCase
             'mfa_confirmed_at' => now(),
             'mfa_recovery_codes' => [],
             'mfa_recovery_codes_generated_at' => now(),
+            'mfa_version' => max(1, (int) $user->mfa_version),
         ])->save();
     }
 
@@ -178,10 +304,25 @@ class MfaSecurityControlsTest extends TestCase
      */
     private function assuredSession(User $user): array
     {
+        $current = $user->fresh();
+
         return [
-            AuthenticationAssurance::SESSION_USER_KEY => $user->id,
+            AuthenticationAssurance::SESSION_USER_KEY => $current->id,
+            AuthenticationAssurance::SESSION_VERSION_KEY => (int) $current->mfa_version,
             AuthenticationAssurance::SESSION_VERIFIED_AT_KEY => now()->getTimestamp(),
         ];
+    }
+
+    private function assertSensitiveCacheHeaders($response): void
+    {
+        $cacheControl = (string) $response->headers->get('Cache-Control');
+        $this->assertStringContainsString('no-store', $cacheControl);
+        $this->assertStringContainsString('private', $cacheControl);
+        $this->assertStringContainsString('no-cache', $cacheControl);
+        $this->assertStringContainsString('max-age=0', $cacheControl);
+        $this->assertStringContainsString('must-revalidate', $cacheControl);
+        $this->assertSame('no-cache', $response->headers->get('Pragma'));
+        $this->assertSame('0', $response->headers->get('Expires'));
     }
 
     private function totp(): Google2FA

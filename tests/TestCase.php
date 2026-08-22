@@ -35,11 +35,14 @@ abstract class TestCase extends BaseTestCase
                     'mfa_confirmed_at' => now(),
                     'mfa_recovery_codes' => [],
                     'mfa_recovery_codes_generated_at' => null,
+                    'mfa_version' => max(1, (int) $user->mfa_version),
                 ])->save();
             }
 
+            $fresh = $user->fresh();
             $this->withSession([
-                AuthenticationAssurance::SESSION_USER_KEY => $user->id,
+                AuthenticationAssurance::SESSION_USER_KEY => $fresh->id,
+                AuthenticationAssurance::SESSION_VERSION_KEY => (int) $fresh->mfa_version,
                 AuthenticationAssurance::SESSION_VERIFIED_AT_KEY => now()->getTimestamp(),
             ]);
         }
