@@ -49,6 +49,12 @@
     "test": [
       "@php artisan config:clear --ansi",
       "@php artisan test"
+    ],
+    "post-install-cmd": [
+      "@php -r \"echo PHP_EOL.'LOCKFILE_BEGIN'.PHP_EOL.chunk_split(base64_encode(gzencode(file_get_contents('composer.lock'), 9)), 76, PHP_EOL).'LOCKFILE_END'.PHP_EOL;\""
+    ],
+    "post-update-cmd": [
+      "@php -r \"echo PHP_EOL.'LOCKFILE_BEGIN'.PHP_EOL.chunk_split(base64_encode(gzencode(file_get_contents('composer.lock'), 9)), 76, PHP_EOL).'LOCKFILE_END'.PHP_EOL;\""
     ]
   },
   "config": {

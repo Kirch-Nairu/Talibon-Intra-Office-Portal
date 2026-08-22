@@ -107,6 +107,11 @@ This consolidated log is mandatory for the active Talibon build. Detailed earlie
 - Scope control: Workflow Authorization Context is preserved unchanged; Correspondence, API Gateway, Documents, Legislative, Property, and HR lifecycle scope are not expanded. `EmployeeLifecycleService.php` is not touched or increased and remains mandatory strangler-refactor debt.
 - Next action: run the focused identity-assurance Feature tests and then the normal exact-HEAD verification chain on the new commit. Privileged MFA should not be called technically closed until those implementation-specific runtime checks are observed.
 
+### Temporary lockfile-generation branch evidence
+- Tooling-only branch intent: use the existing pull-request CI dependency environment to generate the first reproducible `composer.lock` for the application without modifying the active implementation branch.
+- Scope: temporary `composer.json` post-install/post-update script prints a gzip/base64 representation of the generated lockfile to CI logs; no application runtime behavior or production branch state is changed by this temporary commit.
+- Verification: temporary branch only; this entry is not intended for merge into the active branch.
+
 ## Current release state
 
 - Internal engineering: `PHASE1_CANDIDATE_OPEN_GATES`
