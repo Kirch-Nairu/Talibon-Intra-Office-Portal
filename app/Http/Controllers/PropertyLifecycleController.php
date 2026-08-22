@@ -13,6 +13,7 @@ use App\Services\AuditLogger;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -96,12 +97,29 @@ class PropertyLifecycleController extends Controller
     public function scanInventory(Request $request, AssetInventorySession $session, Asset $asset, AssetLifecycleService $service): RedirectResponse
     {
         $data = $request->validate([
-            'scan_value' => ['nullable', 'string', 'max:180'],
+            'scan_value' => ['required', 'string', 'max:180'],
             'observed_location' => ['nullable', 'string', 'max:180'],
             'observed_condition' => ['nullable', Rule::in(['good', 'fair', 'needs_repair', 'unserviceable'])],
             'verification_status' => ['nullable', Rule::in(['verified', 'missing', 'location_mismatch', 'condition_mismatch'])],
             'remarks' => ['nullable', 'string', 'max:3000'],
         ]);
+
+        if ($asset->status === 'disposed') {
+            throw ValidationException::withMessages(['asset' => 'Disposed property cannot be verified in an active physical inventory.']);
+        }
+
+        if (! hash_equals((string) $asset->qr_value, (string) $data['scan_value'])) {
+            $this->audit->record(
+                $request->user(),
+                'property.inventory.reference_mismatch',
+                'Rejected inventory reference that did not match '.$asset->property_number.'.',
+                'denied',
+                Asset::class,
+                $asset->id,
+            );
+            throw ValidationException::withMessages(['scan_value' => 'The scanned/reference value does not match the selected property record.']);
+        }
+
         $service->scanInventory($request->user(), $session, $asset, $data);
         return back()->with('success', 'Inventory observation recorded.');
     }
