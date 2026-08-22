@@ -14,6 +14,7 @@ use App\Http\Controllers\HrisAdminController;
 use App\Http\Controllers\HrisController;
 use App\Http\Controllers\HrisDevelopmentController;
 use App\Http\Controllers\HrisLifecycleController;
+use App\Http\Controllers\HrisOffboardingController;
 use App\Http\Controllers\LeaveRequestController;
 use App\Http\Controllers\LegislativeRecordController;
 use App\Http\Controllers\MayorOfficeController;
@@ -100,6 +101,12 @@ Route::middleware('auth')->group(function (): void {
         Route::post('/lifecycle/onboarding/{case}/complete', [HrisLifecycleController::class, 'completeOnboarding'])->name('hris.lifecycle.onboarding.complete');
         Route::post('/lifecycle/employees/{employee}/movements', [HrisLifecycleController::class, 'applyMovement'])->name('hris.lifecycle.movements.store');
         Route::post('/lifecycle/movement-tasks/{task}/complete', [HrisLifecycleController::class, 'completeMovementTask'])->name('hris.lifecycle.movement.tasks.complete');
+
+        Route::get('/offboarding', [HrisOffboardingController::class, 'index'])->name('hris.offboarding.index');
+        Route::post('/offboarding', [HrisOffboardingController::class, 'store'])->name('hris.offboarding.store');
+        Route::get('/offboarding/{case}', [HrisOffboardingController::class, 'show'])->name('hris.offboarding.show');
+        Route::post('/offboarding/tasks/{task}/complete', [HrisOffboardingController::class, 'completeTask'])->name('hris.offboarding.tasks.complete');
+        Route::post('/offboarding/{case}/finalize', [HrisOffboardingController::class, 'finalize'])->name('hris.offboarding.finalize');
     });
 
     Route::get('/audit', AuditController::class)->name('audit');

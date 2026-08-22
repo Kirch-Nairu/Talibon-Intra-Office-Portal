@@ -13,47 +13,22 @@ class Employee extends Model
     use HasFactory;
 
     protected $fillable = [
-        'employee_number',
-        'full_name',
-        'work_email',
-        'user_id',
-        'department_id',
-        'supervisor_employee_id',
-        'position_title',
-        'employment_status',
-        'employment_type',
-        'appointment_date',
-        'employment_start_date',
-        'contract_end_date',
-        'date_of_birth',
-        'personal_email',
-        'home_address',
-        'mobile_number',
-        'emergency_contact_name',
-        'emergency_contact_relationship',
-        'emergency_contact_phone',
-        'gsis_number',
-        'philhealth_number',
-        'pagibig_number',
-        'tin_number',
-        'biometric_external_id',
+        'employee_number', 'full_name', 'work_email', 'user_id', 'department_id',
+        'supervisor_employee_id', 'position_title', 'employment_status', 'employment_type',
+        'appointment_date', 'employment_start_date', 'contract_end_date', 'separation_date',
+        'date_of_birth', 'personal_email', 'home_address', 'mobile_number',
+        'emergency_contact_name', 'emergency_contact_relationship', 'emergency_contact_phone',
+        'gsis_number', 'philhealth_number', 'pagibig_number', 'tin_number', 'biometric_external_id',
     ];
 
     protected function casts(): array
     {
         return [
-            'appointment_date' => 'date',
-            'employment_start_date' => 'date',
-            'contract_end_date' => 'date',
-            'date_of_birth' => 'date',
-            'personal_email' => 'encrypted',
-            'home_address' => 'encrypted',
-            'emergency_contact_name' => 'encrypted',
-            'emergency_contact_phone' => 'encrypted',
-            'gsis_number' => 'encrypted',
-            'philhealth_number' => 'encrypted',
-            'pagibig_number' => 'encrypted',
-            'tin_number' => 'encrypted',
+            'appointment_date' => 'date', 'employment_start_date' => 'date', 'contract_end_date' => 'date',
+            'separation_date' => 'date', 'date_of_birth' => 'date', 'personal_email' => 'encrypted',
+            'home_address' => 'encrypted', 'emergency_contact_name' => 'encrypted',
+            'emergency_contact_phone' => 'encrypted', 'gsis_number' => 'encrypted',
+            'philhealth_number' => 'encrypted', 'pagibig_number' => 'encrypted', 'tin_number' => 'encrypted',
         ];
     }
 
@@ -67,6 +42,7 @@ class Employee extends Model
     public function dtrDailySummaries(): HasMany { return $this->hasMany(DtrDailySummary::class); }
     public function payrollEntries(): HasMany { return $this->hasMany(PayrollEntry::class); }
     public function onboardingCase(): HasOne { return $this->hasOne(OnboardingCase::class); }
+    public function offboardingCases(): HasMany { return $this->hasMany(OffboardingCase::class); }
     public function movements(): HasMany { return $this->hasMany(EmployeeMovement::class); }
     public function assetAssignments(): HasMany { return $this->hasMany(AssetAssignment::class); }
     public function accountableAssets(): HasMany { return $this->hasMany(Asset::class, 'accountable_employee_id'); }
