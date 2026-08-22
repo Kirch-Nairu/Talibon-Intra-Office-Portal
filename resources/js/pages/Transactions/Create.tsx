@@ -1,0 +1,91 @@
+import { Head, Link, useForm } from '@inertiajs/react';
+import { ArrowRight, Building2 } from 'lucide-react';
+import AppLayout from '../../layouts/AppLayout';
+
+type Department = {
+    id: number;
+    code: string;
+    name: string;
+    short_name?: string | null;
+    branch: string;
+    office_type?: string;
+};
+
+export default function Create({ departments }: { departments: Department[] }) {
+    const executive = departments.filter((department) => department.branch !== 'legislative');
+    const legislative = departments.filter((department) => department.branch === 'legislative');
+
+    const { data, setData, post, processing, errors } = useForm({
+        transaction_type: 'internal_request',
+        title: '',
+        description: '',
+        priority: 'normal',
+        target_department_id: departments[0]?.id ?? '',
+        due_at: '',
+        remarks: '',
+    });
+
+    return <AppLayout title="New Transaction">
+        <Head title="New Transaction" />
+        <div className="mx-auto max-w-3xl space-y-6">
+            <div>
+                <div className="text-xs font-bold uppercase tracking-[0.18em] text-blue-700">Universal office routing</div>
+                <h1 className="mt-2 text-3xl font-bold text-slate-950">Create and route work</h1>
+                <p className="mt-2 text-sm leading-6 text-slate-500">Create one accountable transaction and send it to any active routable executive, administrative, or legislative office.</p>
+            </div>
+
+            <form onSubmit={(event) => { event.preventDefault(); post('/transactions'); }} className="space-y-5 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+                <div className="grid gap-5 md:grid-cols-2">
+                    <label className="space-y-2 text-sm font-semibold text-slate-700">Transaction type
+                        <select value={data.transaction_type} onChange={(event) => setData('transaction_type', event.target.value)} className="w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm">
+                            <option value="internal_request">Internal request</option>
+                            <option value="project_endorsement">Project endorsement</option>
+                            <option value="document_review">Document review</option>
+                            <option value="funding_request">Funding request</option>
+                            <option value="other">Other</option>
+                        </select>
+                        {errors.transaction_type && <span className="text-xs text-red-600">{errors.transaction_type}</span>}
+                    </label>
+                    <label className="space-y-2 text-sm font-semibold text-slate-700">Priority
+                        <select value={data.priority} onChange={(event) => setData('priority', event.target.value)} className="w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm">
+                            <option value="normal">Normal</option>
+                            <option value="high">High</option>
+                            <option value="urgent">Urgent</option>
+                        </select>
+                    </label>
+                </div>
+
+                <label className="block space-y-2 text-sm font-semibold text-slate-700">Subject
+                    <input value={data.title} onChange={(event) => setData('title', event.target.value)} className="w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm" placeholder="What requires action?" />
+                    {errors.title && <span className="text-xs text-red-600">{errors.title}</span>}
+                </label>
+
+                <label className="block space-y-2 text-sm font-semibold text-slate-700">Description
+                    <textarea value={data.description} onChange={(event) => setData('description', event.target.value)} rows={5} className="w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm" placeholder="Context, required action, and supporting details" />
+                </label>
+
+                <div className="grid gap-5 md:grid-cols-2">
+                    <label className="space-y-2 text-sm font-semibold text-slate-700">Receiving office
+                        <select value={data.target_department_id} onChange={(event) => setData('target_department_id', Number(event.target.value))} className="w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm">
+                            {executive.length > 0 && <optgroup label="Executive / Administrative">{executive.map((department) => <option key={department.id} value={department.id}>{department.name}</option>)}</optgroup>}
+                            {legislative.length > 0 && <optgroup label="Legislative Branch">{legislative.map((department) => <option key={department.id} value={department.id}>{department.name}</option>)}</optgroup>}
+                        </select>
+                        {errors.target_department_id && <span className="text-xs text-red-600">{errors.target_department_id}</span>}
+                    </label>
+                    <label className="space-y-2 text-sm font-semibold text-slate-700">Due date <span className="font-normal text-slate-400">optional</span>
+                        <input type="date" value={data.due_at} onChange={(event) => setData('due_at', event.target.value)} className="w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm" />
+                    </label>
+                </div>
+
+                <label className="block space-y-2 text-sm font-semibold text-slate-700">Routing remarks <span className="font-normal text-slate-400">optional</span>
+                    <textarea value={data.remarks} onChange={(event) => setData('remarks', event.target.value)} rows={3} className="w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm" placeholder="Instructions for the receiving office" />
+                </label>
+
+                <div className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 pt-5">
+                    <Link href="/transactions" className="text-sm font-semibold text-slate-500 hover:text-slate-900">Cancel</Link>
+                    <button disabled={processing || departments.length === 0} className="inline-flex items-center gap-2 rounded-xl bg-blue-900 px-5 py-3 text-sm font-bold text-white disabled:opacity-50"><Building2 size={17} />Route transaction<ArrowRight size={17} /></button>
+                </div>
+            </form>
+        </div>
+    </AppLayout>;
+}

@@ -1,9 +1,10 @@
-name: Prototype CI
+name: Talibon Platform CI
 
 on:
   push:
     branches:
       - KIRCH-PROTOTYPE-**
+      - KIRCH-PHASE1-**
   pull_request:
 
 jobs:
@@ -66,6 +67,9 @@ jobs:
 
       - name: Migrate and seed PostgreSQL
         run: php artisan migrate:fresh --seed --force
+
+      - name: Run feature tests
+        run: php artisan test --testsuite=Feature
 
       - name: Verify application routes
         run: php artisan route:list
