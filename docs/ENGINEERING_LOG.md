@@ -1,159 +1,194 @@
 # Engineering Log
 
-This log is mandatory for every commit on the active Talibon build.
+Authority: `SSOT_BY_KIRCH.md`
 
-Authority: `SSOT_BY_KIRCH.md`.
+This log is mandatory for the active Talibon build. It was consolidated on 2026-08-22 after the rapid Phase 1 implementation sequence so agents can see the current engineering state without reconstructing it from chat history. The pre-consolidation detailed log remains preserved in Git history.
 
-## Entry format
+## Required commit record
 
-### YYYY-MM-DD HH:MM PHT — `<commit message>`
+Every implementation commit must identify:
 
-- Milestone / requirement:
-- Intent:
-- Important files / modules:
-- Schema / migration impact:
-- Verification performed:
-- Known gaps / risks:
-- Next action:
+- milestone / requirement;
+- intent;
+- important files or modules;
+- schema / migration impact;
+- verification actually observed;
+- known gaps / risks;
+- next action.
+
+A sprint may be implementation-complete while verification remains open. Never convert an unobserved gate into a PASS claim.
 
 ---
 
-## 2026-08-19 20:09 PHT — `docs: establish Kirch SSOT and mandatory engineering log`
+## Governance and Phase 1 foundation
 
-- Milestone / requirement: Phase 1 project start / governance baseline.
-- Intent: Establish the controlling Phase 1 scope, client priority, internal architecture boundaries, hard delivery target, agent read order, and mandatory commit documentation policy before implementation begins.
-- Important files / modules: `SSOT_BY_KIRCH.md`, `AGENTS.md`, `docs/ENGINEERING_LOG.md`.
-- Schema / migration impact: None.
-- Verification performed: Documentation-only change; no runtime behavior changed and no application test result is claimed.
-- Known gaps / risks: `docs/PHASE_1_PLAN.md` is the next required artifact; organization routing aliases still require M0 validation; production integrations remain unverified.
-- Next action: Create the detailed Phase 1 execution plan and acceptance gates, then start P1-M0/P1-M1 implementation.
+### `docs: establish Kirch SSOT and mandatory engineering log`
+- Milestone: project governance baseline.
+- Intent: establish `SSOT_BY_KIRCH.md`, agent read order, internal Phase 1 scope, and mandatory documentation.
+- Runtime impact: none.
 
-## 2026-08-19 20:15 PHT — `docs: lock Phase 1 execution plan and acceptance gates`
+### `docs: lock Phase 1 execution plan and acceptance gates`
+- Milestone: Phase 1 execution baseline.
+- Intent: define M0-M12 sequencing, acceptance gates, release labels, and the prohibition against destructive refreshes on the presentation database.
+- Runtime impact: none.
 
-- Milestone / requirement: P1 planning / execution baseline.
-- Intent: Convert the Kirch SSOT into an engineering sequence for the Aug 21 12:00 PHT target, define workstreams, migration ownership, priority cut line, data/event contracts, authorization principles, acceptance scenarios, verification gates, and honest release labels.
-- Important files / modules: `docs/PHASE_1_PLAN.md`, `docs/ENGINEERING_LOG.md`.
-- Schema / migration impact: None; plan proposes candidate structures but explicitly requires inspection before migrations are created.
-- Verification performed: Documentation-only planning change; no runtime behavior changed and no application test result is claimed.
-- Known gaps / risks: M0 code inspection still required before schema implementation; existing 29-office prototype seeding must be reconciled with the approximately 33-node routing baseline; hard deadline is highly compressed.
-- Next action: Begin P1-M0 repository inspection, establish the compatibility organization model, then implement P1-M1.
+### `feat: establish Phase 1 organization routing foundation`
+### `feat: enforce branch-aware universal office routing`
+- Milestone: P1-M0 / P1-M1.
+- Intent: preserve `departments` as the compatibility anchor while adding branch, office type, hierarchy, routability, ordering, and universal routing enforcement.
+- Schema: additive organization metadata.
+- Acceptance contract: 33 routable nodes, split as 30 executive/administrative + 3 legislative.
 
-## 2026-08-19 20:56 PHT — `feat: establish Phase 1 organization routing foundation`
+### `feat: add persistent notifications calendar and shared document foundation`
+- Milestone: P1-M2.
+- Intent: persistent notification truth, shared municipal calendar, workflow deadline publication, and reusable document metadata/link records.
+- Schema: `platform_notifications`, `calendar_events`, `documents`, `document_links`.
 
-- Milestone / requirement: P1-M0 / P1-M1 organization and routing foundation.
-- Intent: Preserve the existing `departments` compatibility anchor while adding branch, office-type, hierarchy, routability, and ordering metadata; reconcile the prototype 29-office seed with the 33-node Phase 1 baseline; and enable CI for the active Phase 1 branch.
-- Important files / modules: department schema/model, municipality structure seeder, department directory controller, Phase 1 organization routing feature test, GitHub Actions CI.
-- Schema / migration impact: Additive migration on `departments`: `branch`, `office_type`, `parent_department_id`, `is_routable`, and `sort_order`. No existing department foreign keys are renamed or removed.
-- Verification performed: Repository-level code inspection completed before implementation. A feature test was added for 33 routable nodes, 30 executive + 3 legislative split, and legislative routing. CI was enabled for `KIRCH-PHASE1-**`; runtime results are not yet claimed in this commit.
-- Known gaps / risks: Routing controllers/services still need explicit `is_routable` enforcement; office hierarchy parent links remain unset until the actual organizational chart is formally validated; acting/delegated assignments and office-specific workspace depth are not yet implemented.
-- Next action: Enforce routable-office selection server-side, update routing/directory UI for branch-aware destinations, observe CI, then proceed to shared documents/notifications/calendar and HR lifecycle foundations.
+### `feat: establish permission-aware employee profile and 201 foundation`
+- Milestone: P1-M3.
+- Intent: employee master/profile expansion, encrypted private HR fields, permission-aware employee projections, and 201-document metadata without implicit health access.
+- Schema: additive employee employment/private profile fields.
 
-## 2026-08-19 21:12 PHT — `feat: enforce branch-aware universal office routing`
+---
 
-- Milestone / requirement: P1-M1 universal office routing.
-- Intent: Enforce active/routable destination selection in validation and the workflow service, make the routing UI branch-aware, expose the 30 executive + 3 legislative structure in the office directory, and reject disabled routing destinations even when requests are tampered with.
-- Important files / modules: `TransactionController`, `TransactionWorkflowService`, department directory UI, new-transaction UI, shared TypeScript department type, Phase 1 organization/routing feature test.
-- Schema / migration impact: None beyond the additive department metadata migration introduced by the immediately preceding documented commit.
-- Verification performed: Added a feature test proving non-routable destinations are rejected and existing legislative routing remains auditable. Static inspection completed; CI/runtime result is not claimed until observed.
-- Known gaps / risks: Existing transaction detail transition UI is not yet visually grouped by branch even though the backend now filters to routable offices; acting/delegated assignments remain pending; office-specific workspace pages are still shared-directory level.
-- Next action: Observe CI for the first Phase 1 runtime commits, fix any gate failures, then start P1-M2 shared documents/notifications/calendar followed by employee-profile and HR lifecycle work.
+## HR lifecycle and property foundation
 
-## 2026-08-19 21:14 PHT — `feat: add persistent notifications calendar and shared document foundation`
+### `feat: add onboarding movement and property domain foundations`
+### `feat: expose lifecycle and property accountability workspaces`
+### `fix: align onboarding task UI type contract`
+### `fix: align frontend calls with Inertia v3 contracts`
+- Milestone: P1-M4.
+- Intent: blocker-driven onboarding, employment movement, basic asset accountability, HTTP authorization, lifecycle/property workspaces, and Inertia v3 compatibility.
+- Verification observed after fixes: production build PASS; Feature suite PASS at **24 tests / 173 assertions**.
 
-- Milestone / requirement: P1-M2 shared documents, notifications, and calendar foundation.
-- Intent: Replace transaction-arrival notification truth with persistent deduplicated per-user records for new Phase 1 events, preserve legacy M6 event-derived notifications only as a pre-cutover fallback, create a shared municipal calendar domain, generate workflow-deadline events, and establish reusable protected document metadata/link records for later HR/property/legislative attachments.
-- Important files / modules: notification/calendar/document migrations and models; `PlatformNotificationService`; `CalendarService`; transaction workflow side effects; Inertia shared notifications; calendar page/controller; notification read/ack endpoints; shared platform feature tests.
-- Schema / migration impact: Adds `platform_notifications`, `calendar_events`, `documents`, and `document_links`. No existing memo, transaction, HR, or legislative tables are removed or renamed.
-- Verification performed: Static repository inspection and test authoring only. Added tests for persistent transaction notifications, notification deduplication/acknowledgement, deadline calendar generation/visibility, and shared document linking. No runtime test/build/CI pass is claimed yet.
-- Known gaps / risks: Actual binary upload/download authorization is not implemented in this foundation commit; calendar currently surfaces routed-work deadlines and is ready for HR/legislative/property publishers; notification acknowledgement UI beyond memoranda is not yet surfaced; Reverb/WebSocket transport is still deferred and polling remains the UI fallback.
-- Next action: Observe/fix runtime gates, then proceed directly to P1-M3 employee profile/201-file foundation and P1-M4 onboarding/movement/basic property accountability.
+### `feat: integrate DTR leave and payroll context`
+- Milestone: P1-M5.
+- Intent: evidence-derived DTR, approved-leave calendar/notification integration, and locked DTR context linked to payroll without silently recalculating monetary values.
+- Schema: DTR periods/summaries and payroll context links.
+- Verification observed: production build PASS in **1.95s**; Feature suite PASS at **28 tests / 191 assertions** in **359.37s**.
 
-## 2026-08-19 21:14 PHT — `feat: establish permission-aware employee profile and 201 foundation`
+### `feat: add performance development and explicit health-vault authorization`
+- Milestone: P1-M6.
+- Intent: performance/development records, credential/contract expiry monitoring, and explicit purpose-bound employee health-vault access.
+- Security rule: ordinary HR and system administration do not automatically receive health-content access.
+- Verification observed: production build PASS in **2.68s**; Feature suite PASS at **33 tests / 231 assertions** in **454.19s**.
 
-- Milestone / requirement: P1-M3 employee master, profile, and 201-file foundation.
-- Intent: Extend the employee master with employment/supervisor/private-contact/government-identifier fields, encrypt high-sensitivity profile values at the application layer, add a permission-aware employee profile surface, reuse the shared document domain for 201-file metadata, and explicitly keep health/clinical data outside the general profile.
-- Important files / modules: employee profile migration/model, employee profile controller/page, employee directory links, route, profile authorization tests.
-- Schema / migration impact: Additive fields on `employees` for supervisor, employment metadata, personal/emergency contact, date of birth, and government identifiers. Sensitive text fields use Laravel encrypted casts; no existing employee keys are removed or renamed.
-- Verification performed: Static inspection and feature-test authoring only. Added tests for self private-profile access, department-head denial of another employee's private/201 profile, and HR access without implicit health-vault permission. No runtime test/build/CI pass is claimed yet.
-- Known gaps / risks: Production key-management/rotation policy is not yet finalized; employee profile editing and protected binary 201-file upload are not yet implemented; health vault remains a separate later Phase 1 milestone; supervisor assignments are schema-ready but not yet seeded from validated municipal reporting lines.
-- Next action: Start P1-M4 onboarding and employment movement cases with blocker tasks and basic property accountability hooks.
+### `feat: add blocker-driven employee offboarding and clearance`
+- Milestone: P1-M7.
+- Intent: separation/offboarding as cross-office clearance rather than a status toggle; live blockers include open work, accountable property, financial/payroll/leave/document/biometric clearance, and access revocation.
+- Schema: offboarding cases/tasks plus employee separation date.
+- Verification: implementation and syntax-level review performed; full post-M7 integrated local gate intentionally deferred to final sprint verification.
 
-## 2026-08-19 21:31 PHT — `feat: add onboarding movement and property domain foundations`
+### `feat: implement full property lifecycle controls`
+- Milestone: P1-M8.
+- Intent: maintenance, physical inventory, discrepancy evidence, Accounting reconciliation, and controlled disposal while preserving append-only asset history.
+- Schema: maintenance, inventory sessions/scans, reconciliation, disposal.
+- Verification: implementation/test coverage added; full post-M8 integrated local gate intentionally deferred.
 
-- Milestone / requirement: P1-M4 onboarding, employment movement, and basic property accountability foundation.
-- Intent: Add blocker-driven onboarding cases, auditable employee movements with post-movement review tasks, and the first GSO-oriented asset accountability ledger so HR lifecycle changes can coordinate identity, open-work review, property review, calendar, notifications, and audit rather than behave as isolated CRUD updates.
-- Important files / modules: onboarding/movement/property migrations and models; `EmployeeLifecycleService`; `AssetAccountabilityService`; employee lifecycle relationships; Phase 1 lifecycle/property feature tests.
-- Schema / migration impact: Adds `onboarding_cases`, `onboarding_tasks`, `employee_movements`, `employee_movement_tasks`, `assets`, `asset_assignments`, and append-only `asset_events`. Existing employee, workflow, HR, and shared-platform tables remain compatible.
-- Verification performed: Static design review and feature-test authoring only. Tests cover onboarding blocker enforcement and activation, movement-triggered open-work/property review tasks, persistent employee movement notification, and property issue/return event history. No runtime migration/test/build/CI pass is claimed yet.
-- Known gaps / risks: Runtime controllers and user-facing P1-M4 surfaces are the next commit; property permissions currently exist at the domain-service boundary and will also be enforced at HTTP/controller level; asset inventory/maintenance/disposal depth remains P1-M8; onboarding task completion is manual confirmation except portal identity creation and must not be represented as live biometric/payroll integration.
-- Next action: Add restricted HR lifecycle and property HTTP surfaces, server-side request validation, navigation entry points, then run/observe migration and feature gates before advancing to P1-M5.
+---
 
-## 2026-08-19 21:47 PHT — `feat: expose lifecycle and property accountability workspaces`
+## 2026-08-22 bug-bounty hardening before M9
 
-- Milestone / requirement: P1-M4 user-facing onboarding/movement/property workflows and authorization hardening.
-- Intent: Expose restricted HR lifecycle controls and the property-accountability workspace, enforce HTTP and domain authorization, prevent future-dated movements from being silently applied, validate supervisors against destination offices, route cross-office review tasks to their owning offices, and prevent private employee fields from leaking through broad directory/HR-admin serialization.
-- Important files / modules: `HrisLifecycleController`, `PropertyController`, lifecycle and property React pages, routes, `EmployeeLifecycleService`, `AssetAccountabilityService`, `HrisAdminController`, `EmployeeDirectoryController`, HTTP/domain feature tests.
-- Schema / migration impact: No new schema beyond the P1-M4 migrations in the preceding commit. This commit consumes and hardens those tables.
-- Verification performed: Static implementation review and feature-test authoring only. Added HTTP tests for HR lifecycle restriction, onboarding blocker response, property read/mutation restrictions, and property registration. Updated domain tests for immediate movement semantics. No runtime migration/test/build/CI pass is claimed yet.
-- Known gaps / risks: GSO-specific featured demo credentials are not yet seeded; inventory/maintenance/disposal and Accounting reconciliation depth remain P1-M8; cross-office task completion UI is still HR-coordinated even though service authorization supports owner-office completion; actual biometric/payroll integrations remain explicit boundaries rather than simulated live integrations.
-- Next action: Run the dedicated migration/feature/type/build gates, fix observed failures, then proceed to P1-M5 leave/attendance/DTR/payroll lifecycle integration.
+### `124b0070` — backend inventory-reference enforcement
+- Finding: the property UI described QR/reference verification but the server did not require proof that the submitted scan/reference matched the selected asset.
+- Fix: require the exact stored reference at the HTTP/domain boundary, compare it server-side, reject mismatches, and reject disposed assets from active inventory scans.
+- Risk closed: selecting an asset record can no longer masquerade as physical-reference verification.
 
-## 2026-08-19 21:53 PHT — `fix: align onboarding task UI type contract`
+### `4f32f0c0` — explicit property scan/reference UI
+- Intent: require the operator to submit the observed QR/property reference instead of silently trusting the selected asset ID.
 
-- Milestone / requirement: P1-M4 frontend contract hardening before verification.
-- Intent: Align the onboarding checklist TypeScript contract with the backend task payload by declaring the completion timestamp used by the rendered audit/status line.
-- Important files / modules: `resources/js/pages/Hris/Lifecycle/Show.tsx`, engineering log.
-- Schema / migration impact: None.
-- Verification performed: Static TypeScript contract review only; no compiler/build/test pass is claimed until the dedicated verification gates run.
-- Known gaps / risks: Full TypeScript and production-build verification remains pending.
-- Next action: Run type checking, frontend build, migrations, and the feature suite against the dedicated test environment; fix only observed gate failures before P1-M5.
+### `acd46810` — property reference integrity regression coverage
+- Intent: cover the mismatch/invalid-reference path so the integrity fix cannot regress silently.
 
-## 2026-08-19 22:04 PHT — `fix: align frontend calls with Inertia v3 contracts`
+The isolated execution VM still had outbound DNS restrictions and could not construct a dependency-complete GitHub/Composer environment, so no full Laravel/Vite PASS was claimed from that VM.
 
-- Milestone / requirement: P1-M4 verification-gate repair after observed TypeScript failures.
-- Intent: Correct five observed TypeScript errors caused by legacy Inertia call patterns: explicitly type Vite page resolution for Inertia React v3, remove unsupported `preserveState` / `preserveScroll` keys from `router.reload()` calls because reload already preserves both internally, and split `useForm().transform()` from `post()` because v3 `transform()` returns void and is no longer chainable.
-- Important files / modules: `resources/js/app.tsx`, `resources/js/layouts/AppLayout.tsx`, `resources/js/pages/MayorOffice.tsx`, `resources/js/pages/Transactions/Show.tsx`, `docs/ENGINEERING_LOG.md`.
-- Schema / migration impact: None.
-- Verification performed: User-observed pre-fix gate: `npm run types:check` reported 5 errors across 4 files; `npm run build` succeeded in 16.76s. Inertia v3 source/type contracts were inspected before the fix. Post-fix type/build/test success is not claimed until rerun output is observed.
-- Known gaps / risks: The production Vite bundle already built before this fix, but TypeScript remained red; additional type errors may surface once these five are removed. Backend feature tests and migration gates are still pending in this verification pass.
-- Next action: Pull this commit and rerun `npm run types:check`, `npm run build`, and `php artisan test --testsuite=Feature`; fix any remaining observed gates before starting P1-M5.
+---
 
-## 2026-08-19 22:21 PHT — `feat: integrate DTR leave and payroll context`
+## P1-M9 — Executive and Legislative completion
 
-- Milestone / requirement: P1-M5 leave / attendance / DTR / payroll lifecycle integration.
-- Intent: Convert raw attendance into an auditable DTR evidence snapshot without inventing absence/tardiness rules, connect approved leave to notifications and the shared calendar, and allow a locked DTR snapshot to be linked to payroll strictly as review context while preserving all existing synthetic payroll monetary values.
-- Important files / modules: DTR migration/models/service/controller/page; `LeaveService`; `CalendarService`; `PayrollPeriod`; `PayrollEntry`; `PayrollController`; payroll and HRIS UI; HR admin UI; routes; `Phase1DtrPayrollIntegrationTest`; `docs/ENGINEERING_LOG.md`.
-- Schema / migration impact: Adds `dtr_periods` and `dtr_daily_summaries`; adds DTR linkage/calculation-context fields to `payroll_periods`; adds DTR/approved-leave snapshot fields to `payroll_entries`. Existing attendance logs, leave-credit ledger, and monetary payroll columns are preserved.
-- Verification performed: The pre-change branch baseline was user-observed green for the production Vite build (`built in 2.01s`) and full feature suite (`24 passed`, `173 assertions`, `323.62s`). The pasted verification output did not explicitly show the post-fix `npm run types:check` result, so no TypeScript-green claim is inferred from silence. For this new M5 commit, static implementation review and feature-test authoring were performed; post-change migration/type/build/test results are not yet claimed.
-- Known gaps / risks: No physical biometric device is represented as connected; no official schedule, lateness, undertime, overtime, statutory payroll, or contribution formula is inferred; DTR-to-payroll linking is contextual only; CTO/overtime/travel request depth and benefits/contribution administration remain later M5/M6 work.
-- Next action: Pull this commit, run additive migrations, TypeScript check, production build, and full feature suite; fix observed failures before extending M5 or moving to P1-M6.
+### M9 scaffold chain
+- `b2b33f30`, `e011420a`, `402cecf8`, `667d5826`, `76f9be05`, `dfcff542`, `d09f2352`
+- Intent: introduce legislative session/agenda foundations and expand the Mayor backend from a local approval queue into municipality-wide accountability data.
 
-## 2026-08-19 23:02 PHT — `feat: add performance development and explicit health-vault authorization`
+### `59eaf83d63a3d3df72b9cb442855647fd38713bc` — `feat: complete M9 executive and legislative workspaces`
+- Milestone: P1-M9.
+- Intent:
+  - wire the legislative workspace routes;
+  - add session scheduling and agenda controls;
+  - publish legislative sessions to the shared municipal calendar;
+  - surface routed work currently held by legislative offices;
+  - expand the Mayor UI to municipality-wide open work, overdue work, returned/information-requested work, and office bottlenecks;
+  - add M9 feature coverage.
+- Schema: consumes the additive `legislative_sessions` / `legislative_agenda_items` migration already introduced in the M9 scaffold.
+- Verification: implementation and static contract review only; local integrated gate deferred.
 
-- Milestone / requirement: P1-M5 verification closure and P1-M6 performance / development / restricted employee health-vault foundation.
-- Intent: Record the observed green M5 build/test evidence, add governed performance and employee-development records with expiry monitoring, and implement a health-vault boundary where neither normal HR nor system-administrator roles automatically receive medical-content access. Health content requires an explicit, purpose-bound, revocable grant and remains limited to employment/occupational-health evidence rather than RHU clinical history.
-- Important files / modules: performance/development/health migrations and models; `EmployeeDevelopmentService`; `EmployeeHealthVaultService`; HR development, health-access, and health-vault controllers/pages; employee profile integration; HR administration navigation; routes; synthetic M6 demo seeder; `Phase1DevelopmentHealthSecurityTest`; `docs/ENGINEERING_LOG.md`.
-- Schema / migration impact: Adds `performance_records`, `employee_development_records`, `employee_health_access_grants`, and `employee_health_records`. Health record summary/restriction fields use Laravel encrypted casts. Existing employee, HR, DTR, payroll, workflow, notification, calendar, and document tables are preserved.
-- Verification performed: User-observed post-M5 evidence: production Vite build succeeded in `1.95s`; full Feature suite passed `28 tests / 191 assertions` in `359.37s`, including all four `Phase1DtrPayrollIntegrationTest` scenarios. The pasted output did not display a standalone `npm run types:check` success line, so TypeScript-green is not separately claimed from silence. For this M6 commit, repository/static design review and feature-test authoring were performed; post-M6 migration/type/build/test results are not yet claimed.
-- Known gaps / risks: No production occupational-health policy, retention schedule, key-rotation policy, authorized health-access roster, or official performance-rating rules have been supplied. Health-vault access management is a real authorization boundary but seeded content remains synthetic. Credential/contract expiry alerts are monitoring signals and do not automatically alter employment status. Protected binary medical-document upload remains part of the shared document-service hardening work.
-- Next action: Pull this commit, apply additive migrations, run `npm run types:check`, production build, and the full Feature suite. If green, proceed to P1-M7 offboarding/clearance integration while retaining any M6 policy/configuration items as production-discovery gates.
+### `216ec7c1674571ad022061335044ec90386d6270` — `fix: align legislative manager permissions with Phase 1 demo roles`
+- Finding: the featured `legislative@talibon.demo` account is a `legislative_staff` user assigned to SB, while the first manager guard only allowed SB Secretary. The UI also exposed controls more broadly than the write guard.
+- Fix: centralize `canView` / `canManage`; permit legislative staff in SB or SB Secretary to manage sessions/agenda for the Phase 1 demo contract; keep Vice Mayor read-capable; expose `canManage` to the UI; hide write controls when false; remove the unused frontend import; add featured-account regression coverage.
+- Production note: the final municipal permission matrix can narrow manager authority after the official legislative staffing/delegation workflow is confirmed.
 
-## 2026-08-22 12:34 PHT — `feat: add blocker-driven employee offboarding and clearance`
+---
 
-- Milestone / requirement: P1-M6 verification closure and P1-M7 separation / offboarding / clearance integration.
-- Intent: Record the user-observed green M6 gate and implement offboarding as a cross-office clearance workflow rather than a direct employee-status toggle. Finalization re-checks live assigned work and accountable property, requires mandatory department/financial/payroll/leave/document/biometric clearances, revokes portal access transactionally, records the separation date, and preserves historical records.
-- Important files / modules: `offboarding_cases`, `offboarding_tasks`, employee separation metadata, `EmployeeOffboardingService`, `HrisOffboardingController`, offboarding Inertia pages, HR-admin routes, `Phase1OffboardingTest`, `docs/ENGINEERING_LOG.md`.
-- Schema / migration impact: Adds `offboarding_cases` and `offboarding_tasks`; adds nullable `employees.separation_date`. No existing workflow, property, payroll, DTR, leave, document, or audit history is deleted or rewritten.
-- Verification performed: User-observed M6 evidence before this change: production Vite build succeeded in `2.68s`; full Feature suite passed `33 tests / 231 assertions` in `454.19s`. In the isolated VM used for this M7 implementation, PHP 8.4.23, Node 22.16.0, npm 10.9.2, and TypeScript 5.8.3 were available. `php -l` passed for the new migration, models, service, controller, and `Phase1OffboardingTest`. Full Laravel execution was not claimed from the VM because outbound network access was unavailable, the repository could not be cloned directly, and Composer/PostgreSQL client packages could not be downloaded there.
-- Known gaps / risks: Full post-M7 migration/TypeScript/build/Feature verification still requires the repository dependency environment or CI. Biometric disablement remains an auditable administrative task, not a claim of hardware integration. Final-pay calculation remains a clearance/review boundary until official payroll rules are supplied. Full property lifecycle depth remains P1-M8.
-- Next action: Observe CI or run the normal local additive migration, TypeScript check, production build, and Feature suite. Fix any M7 gate failure before proceeding to P1-M8 full property lifecycle.
+## P1-M10 — Reporting, audit, and authorization hardening
 
-## 2026-08-22 13:05 PHT — `feat: implement full property lifecycle controls`
+### `c3715d81f4a818283d13a8b15d1de35c497d9be9` — `feat: harden M10 reporting audit and authorization evidence`
+- Milestone: P1-M10.
+- Intent:
+  - extend executive/HR reporting with onboarding, offboarding, property assignment, and reconciliation state;
+  - keep payroll export HR-only;
+  - add audit summaries for recent events, denied activity, and distinct actors;
+  - add server-side audit filtering by outcome, action family, and department;
+  - load explicit actor-department context;
+  - add security regression tests proving privileged report/audit boundaries.
+- Schema: none.
+- Verification: implementation/test authoring completed; local integrated gate deferred.
+- Security invariant: normal engineering users cannot open reports/audit; HR can access reports but not the privileged audit surface; non-HR executives cannot export payroll summaries.
 
-- Milestone / requirement: P1-M8 full LGU Property & Asset lifecycle.
-- Intent: Extend the existing PAR/ICS accountability ledger into auditable maintenance, physical inventory, QR/reference verification, discrepancy evidence, Accounting reconciliation, and controlled disposal workflows without replacing the established asset master or append-only custody history.
-- Important files / modules: property lifecycle migration/models, `AssetLifecycleService`, `PropertyLifecycleController`, property lifecycle Inertia workspace, property routes, `Asset` relationships, `Phase1PropertyLifecycleTest`, `docs/ENGINEERING_LOG.md`.
-- Schema / migration impact: Adds `asset_maintenance_records`, `asset_inventory_sessions`, `asset_inventory_scans`, `asset_reconciliations`, and `asset_disposals`. Existing `assets`, `asset_assignments`, and `asset_events` remain authoritative and compatible; lifecycle actions append asset events rather than rewriting custody history.
-- Verification performed: Repository inspection was performed against the active branch before implementation. The previous user-observed M6 baseline remained `33 tests / 231 assertions`; full post-M7/M8 Laravel execution has not yet been observed. The isolated VM still cannot resolve `github.com`, so a dependency-complete clone/build could not be created there. The new implementation was structured to preserve existing service boundaries and includes four dedicated Feature scenarios covering maintenance, inventory mismatch/closure, reconciliation/disposal authority, and unauthorized mutation.
-- Known gaps / risks: Post-M8 additive migration, TypeScript, Vite build, and full Feature-suite verification remain open. Disposal authority is intentionally represented by a required authority/reference document rather than hardcoding a Talibon approval chain that has not yet been formally supplied. Inventory scanning currently accepts the QR/reference value through the browser form; camera/barcode hardware integration is not claimed. Accounting reconciliation records status/reference/book value but does not replace the official government accounting ledger.
-- Next action: Squash the implementation into one documented M8 commit, run additive migrations and the full verification gate, fix observed failures only, then proceed to P1-M9 executive and legislative workspace completion.
+---
+
+## P1-M11 — Integrated acceptance preparation
+
+### `2fac461f7c08479c8010add0c31b589ea131f01a` — `test: add M11 integrated Phase 1 acceptance matrix`
+- Milestone: P1-M11.
+- Intent: add a consolidated smoke/authorization acceptance test across dashboard, calendar, property, legislative workspace, Mayor workspace, reports, audit, HRIS lifecycle/offboarding/DTR/payroll, plus the 33-node routing shape.
+- Documentation: adds `docs/PHASE_1_ACCEPTANCE_CHECKLIST.md`.
+- Verification: tests authored but deliberately not represented as executed; final local run remains the acceptance authority.
+
+---
+
+## P1-M12 — Freeze and local handoff preparation
+
+### `e9f668df223c6d2aaf01130687db5356da3b2d99` — `chore: prepare M12 freeze and local verification handoff`
+- Milestone: P1-M12 preparation.
+- Intent: stop feature creep, establish `PHASE1_CANDIDATE_OPEN_GATES`, add the release-status document, and provide a safe local verification script.
+- Files: `scripts/phase1-verify.ps1`, `docs/PHASE_1_RELEASE_STATUS.md`.
+- Verification script runs only:
+  - additive `php artisan migrate`;
+  - `npm run types:check`;
+  - `npm run build`;
+  - `php artisan test --testsuite=Feature`.
+- Safety: the script contains no `migrate:fresh` or destructive database reset.
+
+---
+
+## Current release state
+
+**Label:** `PHASE1_CANDIDATE_OPEN_GATES`
+
+Feature implementation through M10 is materially present. M11 acceptance coverage and M12 handoff tooling are present. The branch must not be called release-green until the final local verification is run against the exact current HEAD and the observed migration/type/build/Feature results are recorded here.
+
+The next allowed changes before release-green are limited to:
+
+1. observed migration/type/build/test failures;
+2. security or data-integrity defects;
+3. acceptance blockers from `docs/PHASE_1_ACCEPTANCE_CHECKLIST.md`;
+4. benchmark handoff documentation.
+
+No new Phase 1 feature scope should be added during the freeze.
+
+### `docs: consolidate engineering log through Phase 1 freeze prep`
+- Milestone: engineering governance reconciliation.
+- Intent: consolidate rapid-sprint history, explicitly document the M8 bug-bounty chain and M9-M12 commits, and restore the repository-level documentation trail before final local verification.
+- Schema/runtime impact: none.
+- Verification: documentation-only.
+- Next action: run the final local verification after pulling the current branch, then fix only observed blockers and record the exact green evidence before assigning a release-green label.
