@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Domain\Workflow\WorkflowDefinition;
+use App\Domain\Workflow\WorkflowDefinitionResolver;
 use App\Models\Department;
 use App\Models\Employee;
 use App\Models\WorkflowTransaction;
@@ -81,8 +83,11 @@ class TransactionController extends Controller
         return redirect()->route('transactions.show', $transaction)->with('success', "{$transaction->reference_no} was routed successfully.");
     }
 
-    public function show(Request $request, WorkflowTransaction $transaction): Response
-    {
+    public function show(
+        Request $request,
+        WorkflowTransaction $transaction,
+        WorkflowDefinitionResolver $definitions,
+    ): Response {
         $this->authorize('view', $transaction);
 
         $transaction->load([
@@ -99,6 +104,7 @@ class TransactionController extends Controller
         $canTransition = $user->can('transition', $transaction);
         $canMayorDecision = $user->can('mayorDecision', $transaction);
         $canAssign = $user->can('assign', $transaction);
+        $definition = $definitions->resolve($transaction);
 
         return Inertia::render('Transactions/Show', [
             'transaction' => $transaction,
@@ -116,7 +122,7 @@ class TransactionController extends Controller
                     ->limit(100)
                     ->get(['id', 'employee_number', 'full_name', 'position_title'])
                 : [],
-            'accountability' => $this->accountability($transaction),
+            'accountability' => $this->accountability($transaction, $definition),
             'permissions' => [
                 'canTransition' => $canTransition,
                 'canMayorDecision' => $canMayorDecision,
@@ -125,10 +131,16 @@ class TransactionController extends Controller
         ]);
     }
 
-    public function transition(Request $request, WorkflowTransaction $transaction, TransactionWorkflowService $workflow): RedirectResponse
-    {
+    public function transition(
+        Request $request,
+        WorkflowTransaction $transaction,
+        TransactionWorkflowService $workflow,
+        WorkflowDefinitionResolver $definitions,
+    ): RedirectResponse {
+        $definition = $definitions->resolve($transaction);
+
         $data = $request->validate([
-            'action' => ['required', Rule::in(['assign', 'mark_review', 'forward', 'send_to_mayor', 'return_origin', 'request_information', 'approve', 'disapprove'])],
+            'action' => ['required', Rule::in($definition->actions())],
             'target_department_id' => [
                 'nullable',
                 'integer',
@@ -162,12 +174,13 @@ class TransactionController extends Controller
         return redirect()->route('transactions.show', $updated)->with('success', 'Transaction workflow updated.');
     }
 
-    private function accountability(WorkflowTransaction $transaction): array
-    {
-        $terminal = in_array($transaction->status, ['approved', 'disapproved', 'closed'], true);
+    private function accountability(
+        WorkflowTransaction $transaction,
+        WorkflowDefinition $definition,
+    ): array {
         $dueState = 'on_track';
 
-        if ($terminal) {
+        if ($definition->isTerminal($transaction->status)) {
             $dueState = 'completed';
         } elseif ($transaction->due_at?->isPast()) {
             $dueState = 'overdue';

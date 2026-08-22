@@ -2,12 +2,15 @@
 
 namespace App\Services;
 
+use App\Domain\Workflow\SlaResolver;
+use App\Domain\Workflow\WorkflowDefinitionResolver;
+use App\Domain\Workflow\WorkflowDestinationResolver;
+use App\Domain\Workflow\WorkflowTransitionRule;
 use App\Models\Department;
 use App\Models\Employee;
 use App\Models\TransactionEvent;
 use App\Models\User;
 use App\Models\WorkflowTransaction;
-use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
@@ -17,6 +20,9 @@ class TransactionWorkflowService
         private readonly AuditLogger $audit,
         private readonly PlatformNotificationService $notifications,
         private readonly CalendarService $calendar,
+        private readonly WorkflowDefinitionResolver $definitions,
+        private readonly WorkflowDestinationResolver $destinations,
+        private readonly SlaResolver $sla,
     ) {
     }
 
@@ -28,27 +34,13 @@ class TransactionWorkflowService
             throw ValidationException::withMessages(['department' => 'An active routable employee office is required.']);
         }
 
-        if ((int) $data['target_department_id'] === (int) $originDepartmentId) {
-            throw ValidationException::withMessages(['target_department_id' => 'Select a different receiving office.']);
-        }
-
-        $targetDepartment = Department::query()
-            ->activeRoutable()
-            ->whereKey((int) $data['target_department_id'])
-            ->first();
-
-        if (! $targetDepartment) {
-            throw ValidationException::withMessages(['target_department_id' => 'Select an active routable receiving office.']);
-        }
+        $targetDepartment = $this->receivingDepartment(
+            (int) $data['target_department_id'],
+            (int) $originDepartmentId,
+        );
 
         return DB::transaction(function () use ($actor, $data, $originDepartmentId, $targetDepartment): WorkflowTransaction {
-            $dueAt = isset($data['due_at']) && $data['due_at']
-                ? Carbon::parse($data['due_at'])->endOfDay()
-                : now()->addDays(match ($data['priority']) {
-                    'urgent' => 1,
-                    'high' => 3,
-                    default => 5,
-                })->endOfDay();
+            $definition = $this->definitions->resolve($data['transaction_type']);
 
             $transaction = WorkflowTransaction::query()->create([
                 'transaction_type' => $data['transaction_type'],
@@ -58,26 +50,25 @@ class TransactionWorkflowService
                 'origin_department_id' => $originDepartmentId,
                 'current_department_id' => $targetDepartment->id,
                 'created_by_user_id' => $actor->id,
-                'status' => 'submitted',
+                'status' => $definition->initialStatus(),
                 'received_at' => now(),
-                'due_at' => $dueAt,
+                'due_at' => $this->sla->resolve($data['priority'], $data['due_at'] ?? null),
             ]);
 
             $transaction->update([
                 'reference_no' => sprintf('TAL-%s-%06d', now()->format('Y'), $transaction->id),
             ]);
 
-            $event = TransactionEvent::query()->create([
-                'transaction_id' => $transaction->id,
-                'actor_user_id' => $actor->id,
-                'from_department_id' => $originDepartmentId,
-                'to_department_id' => $targetDepartment->id,
-                'action' => 'submitted',
-                'previous_status' => 'draft',
-                'new_status' => 'submitted',
-                'remarks' => $data['remarks'] ?? null,
-                'created_at' => now(),
-            ]);
+            $event = $this->recordEvent(
+                transaction: $transaction,
+                actor: $actor,
+                action: 'submitted',
+                previousStatus: 'draft',
+                newStatus: $definition->initialStatus(),
+                fromDepartmentId: (int) $originDepartmentId,
+                toDepartmentId: (int) $targetDepartment->id,
+                remarks: $data['remarks'] ?? null,
+            );
 
             $this->audit->record(
                 $actor,
@@ -88,19 +79,10 @@ class TransactionWorkflowService
                 $transaction->id,
             );
 
-            $this->notifications->notifyDepartment($targetDepartment, [
-                'event_key' => 'transaction-event-'.$event->id,
-                'source_domain' => 'transaction',
-                'source_type' => WorkflowTransaction::class,
-                'source_id' => $transaction->id,
-                'priority' => $this->notificationPriority($transaction->priority),
-                'title' => $targetDepartment->code === 'MAYOR' ? 'Executive action required' : 'New transaction received',
-                'message' => $transaction->reference_no.' · '.$transaction->title,
-                'action_url' => '/transactions/'.$transaction->id,
-            ]);
+            $this->notifyOffice($targetDepartment, $transaction, $event, true);
             $this->calendar->syncTransactionDue($transaction);
 
-            return $transaction->fresh(['originDepartment', 'currentDepartment', 'creator', 'assignedEmployee']);
+            return $this->freshTransaction($transaction);
         });
     }
 
@@ -112,111 +94,47 @@ class TransactionWorkflowService
         ?int $assignedEmployeeId = null,
         ?string $remarks = null,
     ): WorkflowTransaction {
-        return DB::transaction(function () use ($actor, $transaction, $action, $targetDepartmentId, $assignedEmployeeId, $remarks): WorkflowTransaction {
+        return DB::transaction(function () use (
+            $actor,
+            $transaction,
+            $action,
+            $targetDepartmentId,
+            $assignedEmployeeId,
+            $remarks,
+        ): WorkflowTransaction {
             $locked = WorkflowTransaction::query()->lockForUpdate()->findOrFail($transaction->id);
-            $locked->loadMissing('currentDepartment');
+            $definition = $this->definitions->resolve($locked);
 
-            if (in_array($locked->status, ['approved', 'disapproved', 'closed'], true)) {
+            if ($definition->isTerminal($locked->status)) {
                 throw ValidationException::withMessages(['action' => 'This transaction is already in a terminal state.']);
             }
 
+            $rule = $definition->transition($action);
             $previousStatus = $locked->status;
-            $fromDepartmentId = $locked->current_department_id;
-            $toDepartmentId = $fromDepartmentId;
-            $newStatus = $previousStatus;
-            $assignment = $locked->assigned_employee_id;
-            $receivedAt = $locked->received_at;
-            $completedAt = $locked->completed_at;
-            $eventRemarks = $remarks;
-
-            switch ($action) {
-                case 'assign':
-                    if (! $assignedEmployeeId) {
-                        throw ValidationException::withMessages(['assigned_employee_id' => 'Choose an employee from the current office.']);
-                    }
-                    $employee = Employee::query()
-                        ->whereKey($assignedEmployeeId)
-                        ->where('department_id', $fromDepartmentId)
-                        ->where('employment_status', 'active')
-                        ->firstOrFail();
-                    $assignment = $employee->id;
-                    $eventRemarks = trim(($remarks ? $remarks.' ' : '')."Assigned to {$employee->full_name}.");
-                    break;
-
-                case 'mark_review':
-                    $newStatus = 'for_review';
-                    break;
-
-                case 'forward':
-                    if (! $targetDepartmentId || $targetDepartmentId === $fromDepartmentId) {
-                        throw ValidationException::withMessages(['target_department_id' => 'Choose a different receiving office.']);
-                    }
-
-                    if (! Department::query()->activeRoutable()->whereKey($targetDepartmentId)->exists()) {
-                        throw ValidationException::withMessages(['target_department_id' => 'Choose an active routable receiving office.']);
-                    }
-
-                    $toDepartmentId = $targetDepartmentId;
-                    $newStatus = 'submitted';
-                    $assignment = null;
-                    $receivedAt = now();
-                    break;
-
-                case 'send_to_mayor':
-                    $mayor = Department::query()->activeRoutable()->where('code', 'MAYOR')->firstOrFail();
-                    $toDepartmentId = $mayor->id;
-                    $newStatus = 'for_approval';
-                    $assignment = null;
-                    $receivedAt = now();
-                    break;
-
-                case 'return_origin':
-                    $toDepartmentId = $locked->origin_department_id;
-                    $newStatus = 'returned';
-                    $assignment = null;
-                    $receivedAt = now();
-                    break;
-
-                case 'request_information':
-                    $toDepartmentId = $locked->origin_department_id;
-                    $newStatus = 'information_requested';
-                    $assignment = null;
-                    $receivedAt = now();
-                    break;
-
-                case 'approve':
-                    $newStatus = 'approved';
-                    $completedAt = now();
-                    break;
-
-                case 'disapprove':
-                    $newStatus = 'disapproved';
-                    $completedAt = now();
-                    break;
-
-                default:
-                    throw ValidationException::withMessages(['action' => 'Unsupported workflow action.']);
-            }
+            $fromDepartmentId = (int) $locked->current_department_id;
+            $toDepartmentId = $this->destinations->resolve($rule, $locked, $targetDepartmentId);
+            $assignment = $this->resolveAssignment($rule, $fromDepartmentId, $assignedEmployeeId, $locked->assigned_employee_id);
+            $newStatus = $rule->status ?? $previousStatus;
+            $eventRemarks = $this->eventRemarks($rule, $assignment, $remarks);
 
             $locked->update([
                 'current_department_id' => $toDepartmentId,
                 'assigned_employee_id' => $assignment,
                 'status' => $newStatus,
-                'received_at' => $receivedAt,
-                'completed_at' => $completedAt,
+                'received_at' => $rule->refreshReceivedAt ? now() : $locked->received_at,
+                'completed_at' => $rule->completes ? now() : $locked->completed_at,
             ]);
 
-            $event = TransactionEvent::query()->create([
-                'transaction_id' => $locked->id,
-                'actor_user_id' => $actor->id,
-                'from_department_id' => $fromDepartmentId,
-                'to_department_id' => $toDepartmentId,
-                'action' => $action,
-                'previous_status' => $previousStatus,
-                'new_status' => $newStatus,
-                'remarks' => $eventRemarks,
-                'created_at' => now(),
-            ]);
+            $event = $this->recordEvent(
+                transaction: $locked,
+                actor: $actor,
+                action: $action,
+                previousStatus: $previousStatus,
+                newStatus: $newStatus,
+                fromDepartmentId: $fromDepartmentId,
+                toDepartmentId: $toDepartmentId,
+                remarks: $eventRemarks,
+            );
 
             $this->audit->record(
                 $actor,
@@ -227,55 +145,216 @@ class TransactionWorkflowService
                 $locked->id,
             );
 
-            if ($action === 'assign' && $assignment) {
-                $assigned = Employee::query()->with('user')->find($assignment);
-                if ($assigned?->user) {
-                    $this->notifications->notifyUser($assigned->user, [
-                        'event_key' => 'transaction-event-'.$event->id,
-                        'department_id' => $toDepartmentId,
-                        'source_domain' => 'transaction',
-                        'source_type' => WorkflowTransaction::class,
-                        'source_id' => $locked->id,
-                        'priority' => 'action_required',
-                        'title' => 'Work assigned to you',
-                        'message' => $locked->reference_no.' · '.$locked->title,
-                        'action_url' => '/transactions/'.$locked->id,
-                    ]);
-                }
-            } elseif (in_array($action, ['forward', 'send_to_mayor', 'return_origin', 'request_information'], true)) {
-                $recipientOffice = Department::query()->activeRoutable()->find($toDepartmentId);
-                if ($recipientOffice) {
-                    $this->notifications->notifyDepartment($recipientOffice, [
-                        'event_key' => 'transaction-event-'.$event->id,
-                        'source_domain' => 'transaction',
-                        'source_type' => WorkflowTransaction::class,
-                        'source_id' => $locked->id,
-                        'priority' => $this->notificationPriority($locked->priority),
-                        'title' => $recipientOffice->code === 'MAYOR' ? 'Executive action required' : 'Transaction routed to your office',
-                        'message' => $locked->reference_no.' · '.$locked->title,
-                        'action_url' => '/transactions/'.$locked->id,
-                    ]);
-                }
-            } elseif (in_array($action, ['approve', 'disapprove'], true)) {
-                $originOffice = Department::query()->activeRoutable()->find($locked->origin_department_id);
-                if ($originOffice) {
-                    $this->notifications->notifyDepartment($originOffice, [
-                        'event_key' => 'transaction-event-'.$event->id,
-                        'source_domain' => 'transaction',
-                        'source_type' => WorkflowTransaction::class,
-                        'source_id' => $locked->id,
-                        'priority' => 'action_required',
-                        'title' => $action === 'approve' ? 'Transaction approved' : 'Transaction disapproved',
-                        'message' => $locked->reference_no.' · '.$locked->title,
-                        'action_url' => '/transactions/'.$locked->id,
-                    ]);
-                }
-            }
-
+            $this->dispatchTransitionNotification($rule, $locked, $event, $assignment, $action);
             $this->calendar->syncTransactionDue($locked);
 
-            return $locked->fresh(['originDepartment', 'currentDepartment', 'creator', 'assignedEmployee']);
+            return $this->freshTransaction($locked);
         });
+    }
+
+    private function receivingDepartment(int $targetDepartmentId, int $originDepartmentId): Department
+    {
+        if ($targetDepartmentId === $originDepartmentId) {
+            throw ValidationException::withMessages([
+                'target_department_id' => 'Select a different receiving office.',
+            ]);
+        }
+
+        $targetDepartment = Department::query()
+            ->activeRoutable()
+            ->whereKey($targetDepartmentId)
+            ->first();
+
+        if (! $targetDepartment) {
+            throw ValidationException::withMessages([
+                'target_department_id' => 'Select an active routable receiving office.',
+            ]);
+        }
+
+        return $targetDepartment;
+    }
+
+    private function resolveAssignment(
+        WorkflowTransitionRule $rule,
+        int $departmentId,
+        ?int $assignedEmployeeId,
+        ?int $currentAssignmentId,
+    ): ?int {
+        if ($rule->requiresAssignment) {
+            if (! $assignedEmployeeId) {
+                throw ValidationException::withMessages([
+                    'assigned_employee_id' => 'Choose an employee from the current office.',
+                ]);
+            }
+
+            return Employee::query()
+                ->whereKey($assignedEmployeeId)
+                ->where('department_id', $departmentId)
+                ->where('employment_status', 'active')
+                ->firstOrFail()
+                ->id;
+        }
+
+        return $rule->clearAssignment ? null : $currentAssignmentId;
+    }
+
+    private function eventRemarks(
+        WorkflowTransitionRule $rule,
+        ?int $assignmentId,
+        ?string $remarks,
+    ): ?string {
+        if (! $rule->requiresAssignment || ! $assignmentId) {
+            return $remarks;
+        }
+
+        $employee = Employee::query()->findOrFail($assignmentId);
+
+        return trim(($remarks ? $remarks.' ' : '')."Assigned to {$employee->full_name}.");
+    }
+
+    private function recordEvent(
+        WorkflowTransaction $transaction,
+        User $actor,
+        string $action,
+        string $previousStatus,
+        string $newStatus,
+        int $fromDepartmentId,
+        int $toDepartmentId,
+        ?string $remarks,
+    ): TransactionEvent {
+        return TransactionEvent::query()->create([
+            'transaction_id' => $transaction->id,
+            'actor_user_id' => $actor->id,
+            'from_department_id' => $fromDepartmentId,
+            'to_department_id' => $toDepartmentId,
+            'action' => $action,
+            'previous_status' => $previousStatus,
+            'new_status' => $newStatus,
+            'remarks' => $remarks,
+            'created_at' => now(),
+        ]);
+    }
+
+    private function dispatchTransitionNotification(
+        WorkflowTransitionRule $rule,
+        WorkflowTransaction $transaction,
+        TransactionEvent $event,
+        ?int $assignmentId,
+        string $action,
+    ): void {
+        if ($rule->requiresAssignment && $assignmentId) {
+            $this->notifyAssignedEmployee($transaction, $event, $assignmentId);
+
+            return;
+        }
+
+        if ($rule->refreshReceivedAt) {
+            $office = Department::query()->activeRoutable()->find($transaction->current_department_id);
+
+            if ($office) {
+                $this->notifyOffice($office, $transaction, $event);
+            }
+
+            return;
+        }
+
+        if ($rule->completes) {
+            $this->notifyOriginDecision($transaction, $event, $action);
+        }
+    }
+
+    private function notifyAssignedEmployee(
+        WorkflowTransaction $transaction,
+        TransactionEvent $event,
+        int $assignmentId,
+    ): void {
+        $assigned = Employee::query()->with('user')->find($assignmentId);
+
+        if (! $assigned?->user) {
+            return;
+        }
+
+        $this->notifications->notifyUser($assigned->user, [
+            'event_key' => 'transaction-event-'.$event->id,
+            'department_id' => $transaction->current_department_id,
+            'source_domain' => 'transaction',
+            'source_type' => WorkflowTransaction::class,
+            'source_id' => $transaction->id,
+            'priority' => 'action_required',
+            'title' => 'Work assigned to you',
+            'message' => $transaction->reference_no.' · '.$transaction->title,
+            'action_url' => '/transactions/'.$transaction->id,
+        ]);
+    }
+
+    private function notifyOffice(
+        Department $office,
+        WorkflowTransaction $transaction,
+        TransactionEvent $event,
+        bool $initialReceipt = false,
+    ): void {
+        $this->notifications->notifyDepartment($office, [
+            'event_key' => 'transaction-event-'.$event->id,
+            'source_domain' => 'transaction',
+            'source_type' => WorkflowTransaction::class,
+            'source_id' => $transaction->id,
+            'priority' => $this->notificationPriority($transaction->priority),
+            'title' => $this->officeNotificationTitle($office, $initialReceipt),
+            'message' => $transaction->reference_no.' · '.$transaction->title,
+            'action_url' => '/transactions/'.$transaction->id,
+        ]);
+    }
+
+    private function notifyOriginDecision(
+        WorkflowTransaction $transaction,
+        TransactionEvent $event,
+        string $action,
+    ): void {
+        $originOffice = Department::query()->activeRoutable()->find($transaction->origin_department_id);
+
+        if (! $originOffice) {
+            return;
+        }
+
+        $title = match ($action) {
+            'approve' => 'Transaction approved',
+            'disapprove' => 'Transaction disapproved',
+            default => 'Transaction completed',
+        };
+
+        $this->notifications->notifyDepartment($originOffice, [
+            'event_key' => 'transaction-event-'.$event->id,
+            'source_domain' => 'transaction',
+            'source_type' => WorkflowTransaction::class,
+            'source_id' => $transaction->id,
+            'priority' => 'action_required',
+            'title' => $title,
+            'message' => $transaction->reference_no.' · '.$transaction->title,
+            'action_url' => '/transactions/'.$transaction->id,
+        ]);
+    }
+
+    private function officeNotificationTitle(Department $office, bool $initialReceipt): string
+    {
+        $executiveCodes = config('workflow.executive_attention_office_codes', []);
+
+        if (in_array($office->code, $executiveCodes, true)) {
+            return 'Executive action required';
+        }
+
+        return $initialReceipt
+            ? 'New transaction received'
+            : 'Transaction routed to your office';
+    }
+
+    private function freshTransaction(WorkflowTransaction $transaction): WorkflowTransaction
+    {
+        return $transaction->fresh([
+            'originDepartment',
+            'currentDepartment',
+            'creator',
+            'assignedEmployee',
+        ]);
     }
 
     private function notificationPriority(string $priority): string

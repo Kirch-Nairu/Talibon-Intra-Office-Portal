@@ -61,6 +61,17 @@ This consolidated log is mandatory for the active Talibon build. Detailed earlie
 - Verification: documentation-only. Last fully observed integrated runtime baseline remains M6 at 33 tests / 231 assertions; M7 onward still awaits exact-HEAD local verification.
 - Next action: Contract Phase 1 closure — privileged MFA/login hardening -> scoped integration/API layer -> full correspondence/protected documents -> legislative lifecycle depth -> authorization/CI security hardening -> exact-HEAD regression -> cloud benchmark/restore -> structured UAT/pilot sign-off.
 
+## 2026-08-22 — Core architecture normalization
+
+### `refactor: introduce workflow definition normalization`
+- Milestone: Core Architecture Normalization / Contract Phase 1 closure prerequisite.
+- Intent: preserve the existing municipal transaction behavior while extracting workflow vocabulary, transition destinations, terminal-state knowledge, executive-office routing aliases, and SLA defaults out of controller/service conditionals into reusable workflow definitions/resolvers.
+- Major files/modules: new `app/Domain/Workflow/*` definition, transition-rule, destination, and SLA resolvers; new `config/workflow.php`; `TransactionWorkflowService` refactored as the compatibility orchestration boundary; `TransactionController` now consumes definition-owned action/terminal-state vocabulary; new focused normalization tests.
+- Schema/migration impact: none.
+- Verification actually observed before commit: `php -l` PASS for every changed/new PHP file in the isolated execution environment. Full Laravel dependency-backed tests/build were not run locally because the execution container could not resolve GitHub to clone/install the repository; GitHub Actions remains the intended dependency-backed verification path for this commit.
+- Known gaps/risks: this is a strangler-style compatibility slice, not the final Workflow/Authorization/Correspondence Engine. Existing authorization branching remains fragmented; correspondence still lacks RECEIVE/REGISTER/CLASSIFY/RELEASE/ARCHIVE depth; notifications remain synchronous; no commercial completion claim is made.
+- Next action: observe CI for the exact commit, repair any regression if present, then continue architecture normalization toward authorization context/domain events before expanding the correspondence lifecycle.
+
 ## Current release state
 
 - Internal engineering: `PHASE1_CANDIDATE_OPEN_GATES`
