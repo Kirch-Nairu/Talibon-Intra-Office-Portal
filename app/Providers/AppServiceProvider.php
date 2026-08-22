@@ -2,11 +2,15 @@
 
 namespace App\Providers;
 
-use App\Http\Controllers\LegislativeWorkspaceController;
+use App\Domain\Workflow\Events\WorkflowTransactionCreated;
+use App\Domain\Workflow\Events\WorkflowTransactionTransitioned;
+use App\Domain\Workflow\Listeners\AuditWorkflowTransactionMutation;
+use App\Domain\Workflow\Listeners\NotifyWorkflowTransactionMutation;
+use App\Domain\Workflow\Listeners\SyncWorkflowTransactionCalendar;
 use App\Models\WorkflowTransaction;
 use App\Policies\TransactionPolicy;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Gate;
-use Illuminate\Support\Facades\Route;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -18,11 +22,16 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         Gate::policy(WorkflowTransaction::class, TransactionPolicy::class);
+        $this->registerWorkflowListeners();
+    }
 
-        Route::middleware(['web', 'auth'])->group(function (): void {
-            Route::get('/legislative-workspace', [LegislativeWorkspaceController::class, 'index'])->name('legislative.workspace');
-            Route::post('/legislative-workspace/sessions', [LegislativeWorkspaceController::class, 'store'])->name('legislative.sessions.store');
-            Route::post('/legislative-workspace/sessions/{session}/agenda', [LegislativeWorkspaceController::class, 'addAgenda'])->name('legislative.agenda.store');
-        });
+    private function registerWorkflowListeners(): void
+    {
+        Event::listen(WorkflowTransactionCreated::class, AuditWorkflowTransactionMutation::class);
+        Event::listen(WorkflowTransactionCreated::class, NotifyWorkflowTransactionMutation::class);
+        Event::listen(WorkflowTransactionCreated::class, SyncWorkflowTransactionCalendar::class);
+        Event::listen(WorkflowTransactionTransitioned::class, AuditWorkflowTransactionMutation::class);
+        Event::listen(WorkflowTransactionTransitioned::class, NotifyWorkflowTransactionMutation::class);
+        Event::listen(WorkflowTransactionTransitioned::class, SyncWorkflowTransactionCalendar::class);
     }
 }

@@ -71,6 +71,36 @@ Do not claim green tests, builds, CI, device behavior, integrations, cloud bench
 - Do not put RHU patient clinical records into HRIS.
 - Never give a future public/external integration direct database access.
 
+## Source size and complexity standards
+
+Source size is a design signal, not a formatting target.
+
+General production-file thresholds:
+
+- `<=300 LOC`: healthy target
+- `301-400 LOC`: review required
+- `401-500 LOC`: refactor-required territory
+- `>500 LOC`: prohibited by default; requires explicit documented exception or immediate strangler decomposition
+
+Role-specific hard caps:
+
+- Controller: 300 LOC
+- Middleware: 200 LOC
+- Policy: 300 LOC
+- Service: 400 LOC
+- Engine: 450 LOC
+- React page: 400 LOC
+
+Method/function guidance:
+
+- target `<=20 LOC`
+- review when `>35 LOC`
+- strong refactor signal when `>50 LOC`
+
+Do not game these limits through traits, arbitrary helper extraction, compressed formatting, multi-statement lines, generated wrappers, or moving the same responsibility into misleadingly named files. Split by real responsibility and preserve clear ownership of invariants.
+
+Existing oversized legacy files are refactor debt, not precedent. Do not add code that increases a file already beyond its applicable hard/default ceiling unless the same change performs a documented strangler reduction.
+
 ## Commercial Contract Phase 1 focus
 
 Before Contract Phase 1 may be called complete/pilot-ready, close the core items identified in `SSOT_COMMERCIAL_PHASE_AMENDMENT.md` and `docs/CODE_REVIEW_2026-08-22.md`, especially:

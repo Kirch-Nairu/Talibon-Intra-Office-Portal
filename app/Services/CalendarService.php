@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Domain\Workflow\WorkflowDefinitionResolver;
 use App\Models\CalendarEvent;
 use App\Models\LeaveRequest;
 use App\Models\User;
@@ -9,6 +10,10 @@ use App\Models\WorkflowTransaction;
 
 class CalendarService
 {
+    public function __construct(private readonly WorkflowDefinitionResolver $definitions)
+    {
+    }
+
     public function syncTransactionDue(WorkflowTransaction $transaction): ?CalendarEvent
     {
         if (! $transaction->due_at) {
@@ -16,7 +21,7 @@ class CalendarService
         }
 
         $transaction->loadMissing('assignedEmployee');
-        $terminal = in_array($transaction->status, ['approved', 'disapproved', 'closed'], true);
+        $terminal = $this->definitions->resolve($transaction)->isTerminal($transaction->status);
 
         return CalendarEvent::query()->updateOrCreate(
             ['event_key' => 'transaction-due-'.$transaction->id],

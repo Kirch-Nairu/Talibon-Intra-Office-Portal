@@ -2,67 +2,56 @@
 
 namespace App\Policies;
 
+use App\Domain\Workflow\Authorization\TransactionAccessDecider;
+use App\Domain\Workflow\Authorization\TransactionAuthorizationContextFactory;
 use App\Models\User;
 use App\Models\WorkflowTransaction;
 
-class TransactionPolicy
+final readonly class TransactionPolicy
 {
+    public function __construct(
+        private TransactionAuthorizationContextFactory $contexts,
+        private TransactionAccessDecider $access,
+    ) {
+    }
+
     public function viewAny(User $user): bool
     {
-        return $user->is_active && $user->employee !== null;
+        return $this->allows($user, TransactionAccessDecider::VIEW_ANY);
     }
 
     public function view(User $user, WorkflowTransaction $transaction): bool
     {
-        if ($user->isRole('system_admin', 'mayor_approver', 'mayor_staff')) {
-            return true;
-        }
-
-        $departmentId = $user->employee?->department_id;
-
-        return $departmentId !== null && in_array($departmentId, [
-            $transaction->origin_department_id,
-            $transaction->current_department_id,
-        ], true);
+        return $this->allows($user, TransactionAccessDecider::VIEW, $transaction);
     }
 
     public function create(User $user): bool
     {
-        return $user->is_active && $user->employee !== null;
+        return $this->allows($user, TransactionAccessDecider::CREATE);
     }
 
     public function transition(User $user, WorkflowTransaction $transaction): bool
     {
-        if ($user->isRole('system_admin')) {
-            return true;
-        }
-
-        if ($user->isRole('mayor_approver')) {
-            return false;
-        }
-
-        return $user->employee?->department_id === $transaction->current_department_id
-            && $user->isRole('department_head', 'department_staff', 'hr_officer', 'legislative_staff', 'mayor_staff');
+        return $this->allows($user, TransactionAccessDecider::TRANSITION, $transaction);
     }
 
     public function assign(User $user, WorkflowTransaction $transaction): bool
     {
-        if ($user->isRole('system_admin')) {
-            return true;
-        }
-
-        return $user->employee?->department_id === $transaction->current_department_id
-            && $user->isRole('department_head', 'hr_officer', 'legislative_staff', 'mayor_staff');
+        return $this->allows($user, TransactionAccessDecider::ASSIGN, $transaction);
     }
 
     public function mayorDecision(User $user, WorkflowTransaction $transaction): bool
     {
-        if ($user->isRole('system_admin')) {
-            return true;
-        }
+        return $this->allows($user, TransactionAccessDecider::MAYOR_DECISION, $transaction);
+    }
 
-        return $user->isRole('mayor_approver')
-            && $user->employee?->department?->code === 'MAYOR'
-            && $transaction->currentDepartment?->code === 'MAYOR';
+    private function allows(
+        User $user,
+        string $action,
+        ?WorkflowTransaction $transaction = null,
+    ): bool {
+        return $this->access->allows(
+            $this->contexts->make($user, $action, $transaction),
+        );
     }
 }
