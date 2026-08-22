@@ -17,6 +17,7 @@ use App\Http\Controllers\HrisLifecycleController;
 use App\Http\Controllers\HrisOffboardingController;
 use App\Http\Controllers\LeaveRequestController;
 use App\Http\Controllers\LegislativeRecordController;
+use App\Http\Controllers\LegislativeWorkspaceController;
 use App\Http\Controllers\MayorOfficeController;
 use App\Http\Controllers\MemorandumController;
 use App\Http\Controllers\OperationsMonitoringController;
@@ -80,6 +81,9 @@ Route::middleware('auth')->group(function (): void {
     Route::get('/legislation/create', [LegislativeRecordController::class, 'create'])->name('legislation.create');
     Route::post('/legislation', [LegislativeRecordController::class, 'store'])->name('legislation.store');
     Route::get('/legislation/{record}', [LegislativeRecordController::class, 'show'])->name('legislation.show');
+    Route::get('/legislative-workspace', [LegislativeWorkspaceController::class, 'index'])->name('legislative.workspace');
+    Route::post('/legislative-workspace/sessions', [LegislativeWorkspaceController::class, 'store'])->name('legislative.sessions.store');
+    Route::post('/legislative-workspace/sessions/{session}/agenda', [LegislativeWorkspaceController::class, 'addAgenda'])->name('legislative.sessions.agenda.store');
 
     Route::get('/hris', HrisController::class)->name('hris');
     Route::get('/hris/dtr', [DtrController::class, 'index'])->name('hris.dtr');
