@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Asset;
 use App\Models\AttendanceLog;
 use App\Models\Department;
 use App\Models\Employee;
@@ -9,6 +10,8 @@ use App\Models\LeaveRequest;
 use App\Models\LegislativeRecord;
 use App\Models\Memorandum;
 use App\Models\MemoRecipient;
+use App\Models\OffboardingCase;
+use App\Models\OnboardingCase;
 use App\Models\OperationalItem;
 use App\Models\PayrollEntry;
 use App\Models\PayrollPeriod;
@@ -99,6 +102,11 @@ class ReportsController extends Controller
                 'attendanceEvents' => AttendanceLog::query()->count(),
                 'operations' => OperationalItem::query()->count(),
                 'operationsOverdue' => OperationalItem::query()->whereNotNull('target_date')->whereDate('target_date', '<', today())->whereNotIn('status', ['completed', 'closed', 'cancelled'])->count(),
+                'onboardingOpen' => OnboardingCase::query()->whereNotIn('status', ['completed', 'cancelled'])->count(),
+                'offboardingOpen' => OffboardingCase::query()->whereNotIn('status', ['completed', 'cancelled'])->count(),
+                'propertyAssets' => Asset::query()->count(),
+                'propertyAssigned' => Asset::query()->whereNotNull('accountable_employee_id')->count(),
+                'propertyUnreconciled' => Asset::query()->where('reconciliation_status', '!=', 'reconciled')->count(),
                 'payrollPeriod' => $period?->label,
                 'payrollEmployees' => $isHr && $payrollQuery ? (clone $payrollQuery)->count() : 0,
                 'payrollNet' => $isHr && $payrollQuery ? (float) (clone $payrollQuery)->sum('net_pay') : 0,
