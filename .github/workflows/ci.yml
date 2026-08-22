@@ -50,6 +50,17 @@ jobs:
       - name: Install PHP dependencies
         run: composer install --no-interaction --prefer-dist --no-progress
 
+      - name: Upload generated Composer lock
+        uses: actions/upload-artifact@v4
+        with:
+          name: composer-lock-generated
+          path: composer.lock
+          if-no-files-found: error
+          retention-days: 1
+
+      - name: Stop temporary lock generation probe
+        run: exit 1
+
       - name: Generate application key
         run: php artisan key:generate
 
