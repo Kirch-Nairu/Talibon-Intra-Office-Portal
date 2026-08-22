@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\CalendarEvent;
 use App\Models\LegislativeAgendaItem;
 use App\Models\LegislativeSession;
+use App\Models\User;
 use App\Models\WorkflowTransaction;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -17,7 +18,7 @@ class LegislativeWorkspaceController extends Controller
     public function index(Request $request): Response
     {
         $user = $request->user()->loadMissing('employee.department');
-        abort_unless($user->isRole('system_admin') || ($user->isRole('legislative_staff') && in_array($user->employee?->department?->code, ['VICE_MAYOR', 'SB', 'SB_SECRETARY'], true)), 403);
+        abort_unless($this->canView($user), 403);
 
         return Inertia::render('Legislation/Workspace', [
             'sessions' => LegislativeSession::query()
@@ -32,6 +33,7 @@ class LegislativeWorkspaceController extends Controller
                 ->orderBy('due_at')
                 ->limit(100)
                 ->get(),
+            'canManage' => $this->canManage($user),
         ]);
     }
 
@@ -104,9 +106,22 @@ class LegislativeWorkspaceController extends Controller
     private function assertManager(Request $request): void
     {
         $user = $request->user()->loadMissing('employee.department');
-        abort_unless(
-            $user->isRole('system_admin') || ($user->isRole('legislative_staff') && $user->employee?->department?->code === 'SB_SECRETARY'),
-            403,
+        abort_unless($this->canManage($user), 403);
+    }
+
+    private function canView(User $user): bool
+    {
+        return $user->isRole('system_admin') || (
+            $user->isRole('legislative_staff')
+            && in_array($user->employee?->department?->code, ['VICE_MAYOR', 'SB', 'SB_SECRETARY'], true)
+        );
+    }
+
+    private function canManage(User $user): bool
+    {
+        return $user->isRole('system_admin') || (
+            $user->isRole('legislative_staff')
+            && in_array($user->employee?->department?->code, ['SB', 'SB_SECRETARY'], true)
         );
     }
 }

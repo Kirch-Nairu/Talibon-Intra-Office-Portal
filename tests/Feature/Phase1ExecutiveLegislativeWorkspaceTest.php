@@ -35,6 +35,23 @@ class Phase1ExecutiveLegislativeWorkspaceTest extends TestCase
         $this->assertSame(1, CalendarEvent::query()->where('source_id', $session->id)->where('source_type', LegislativeSession::class)->count());
     }
 
+    public function test_featured_legislative_account_can_manage_the_sb_workspace(): void
+    {
+        $this->seed();
+        $legislative = User::query()->where('email', 'legislative@talibon.demo')->firstOrFail();
+
+        $this->actingAs($legislative)->get('/legislative-workspace')->assertOk();
+        $this->actingAs($legislative)->post('/legislative-workspace/sessions', [
+            'session_code' => 'SB-DEMO-MANAGER-01',
+            'session_type' => 'committee',
+            'title' => 'Committee Session Managed by Legislative Demo Account',
+            'scheduled_at' => now()->addDays(3)->setTime(13, 30)->toDateTimeString(),
+            'location' => 'SB Committee Room',
+        ])->assertRedirect();
+
+        $this->assertDatabaseHas('legislative_sessions', ['session_code' => 'SB-DEMO-MANAGER-01']);
+    }
+
     public function test_agenda_sequence_is_session_scoped_and_duplicate_sequence_is_rejected(): void
     {
         $this->seed();
@@ -61,7 +78,8 @@ class Phase1ExecutiveLegislativeWorkspaceTest extends TestCase
                 'sequence_no' => 1,
                 'title' => 'Duplicate Sequence',
             ])
-            ->assertSessionHasErrors();
+            ->assertRedirect('/legislative-workspace')
+            ->assertSessionHasErrors('sequence_no');
     }
 
     public function test_engineering_user_cannot_open_legislative_workspace_but_mayor_workspace_remains_restricted(): void
