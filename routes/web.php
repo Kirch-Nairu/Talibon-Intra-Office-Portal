@@ -6,6 +6,7 @@ use App\Http\Controllers\Auth\MfaChallengeController;
 use App\Http\Controllers\Auth\MfaEnrollmentController;
 use App\Http\Controllers\Auth\MfaSecurityController;
 use App\Http\Controllers\CalendarController;
+use App\Http\Controllers\CorrespondenceLifecycleController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DepartmentController;
 use App\Http\Controllers\DtrController;
@@ -64,6 +65,9 @@ Route::middleware(['auth', 'active', 'mfa.assured'])->group(function (): void {
     Route::get('/employees/{employee}', EmployeeProfileController::class)->name('employees.show');
     Route::get('/calendar', CalendarController::class)->name('calendar.index');
     Route::get('/operations', OperationsMonitoringController::class)->name('operations.index');
+
+    Route::post('/correspondence/{correspondence}/register', [CorrespondenceLifecycleController::class, 'register'])->name('correspondence.register');
+    Route::post('/correspondence/{correspondence}/classify', [CorrespondenceLifecycleController::class, 'classify'])->name('correspondence.classify');
 
     Route::get('/property', [PropertyController::class, 'index'])->name('property.index');
     Route::post('/property', [PropertyController::class, 'store'])->name('property.store');
