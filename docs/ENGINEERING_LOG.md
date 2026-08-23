@@ -136,6 +136,22 @@ This consolidated log is mandatory for the active Talibon build. Detailed earlie
 - Verification for this corrective tree: `php -l tests/Feature/MfaSecurityControlsTest.php` PASS; `php artisan test tests/Feature/MfaSecurityControlsTest.php` PASS; `php artisan test --filter=PrivilegedMfaAuthenticationTest` PASS on the isolated focused runtime harness. The full Phase 1 suite was not run.
 - Next action: after this corrective commit is pushed, Kirch may resume the exact-HEAD MFA closure pipeline. No full Phase 1 runtime PASS is claimed by this entry.
 
+## 2026-08-23 — Exact-HEAD privileged MFA closure evidence
+
+### Runtime evidence for `fb59f126ad63958dbb5b8d3d56182983b858dfde`
+- Verified exact implementation/test HEAD: `fb59f126ad63958dbb5b8d3d56182983b858dfde`; sole parent `b2d3687020ae1c14dd8950657c716692ce25db2d`. Exact HEAD remained unchanged through the focused and full runtime gates; final worktree was clean.
+- Dependency/runtime environment: committed Composer graph verified at **109 packages**; `pragmarx/google2fa v9.1.0`, `paragonie/constant_time_encoding v3.1.3`, `laravel/framework v13.26.1`, and `inertiajs/inertia-laravel v3.3.1`. `composer install` PASS; `composer validate --no-check-publish` PASS; `composer audit` PASS with **no security vulnerability advisories**.
+- Database gate: additive `php artisan migrate --no-interaction` PASS with nothing pending; **`migrate:fresh` was not used** in the exact-HEAD closure run.
+- Focused MFA security gate: `tests/Feature/MfaSecurityControlsTest.php` **11 passed / 109 assertions / 7.50s**.
+- Focused privileged MFA authentication gate: `PrivilegedMfaAuthenticationTest` **7 passed / 50 assertions / 5.35s**.
+- Frontend/runtime gate: TypeScript `tsc --noEmit` PASS; production Vite build PASS, completing in **22.37s**.
+- Full exact-HEAD Feature regression: **80 passed / 533 assertions / 1147.41s**. The full verifier completed successfully on the same exact HEAD.
+- Disposition: **Privileged MFA technical gate CLOSED** for the verified implementation lineage. This closes the MFA implementation/runtime gate only; it does not convert Contract Phase 1 to complete or pilot-ready.
+- Remaining pre-pilot MFA hardening: fresh immediate step-up before reset/disable remains explicit debt; `department_staff` remains an MFA subject pending deployment sign-off; `APP_KEY` rotation/loss still requires a defined MFA-secret operational procedure.
+- Release status remains unchanged: internal `PHASE1_CANDIDATE_OPEN_GATES`; commercial `CONTRACT_PHASE_1_OPEN_GATES`.
+- Runtime/schema impact of this documentation entry: none. This docs-only evidence records verification for `fb59f126...`; it does not claim the resulting documentation commit itself was the tested runtime SHA.
+- Next action: begin the Contract Phase 1 **Integration Engine / scoped API-client layer**: client identity and credential lifecycle, explicit scopes, correlation identity, request validation, rate limiting, idempotency/replay protection, audit envelope, and a safe after-commit/outbox boundary for future external publication.
+
 ## Current release state
 
 - Internal engineering: `PHASE1_CANDIDATE_OPEN_GATES`
