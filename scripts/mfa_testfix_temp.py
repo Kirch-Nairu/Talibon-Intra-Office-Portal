@@ -129,3 +129,5 @@ if marker not in doc:
     raise SystemExit('engineering-log release-state marker not found')
 doc = doc.replace(marker, entry + marker, 1)
 DOC.write_text(doc)
+
+# Contents-API update used only to trigger the isolated temporary branch workflow.
