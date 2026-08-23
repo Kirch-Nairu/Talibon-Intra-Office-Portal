@@ -1,0 +1,88 @@
+name: Temporary MFA Test Fix Harness
+
+on:
+  push:
+    branches:
+      - KIRCH-PHASE1-MFA-TESTFIX-TEMP
+
+permissions:
+  contents: write
+
+jobs:
+  verify-and-materialize:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: talibon_portal
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout temporary branch
+        uses: actions/checkout@v4
+        with:
+          ref: KIRCH-PHASE1-MFA-TESTFIX-TEMP
+          fetch-depth: 0
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: mbstring, pdo_pgsql
+          coverage: none
+
+      - name: Prepare environment
+        run: |
+          cp .env.example .env
+          sed -i 's/DB_PASSWORD=$/DB_PASSWORD=postgres/' .env
+
+      - name: Install locked PHP dependencies
+        run: composer install --no-interaction --prefer-dist --no-progress
+
+      - name: Generate application key
+        run: php artisan key:generate
+
+      - name: Apply test-only correction
+        run: python scripts/mfa_testfix_temp.py
+
+      - name: PHP syntax check
+        run: php -l tests/Feature/MfaSecurityControlsTest.php
+
+      - name: Prepare PostgreSQL schema
+        run: php artisan migrate:fresh --seed --force
+
+      - name: Run MFA security controls
+        run: php artisan test tests/Feature/MfaSecurityControlsTest.php
+
+      - name: Re-run privileged MFA authentication
+        run: php artisan test --filter=PrivilegedMfaAuthenticationTest
+
+      - name: Record focused verification and materialize final tree
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          path = Path('docs/ENGINEERING_LOG.md')
+          text = path.read_text()
+          text = text.replace(
+              '__FOCUSED_RESULT__',
+              '`php -l tests/Feature/MfaSecurityControlsTest.php` PASS; `php artisan test tests/Feature/MfaSecurityControlsTest.php` PASS; `php artisan test --filter=PrivilegedMfaAuthenticationTest` PASS on the isolated final-tree staging branch. The full Phase 1 suite was not run.',
+              1,
+          )
+          path.write_text(text)
+          PY
+          rm .github/workflows/mfa-testfix-temp.yml scripts/mfa_testfix_temp.py
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "chore: materialize MFA test correction"
+          git push origin HEAD:KIRCH-PHASE1-MFA-TESTFIX-TEMP
