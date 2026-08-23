@@ -64,6 +64,7 @@ jobs:
         run: |
           BUNDLE=integration-foundation-a.bundle.b64
           if [ -f integration-foundation-a-diagnostic.bundle.b64 ]; then BUNDLE=integration-foundation-a-diagnostic.bundle.b64; fi
+          if [ -f integration-foundation-a-final.bundle.b64 ]; then BUNDLE=integration-foundation-a-final.bundle.b64; fi
           base64 -d "$BUNDLE" > /tmp/integration-foundation-a.tar.gz
           tar -xzf /tmp/integration-foundation-a.tar.gz
           while IFS= read -r file; do
@@ -85,7 +86,7 @@ jobs:
 
       - name: Materialize verified implementation tree
         run: |
-          rm -f integration-foundation-a.bundle.b64 integration-foundation-a-diagnostic.bundle.b64
+          rm -f integration-foundation-a.bundle.b64 integration-foundation-a-diagnostic.bundle.b64 integration-foundation-a-final.bundle.b64
           rm -f .github/workflows/integration-foundation-a-temp.yml
           rm -f integration-foundation-a-trigger.txt
           rm -f .phpunit.result.cache
