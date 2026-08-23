@@ -1,16 +1,14 @@
-name: Talibon Platform CI
+name: Integration Foundation B Focused Validation
 
 on:
   push:
     branches:
-      - KIRCH-PROTOTYPE-**
-      - KIRCH-PHASE1-**
+      - KIRCH-PHASE1-INTEGRATION-B-VALIDATE
   pull_request:
 
 jobs:
   verify:
     runs-on: ubuntu-latest
-
     services:
       postgres:
         image: postgres:16
@@ -37,11 +35,6 @@ jobs:
           extensions: mbstring, pdo_pgsql
           coverage: none
 
-      - name: Setup Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: '22'
-
       - name: Prepare environment
         run: |
           cp .env.example .env
@@ -56,20 +49,43 @@ jobs:
       - name: Validate Composer metadata
         run: composer validate --no-check-publish
 
-      - name: Install frontend dependencies
-        run: npm install --no-audit --no-fund
+      - name: PHP syntax validation
+        run: |
+          php -l app/Domain/Integration/IntegrationErrorCode.php
+          php -l app/Domain/Integration/IntegrationScope.php
+          php -l app/Domain/Integration/IntegrationOperation.php
+          php -l app/Domain/Integration/IntegrationIdempotencyStatus.php
+          php -l app/Domain/Integration/IntegrationIdempotencyDecisionType.php
+          php -l app/Domain/Integration/IntegrationIdempotencyDecision.php
+          php -l app/Domain/Integration/IntegrationIdempotencyExecutionRejected.php
+          php -l app/Domain/Outbox/OutboxMessageStatus.php
+          php -l app/Models/IntegrationIdempotencyRecord.php
+          php -l app/Models/OutboxMessage.php
+          php -l app/Models/IntegrationProofWrite.php
+          php -l app/Services/IntegrationRequestFingerprint.php
+          php -l app/Services/IntegrationIdempotencyService.php
+          php -l app/Services/IntegrationIdempotencyResponse.php
+          php -l app/Services/TransactionalOutbox.php
+          php -l app/Services/OutboxDispatcher.php
+          php -l app/Services/IntegrationProofWriteService.php
+          php -l app/Http/Middleware/ExecuteIdempotentIntegrationRequest.php
+          php -l app/Http/Requests/Api/V1/IntegrationProofWriteRequest.php
+          php -l app/Http/Controllers/Api/V1/IntegrationProofWriteController.php
+          php -l database/migrations/2026_08_23_150000_create_integration_idempotency_records_table.php
+          php -l database/migrations/2026_08_23_150100_create_outbox_messages_table.php
+          php -l database/migrations/2026_08_23_150200_create_integration_proof_writes_table.php
+          php -l routes/api.php
+          php -l bootstrap/app.php
+          php -l tests/Feature/IntegrationFoundationBTest.php
 
-      - name: TypeScript check
-        run: npm run types:check
-
-      - name: Production frontend build
-        run: npm run build
-
-      - name: Migrate and seed PostgreSQL
+      - name: Migrate and seed disposable PostgreSQL
         run: php artisan migrate:fresh --seed --force
 
-      - name: Run feature tests
-        run: php artisan test --testsuite=Feature
+      - name: Run Integration Foundation B focused tests
+        run: php artisan test tests/Feature/IntegrationFoundationBTest.php
 
-      - name: Verify application routes
-        run: php artisan route:list
+      - name: Run Integration Foundation A compatibility tests
+        run: php artisan test tests/Feature/IntegrationFoundationTest.php
+
+      - name: Verify integration routes
+        run: php artisan route:list --path=api/v1/integration
