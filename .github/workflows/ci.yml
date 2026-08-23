@@ -1,75 +1,70 @@
-name: Talibon Platform CI
+name: Materialize Integration Foundation B Atomic Tree
 
 on:
-  push:
-    branches:
-      - KIRCH-PROTOTYPE-**
-      - KIRCH-PHASE1-**
   pull_request:
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: write
 
 jobs:
-  verify:
+  materialize:
+    if: github.event.pull_request.number == 9
     runs-on: ubuntu-latest
-
-    services:
-      postgres:
-        image: postgres:16
-        env:
-          POSTGRES_DB: talibon_portal
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: postgres
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-
     steps:
-      - name: Checkout
+      - name: Checkout materializer branch
         uses: actions/checkout@v4
-
-      - name: Setup PHP
-        uses: shivammathur/setup-php@v2
         with:
-          php-version: '8.4'
-          extensions: mbstring, pdo_pgsql
-          coverage: none
+          ref: KIRCH-PHASE1-INTEGRATION-B-MATERIALIZE
+          fetch-depth: 0
 
-      - name: Setup Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: '22'
-
-      - name: Prepare environment
+      - name: Create exact production commit
+        shell: bash
+        env:
+          BASE_SHA: a189b5d3a5e27495efc4d7a6789aab5df384d682
+          CANDIDATE_SHA: f7159962ee46df06615bd6233b9b52645322ad27
+          FINAL_BRANCH: KIRCH-INTEGRATION-FOUNDATION-B-FINAL-TREE
         run: |
-          cp .env.example .env
-          sed -i 's/DB_PASSWORD=$/DB_PASSWORD=postgres/' .env
+          set -euo pipefail
+          git fetch origin "$BASE_SHA" "$CANDIDATE_SHA"
+          test "$(git rev-parse "$CANDIDATE_SHA^")" = "$BASE_SHA"
 
-      - name: Install PHP dependencies
-        run: composer install --no-interaction --prefer-dist --no-progress
+          git show HEAD:.github/foundation_b_log_section.md > /tmp/foundation_b_log_section.md
+          git read-tree --reset -u "$CANDIDATE_SHA"
 
-      - name: Generate application key
-        run: php artisan key:generate
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path('docs/ENGINEERING_LOG.md')
+          section = Path('/tmp/foundation_b_log_section.md').read_text().rstrip('\n')
+          text = p.read_text()
+          marker = '\n## Current release state\n'
+          if marker not in text:
+              raise SystemExit('release-state marker missing')
+          if '## 2026-08-23 — Integration Foundation B' in text:
+              raise SystemExit('Foundation B log already present')
+          p.write_text(text.replace(marker, '\n' + section + '\n' + marker, 1))
+          PY
 
-      - name: Validate Composer metadata
-        run: composer validate --no-check-publish
+          git add docs/ENGINEERING_LOG.md
+          TREE_SHA=$(git write-tree)
 
-      - name: Install frontend dependencies
-        run: npm install --no-audit --no-fund
+          mapfile -t CANDIDATE_DIFF < <(git diff --name-only "$CANDIDATE_SHA" "$TREE_SHA")
+          test "${#CANDIDATE_DIFF[@]}" -eq 1
+          test "${CANDIDATE_DIFF[0]}" = 'docs/ENGINEERING_LOG.md'
 
-      - name: TypeScript check
-        run: npm run types:check
+          mapfile -t BASE_DIFF < <(git diff --name-only "$BASE_SHA" "$TREE_SHA")
+          test "${#BASE_DIFF[@]}" -eq 27
+          printf '%s\n' "${BASE_DIFF[@]}" | grep -Eq '(^|/)\.part' && exit 1 || true
+          printf '%s\n' "${BASE_DIFF[@]}" | grep -Eq '(^|/)(cache|tmp|temp|trigger|validation-artifact)' && exit 1 || true
+          printf '%s\n' "${BASE_DIFF[@]}" | grep -Eq '^\.github/' && exit 1 || true
 
-      - name: Production frontend build
-        run: npm run build
+          export GIT_AUTHOR_NAME='Kirch Ivan Balite'
+          export GIT_AUTHOR_EMAIL='kirchbalite.careers@gmail.com'
+          export GIT_COMMITTER_NAME='Kirch Ivan Balite'
+          export GIT_COMMITTER_EMAIL='kirchbalite.careers@gmail.com'
+          FINAL_SHA=$(printf '%s\n' 'feat: establish integration idempotency and outbox boundary' | git commit-tree "$TREE_SHA" -p "$BASE_SHA")
 
-      - name: Migrate and seed PostgreSQL
-        run: php artisan migrate:fresh --seed --force
-
-      - name: Run feature tests
-        run: php artisan test --testsuite=Feature
-
-      - name: Verify application routes
-        run: php artisan route:list
+          git push origin "$FINAL_SHA:refs/heads/$FINAL_BRANCH"
+          echo "FINAL_SHA=$FINAL_SHA"
+          echo "FINAL_TREE_SHA=$TREE_SHA"
+          printf 'FINAL_FILE=%s\n' "${BASE_DIFF[@]}"

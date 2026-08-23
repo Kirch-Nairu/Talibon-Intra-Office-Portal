@@ -3,6 +3,7 @@
 use App\Http\Middleware\AssignIntegrationCorrelationId;
 use App\Http\Middleware\AuditIntegrationRequest;
 use App\Http\Middleware\AuthenticateIntegrationClient;
+use App\Http\Middleware\ExecuteIdempotentIntegrationRequest;
 use App\Http\Middleware\HandleInertiaRequests;
 use App\Http\Middleware\RequireActiveAccount;
 use App\Http\Middleware\RequireHrisAdmin;
@@ -32,6 +33,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'integration.auth' => AuthenticateIntegrationClient::class,
             'integration.scope' => RequireIntegrationScope::class,
             'integration.rate' => ThrottleIntegrationClient::class,
+            'integration.idempotency' => ExecuteIdempotentIntegrationRequest::class,
             'integration.audit' => AuditIntegrationRequest::class,
         ]);
     })
