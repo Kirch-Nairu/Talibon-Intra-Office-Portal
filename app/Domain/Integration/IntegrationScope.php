@@ -6,6 +6,8 @@ enum IntegrationScope: string
 {
     case SelfRead = 'integration.self.read';
     case ProofWrite = 'integration.proof.write';
+    case CorrespondenceReceive = 'correspondence.receive';
+    case CorrespondenceStatusRead = 'correspondence.status.read';
 
     /**
      * @return array<int, string>
