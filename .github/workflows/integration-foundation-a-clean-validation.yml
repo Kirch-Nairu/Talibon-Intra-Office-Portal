@@ -1,0 +1,407 @@
+name: Integration Foundation A Clean Validation
+
+on:
+  push:
+    branches:
+      - KIRCH-INTEGRATION-FOUNDATION-A-CLEAN-RUN
+
+permissions:
+  contents: write
+
+jobs:
+  focused-integration:
+    runs-on: ubuntu-latest
+    env:
+      APP_ENV: testing
+      DB_CONNECTION: pgsql
+      DB_HOST: 127.0.0.1
+      DB_PORT: 5432
+      DB_DATABASE: talibon_portal_test
+      DB_USERNAME: postgres
+      DB_PASSWORD: postgres
+      BASE_SHA: 47f1ceb479b3839ce7d22d24d3e93585f7231c46
+      RECOVERED_SHA: b795c082f38d3906e7b2de99fbc382560c0b1dbd
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: talibon_portal_test
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout validation runner
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: mbstring, pdo_pgsql
+          coverage: none
+
+      - name: Prepare dependencies
+        run: |
+          cp .env.example .env
+          composer install --no-interaction --prefer-dist --no-progress
+          php artisan key:generate
+          composer validate --no-check-publish
+
+      - name: Reconstruct clean Foundation A tree
+        shell: bash
+        run: |
+          set -euo pipefail
+          git checkout "$RECOVERED_SHA" -- \
+            app/Console/Commands/IntegrationClientCreateCommand.php \
+            app/Console/Commands/IntegrationCredentialIssueCommand.php \
+            app/Console/Commands/IntegrationCredentialRevokeCommand.php \
+            app/Domain/Integration \
+            app/Http/Controllers/Api/V1/IntegrationSelfController.php \
+            app/Http/Middleware/AssignIntegrationCorrelationId.php \
+            app/Http/Middleware/AuditIntegrationRequest.php \
+            app/Http/Middleware/AuthenticateIntegrationClient.php \
+            app/Http/Middleware/RequireIntegrationScope.php \
+            app/Http/Middleware/ThrottleIntegrationClient.php \
+            app/Http/Requests/Api/V1/IntegrationSelfRequest.php \
+            app/Models/AuditLog.php \
+            app/Models/IntegrationClient.php \
+            app/Models/IntegrationClientCredential.php \
+            app/Services/AuditLogger.php \
+            app/Services/IntegrationClientService.php \
+            app/Services/IntegrationCredentialService.php \
+            app/Services/IntegrationErrorResponse.php \
+            bootstrap/app.php \
+            database/migrations/2026_08_23_090000_create_integration_client_tables.php \
+            database/migrations/2026_08_23_090100_add_integration_client_to_audit_logs.php \
+            routes/api.php \
+            tests/Feature/IntegrationFoundationTest.php
+
+          cat > routes/api.php <<'PHP'
+          <?php
+
+          use App\Domain\Integration\IntegrationScope;
+          use App\Http\Controllers\Api\V1\IntegrationSelfController;
+          use Illuminate\Support\Facades\Route;
+
+          Route::prefix('v1')
+              ->middleware([
+                  'integration.correlation',
+                  'integration.auth',
+              ])
+              ->group(function (): void {
+                  Route::get('/integration/self', IntegrationSelfController::class)
+                      ->middleware([
+                          'integration.scope:'.IntegrationScope::SelfRead->value,
+                          'integration.rate',
+                          'integration.audit',
+                      ])
+                      ->name('api.v1.integration.self');
+              });
+          PHP
+
+          python3 <<'PY'
+          from pathlib import Path
+
+          path = Path('tests/Feature/IntegrationFoundationTest.php')
+          text = path.read_text()
+
+          needle = """    public function test_unknown_credential_returns_generic_401(): void
+    {
+        $token = (string) Str::uuid().'.'.str_repeat('x', 43);
+
+        $this->assertAuthenticationFailure($token);
+    }
+
+"""
+          replacement = needle + """    public function test_malformed_credential_returns_generic_401(): void
+    {
+        $this->assertAuthenticationFailure('malformed-token');
+    }
+
+"""
+          if needle not in text:
+              raise SystemExit('unknown-credential insertion point not found')
+          text = text.replace(needle, replacement, 1)
+
+          old = """        $this->assertNotSame($secret, $raw->secret_hash);
+        $this->assertNotSame($token, $raw->secret_hash);
+"""
+          new = """        $this->assertSame(hash('sha256', $secret), $raw->secret_hash);
+        $this->assertNotSame($secret, $raw->secret_hash);
+        $this->assertNotSame($token, $raw->secret_hash);
+"""
+          if old not in text:
+              raise SystemExit('secret-hash assertion point not found')
+          text = text.replace(old, new, 1)
+
+          old = """    public function test_missing_scope_returns_403_without_hiding_authorization_failure(): void
+    {
+        [, , $token] = $this->credential([]);
+
+        $response = $this->withToken($token)->getJson('/api/v1/integration/self');
+
+        $response->assertForbidden()
+            ->assertJsonPath('error.code', IntegrationErrorCode::ScopeDenied->value);
+        $this->assertNotNull($response->headers->get('X-Correlation-ID'));
+    }
+"""
+          new = """    public function test_missing_scope_returns_403_without_hiding_authorization_failure(): void
+    {
+        [$client, , $token] = $this->credential([]);
+
+        $response = $this->withToken($token)->getJson('/api/v1/integration/self');
+
+        $response->assertForbidden()
+            ->assertJsonPath('error.code', IntegrationErrorCode::ScopeDenied->value);
+        $this->assertNotNull($response->headers->get('X-Correlation-ID'));
+        $this->assertDatabaseHas('audit_logs', [
+            'integration_client_id' => $client->id,
+            'action' => 'integration.scope.denied',
+            'outcome' => 'denied',
+        ]);
+    }
+"""
+          if old not in text:
+              raise SystemExit('scope test replacement point not found')
+          text = text.replace(old, new, 1)
+
+          old = """        $response->assertStatus(422)
+            ->assertJsonPath('error.code', IntegrationErrorCode::RequestInvalid->value)
+            ->assertJsonStructure(['error' => ['code', 'message'], 'correlation_id']);
+    }
+"""
+          new = """        $response->assertStatus(422)
+            ->assertJsonPath('error.code', IntegrationErrorCode::RequestInvalid->value)
+            ->assertJsonStructure(['error' => ['code', 'message'], 'correlation_id']);
+        $correlationId = $response->headers->get('X-Correlation-ID');
+        $this->assertNotNull($correlationId);
+        $this->assertSame($correlationId, $response->json('correlation_id'));
+    }
+"""
+          if old not in text:
+              raise SystemExit('validation correlation replacement point not found')
+          text = text.replace(old, new, 1)
+
+          old = """    private function assertAuthenticationFailure(string $token): void
+    {
+        $response = $this->withToken($token)->getJson('/api/v1/integration/self');
+
+        $response->assertUnauthorized()
+            ->assertJsonPath('error.code', IntegrationErrorCode::AuthenticationFailed->value)
+            ->assertJsonStructure(['error' => ['code', 'message'], 'correlation_id']);
+        $this->assertNotNull($response->headers->get('X-Correlation-ID'));
+    }
+"""
+          new = """    private function assertAuthenticationFailure(string $token): void
+    {
+        $response = $this->withToken($token)->getJson('/api/v1/integration/self');
+
+        $response->assertUnauthorized()
+            ->assertJsonPath('error.code', IntegrationErrorCode::AuthenticationFailed->value)
+            ->assertJsonStructure(['error' => ['code', 'message'], 'correlation_id']);
+        $correlationId = $response->headers->get('X-Correlation-ID');
+        $this->assertNotNull($correlationId);
+        $this->assertSame($correlationId, $response->json('correlation_id'));
+
+        $log = AuditLog::query()->latest('id')->firstOrFail();
+        $this->assertSame('integration.authentication.failed', $log->action);
+        $this->assertSame('denied', $log->outcome);
+        $this->assertSame($correlationId, $log->correlation_id);
+        $this->assertStringNotContainsString($token, $log->summary);
+    }
+"""
+          if old not in text:
+              raise SystemExit('authentication helper replacement point not found')
+          text = text.replace(old, new, 1)
+
+          path.write_text(text)
+          PY
+
+          rm -f .github/workflows/integration-foundation-a-clean-validation.yml .phpunit.result.cache
+
+      - name: PHP syntax validation
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --name-only "$BASE_SHA" | grep '\.php$' > /tmp/changed-php.txt
+          while IFS= read -r file; do php -l "$file"; done < /tmp/changed-php.txt
+
+      - name: Apply disposable PostgreSQL schema
+        run: php artisan migrate:fresh --seed --force
+
+      - name: Run focused Integration Foundation A suite
+        shell: bash
+        run: |
+          set -euo pipefail
+          php artisan test tests/Feature/IntegrationFoundationTest.php 2>&1 | tee /tmp/focused.raw
+          sed -r $'s/\x1B\[[0-9;]*[mK]//g' /tmp/focused.raw > /tmp/focused.txt
+
+      - name: Inspect routes commands scope and LOC
+        shell: bash
+        run: |
+          set -euo pipefail
+          php artisan route:list --path=api/v1 | tee /tmp/routes.txt
+          php artisan list --raw | grep '^integration:' | tee /tmp/commands.txt
+          test "$(grep -R --include='*.php' -n 'integration\.self\.read' app bootstrap routes database | wc -l)" -eq 1
+          cat > /tmp/production-files.txt <<'EOF'
+          app/Console/Commands/IntegrationClientCreateCommand.php
+          app/Console/Commands/IntegrationCredentialIssueCommand.php
+          app/Console/Commands/IntegrationCredentialRevokeCommand.php
+          app/Domain/Integration/IntegrationAuthenticationException.php
+          app/Domain/Integration/IntegrationAuthenticationFailure.php
+          app/Domain/Integration/IntegrationClientContext.php
+          app/Domain/Integration/IntegrationErrorCode.php
+          app/Domain/Integration/IntegrationRequestAttributes.php
+          app/Domain/Integration/IntegrationScope.php
+          app/Domain/Integration/IssuedIntegrationCredential.php
+          app/Http/Controllers/Api/V1/IntegrationSelfController.php
+          app/Http/Middleware/AssignIntegrationCorrelationId.php
+          app/Http/Middleware/AuditIntegrationRequest.php
+          app/Http/Middleware/AuthenticateIntegrationClient.php
+          app/Http/Middleware/RequireIntegrationScope.php
+          app/Http/Middleware/ThrottleIntegrationClient.php
+          app/Http/Requests/Api/V1/IntegrationSelfRequest.php
+          app/Models/AuditLog.php
+          app/Models/IntegrationClient.php
+          app/Models/IntegrationClientCredential.php
+          app/Services/AuditLogger.php
+          app/Services/IntegrationClientService.php
+          app/Services/IntegrationCredentialService.php
+          app/Services/IntegrationErrorResponse.php
+          bootstrap/app.php
+          database/migrations/2026_08_23_090000_create_integration_client_tables.php
+          database/migrations/2026_08_23_090100_add_integration_client_to_audit_logs.php
+          routes/api.php
+          EOF
+          xargs wc -l < /tmp/production-files.txt | tee /tmp/loc.txt
+
+      - name: Finalize engineering log and clean tree
+        shell: bash
+        run: |
+          set -euo pipefail
+          eval "$(python3 <<'PY'
+          import re
+          from pathlib import Path
+          text = Path('/tmp/focused.txt').read_text()
+          tests = re.search(r'Tests:\s+(\d+) passed\s+\((\d+) assertions\)', text)
+          duration = re.search(r'Duration:\s+([0-9.]+)s', text)
+          if not tests or not duration:
+              raise SystemExit('Unable to parse focused test result')
+          print(f'FOCUSED_PASSED={tests.group(1)}')
+          print(f'FOCUSED_ASSERTIONS={tests.group(2)}')
+          print(f'FOCUSED_DURATION={duration.group(1)}')
+          PY
+          )"
+          export FOCUSED_PASSED FOCUSED_ASSERTIONS FOCUSED_DURATION
+
+          python3 <<'PY'
+          import os
+          from pathlib import Path
+
+          path = Path('docs/ENGINEERING_LOG.md')
+          text = path.read_text()
+          marker = '\n## Current release state\n'
+          if marker not in text:
+              raise SystemExit('Engineering-log release marker not found')
+
+          entry = f"""
+## 2026-08-23 — Integration Foundation A
+
+### `feat: establish scoped integration client boundary`
+- Exact production parent: `47f1ceb479b3839ce7d22d24d3e93585f7231c46` (`docs: record exact-head MFA closure verification`). Requirement: Contract Phase 1 Integration Foundation A only; Foundation B is not started.
+- Machine identity model: `IntegrationClient` and `IntegrationClientCredential` are first-class machine identities and are never represented as `User` records. Human authentication remains `Authenticate -> Active Account -> MFA Assurance -> Authorization -> Domain Action`; machine requests use `Correlation Identity -> Integration Authentication -> Active/Valid Credential -> Scope -> Rate Limit -> Validation -> Application Action -> Domain Engine -> Audit`.
+- Credential model: tokens are `<public credential UUID>.<high-entropy secret>`. Secrets are generated from `random_bytes(32)`, URL-safe encoded, displayed/returned only at issuance, and only `SHA-256(secret)` is persisted. Authentication performs UUID lookup plus `hash_equals()` comparison. `secret_hash` is hidden from serialization. No default or seeded production integration credential is introduced.
+- Credential lifecycle: revoked credentials, expired credentials, inactive clients, unknown credentials, malformed tokens and wrong secrets fail closed with the same outward `401 integration_authentication_failed` envelope. Rotation issues a new credential without mutating or implicitly revoking the previous credential; explicit revocation remains separate.
+- Schema/migrations: additive `2026_08_23_090000_create_integration_client_tables.php` creates `integration_clients` and `integration_client_credentials`; additive `2026_08_23_090100_add_integration_client_to_audit_logs.php` adds nullable `audit_logs.integration_client_id`. Historical users and audit migrations are unchanged; human `actor_user_id` remains nullable and distinct from machine identity.
+- Scope model: `App\\Domain\\Integration\\IntegrationScope` is the single authoritative registry and Foundation A exposes only `integration.self.read`. Unknown scope issuance fails. The API route consumes the enum rather than duplicating the literal scope string.
+- Correlation identity: `AssignIntegrationCorrelationId` generates a new internal UUID for every integration request, ignores caller-supplied correlation IDs as authority, returns `X-Correlation-ID`, and makes the same value available to stable JSON errors and `AuditLogger`. Integration audit records from one request share the same correlation ID; non-integration/non-request logging retains a generated UUID fallback.
+- Audit boundary: integration request audit uses nullable `integration_client_id` without populating `actor_user_id`. Authentication success/failure (including safely classifiable revoked/expired/inactive failures), scope denial, rate-limit denial and successful authorized requests are recorded without bearer tokens, secrets, hashes or Authorization headers in summaries.
+- Rate limiting: authenticated client public identity is the limiter key, `integration_clients.requests_per_minute` is authoritative, rejection is stable HTTP 429 with correlation identity and `Retry-After`, and the limiter is separate from login/MFA limiter state.
+- Request/API boundary: only `GET /api/v1/integration/self` is exposed. Stable errors cover authentication 401, scope 403, rate limit 429 and validation 422. Unexpected input is prohibited by a Form Request boundary. No session/MFA middleware is attached to the API route.
+- Operational commands: `integration:client-create`, `integration:credential-issue`, and `integration:credential-revoke` are registered. Credential issue prints plaintext once; service-level rotation semantics are covered by the focused test.
+- FAILED diagnostic evidence retained separately: the first disposable PostgreSQL candidate run produced **15 passed / 1 failed / 81 assertions / 1.30s**. `test_expired_credential_returns_generic_401` incorrectly received HTTP 200. This is failed evidence only.
+- Recovered corrected-candidate evidence retained without transfer: the later disposable candidate run produced **16 passed / 87 assertions / 1.20s** after fixing persisted expiration handling. Its workflow ended in failure only during a later temporary non-fast-forward branch push; lint, Composer validation, disposable migration/seed, focused tests, route inspection and command inspection had already passed. This is not substituted for the final clean-tree verification below.
+- Final clean-tree verification actually observed: PHP syntax validation PASS for every changed/new PHP file; `composer validate --no-check-publish` PASS; disposable PostgreSQL `php artisan migrate:fresh --seed --force` PASS; focused `tests/Feature/IntegrationFoundationTest.php` **{os.environ['FOCUSED_PASSED']} passed / {os.environ['FOCUSED_ASSERTIONS']} assertions / {os.environ['FOCUSED_DURATION']}s**; `/api/v1` route inspection PASS; all three `integration:*` commands present; production scope-literal inspection confirms `integration.self.read` exists only in the authoritative enum; production LOC/cap inspection completed. The disposable database is CI/test evidence only and is not Kirch's presentation database.
+- Scope exclusions: no Correspondence, Documents, Legislative, HR/payroll, Property, OAuth, JWT platform, webhook, external HTTP publication, idempotency replay storage, response replay, outbox, queue transport or generic gateway DSL is added. MFA production implementation, `EmployeeLifecycleService.php`, existing workflow/Correspondence behavior, Legislative, Property and HRIS domains are untouched.
+- Unresolved risks / next hardening: distributed deployment requires a shared authoritative cache backend for globally coherent per-client rate limits; credential/client administration is command/service based rather than a privileged management UI; operator attribution for shell-issued credentials is limited unless a future privileged administration surface supplies `issued_by_user_id`; durable outbox/idempotency/replay protection and domain APIs remain intentionally deferred to Foundation B. No full Phase 1 regression or production/cloud integration claim is made by this milestone.
+- Release labels remain `PHASE1_CANDIDATE_OPEN_GATES` and `CONTRACT_PHASE_1_OPEN_GATES`.
+- Next action: Foundation B only after this clean Foundation A commit is promoted and separately accepted.
+"""
+          text = text.replace(marker, '\n' + entry.rstrip() + '\n' + marker, 1)
+          path.write_text(text)
+          PY
+
+          cat > /tmp/allowed-files.txt <<'EOF'
+          app/Console/Commands/IntegrationClientCreateCommand.php
+          app/Console/Commands/IntegrationCredentialIssueCommand.php
+          app/Console/Commands/IntegrationCredentialRevokeCommand.php
+          app/Domain/Integration/IntegrationAuthenticationException.php
+          app/Domain/Integration/IntegrationAuthenticationFailure.php
+          app/Domain/Integration/IntegrationClientContext.php
+          app/Domain/Integration/IntegrationErrorCode.php
+          app/Domain/Integration/IntegrationRequestAttributes.php
+          app/Domain/Integration/IntegrationScope.php
+          app/Domain/Integration/IssuedIntegrationCredential.php
+          app/Http/Controllers/Api/V1/IntegrationSelfController.php
+          app/Http/Middleware/AssignIntegrationCorrelationId.php
+          app/Http/Middleware/AuditIntegrationRequest.php
+          app/Http/Middleware/AuthenticateIntegrationClient.php
+          app/Http/Middleware/RequireIntegrationScope.php
+          app/Http/Middleware/ThrottleIntegrationClient.php
+          app/Http/Requests/Api/V1/IntegrationSelfRequest.php
+          app/Models/AuditLog.php
+          app/Models/IntegrationClient.php
+          app/Models/IntegrationClientCredential.php
+          app/Services/AuditLogger.php
+          app/Services/IntegrationClientService.php
+          app/Services/IntegrationCredentialService.php
+          app/Services/IntegrationErrorResponse.php
+          bootstrap/app.php
+          database/migrations/2026_08_23_090000_create_integration_client_tables.php
+          database/migrations/2026_08_23_090100_add_integration_client_to_audit_logs.php
+          docs/ENGINEERING_LOG.md
+          routes/api.php
+          tests/Feature/IntegrationFoundationTest.php
+          EOF
+          sort -o /tmp/allowed-files.txt /tmp/allowed-files.txt
+          git diff --name-only "$BASE_SHA" | sort > /tmp/actual-files.txt
+          diff -u /tmp/allowed-files.txt /tmp/actual-files.txt
+
+          git diff --exit-code "$BASE_SHA" -- \
+            app/Domain/Identity \
+            app/Services/AuthenticationAssurance.php \
+            app/Services/MfaService.php \
+            app/Services/SensitiveInertiaResponse.php \
+            app/Services/EmployeeLifecycleService.php \
+            config/identity.php \
+            app/Domain/Workflow \
+            app/Policies/TransactionPolicy.php \
+            app/Services/TransactionWorkflowService.php
+
+          git status --short
+
+      - name: Materialize clean validation commit
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -f .phpunit.result.cache
+          git add -A
+          TREE_SHA=$(git write-tree)
+          export GIT_AUTHOR_NAME='github-actions[bot]'
+          export GIT_AUTHOR_EMAIL='41898282+github-actions[bot]@users.noreply.github.com'
+          export GIT_COMMITTER_NAME='github-actions[bot]'
+          export GIT_COMMITTER_EMAIL='41898282+github-actions[bot]@users.noreply.github.com'
+          VALIDATION_SHA=$(printf '%s\n' 'chore: materialize validated Integration Foundation A clean tree' | git commit-tree "$TREE_SHA" -p "$BASE_SHA")
+          echo "Validation tree: $TREE_SHA"
+          echo "Validation commit: $VALIDATION_SHA"
+          git push origin "$VALIDATION_SHA":refs/heads/KIRCH-INTEGRATION-FOUNDATION-A-CLEAN-TEMP
