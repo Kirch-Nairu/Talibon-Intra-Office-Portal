@@ -26,6 +26,22 @@ class CorrespondenceAccessDecider
         'legislative_staff',
     ];
 
+    private const ROUTE_ROLES = [
+        'department_head',
+        'mayor_approver',
+        'hr_officer',
+        'legislative_staff',
+    ];
+
+    private const ACTION_ROLES = [
+        'department_head',
+        'department_staff',
+        'mayor_approver',
+        'mayor_staff',
+        'hr_officer',
+        'legislative_staff',
+    ];
+
     private const CONFIDENTIAL_VIEW_ROLES = [
         'department_head',
         'mayor_approver',
@@ -50,6 +66,22 @@ class CorrespondenceAccessDecider
         return $record->lifecycle_state === CorrespondenceLifecycleState::Registered
             && $this->hasOfficeOrAssignmentContext($actor, $record)
             && in_array($actor->role, self::CLASSIFY_ROLES, true);
+    }
+
+    public function canRoute(User $actor, CorrespondenceRecord $record): bool
+    {
+        return $record->lifecycle_state === CorrespondenceLifecycleState::Classified
+            && $record->workflow_transaction_id === null
+            && in_array($actor->role, self::ROUTE_ROLES, true)
+            && $this->canView($actor, $record);
+    }
+
+    public function canAct(User $actor, CorrespondenceRecord $record): bool
+    {
+        return $record->lifecycle_state === CorrespondenceLifecycleState::Routed
+            && $record->workflow_transaction_id !== null
+            && in_array($actor->role, self::ACTION_ROLES, true)
+            && $this->canView($actor, $record);
     }
 
     public function canView(User $actor, CorrespondenceRecord $record): bool
