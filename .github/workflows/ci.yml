@@ -4,6 +4,9 @@ on:
   push:
     branches:
       - KIRCH-PHASE1-INTEGRATION-LOG-MATERIALIZE
+  pull_request:
+    branches:
+      - KIRCH-INTEGRATION-FOUNDATION-A-CLEAN-TEMP
 
 permissions:
   contents: write
