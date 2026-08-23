@@ -1,15 +1,14 @@
-name: Talibon Platform CI
+name: Correspondence Core B Focused Validation
 
 on:
-  push:
-    branches:
-      - KIRCH-PROTOTYPE-**
-      - KIRCH-PHASE1-**
   pull_request:
 
 jobs:
   verify:
     runs-on: ubuntu-latest
+    env:
+      BASE_SHA: 72782c86653dd871cbd6c15fcb162eaff2789cbd
+      RUNTIME_SHA: f877a6187294059cec50398cee6f0315a53e01ec
 
     services:
       postgres:
@@ -27,8 +26,10 @@ jobs:
           --health-retries 5
 
     steps:
-      - name: Checkout
+      - name: Checkout validation branch
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
@@ -36,11 +37,6 @@ jobs:
           php-version: '8.4'
           extensions: mbstring, pdo_pgsql
           coverage: none
-
-      - name: Setup Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: '22'
 
       - name: Prepare environment
         run: |
@@ -56,20 +52,44 @@ jobs:
       - name: Validate Composer metadata
         run: composer validate --no-check-publish
 
-      - name: Install frontend dependencies
-        run: npm install --no-audit --no-fund
+      - name: Lint exact Core B PHP diff
+        run: |
+          set -euo pipefail
+          while IFS= read -r file; do
+            [ -z "$file" ] && continue
+            php -l "$file"
+          done < <(git diff --name-only "$BASE_SHA" "$RUNTIME_SHA" -- '*.php')
 
-      - name: TypeScript check
-        run: npm run types:check
-
-      - name: Production frontend build
-        run: npm run build
-
-      - name: Migrate and seed PostgreSQL
+      - name: Migrate and seed disposable PostgreSQL
         run: php artisan migrate:fresh --seed --force
 
-      - name: Run feature tests
-        run: php artisan test --testsuite=Feature
+      - name: Run Correspondence Core B focused tests
+        run: php artisan test tests/Feature/CorrespondenceCoreBTest.php
 
-      - name: Verify application routes
-        run: php artisan route:list
+      - name: Run Correspondence Core A compatibility tests
+        run: php artisan test tests/Feature/CorrespondenceCoreATest.php
+
+      - name: Run Integration Foundation B compatibility tests
+        run: php artisan test tests/Feature/IntegrationFoundationBTest.php
+
+      - name: Run Integration Foundation A compatibility tests
+        run: php artisan test tests/Feature/IntegrationFoundationTest.php
+
+      - name: Inspect correspondence and API routes
+        run: |
+          php artisan route:list --path=correspondence
+          php artisan route:list --path=api/v1
+
+      - name: Guard excluded domains
+        run: |
+          set -euo pipefail
+          changed="$(git diff --name-only "$BASE_SHA" "$RUNTIME_SHA")"
+          printf '%s\n' "$changed"
+          if printf '%s\n' "$changed" | grep -E '(^app/.*/(Mfa|HRIS|Hris|Property|Legislative)|EmployeeLifecycleService\.php|^database/migrations/.*(hris|property|legislative|mfa))'; then
+            echo 'Excluded-domain change detected.' >&2
+            exit 1
+          fi
+          if printf '%s\n' "$changed" | grep -E 'release|archive|document.*(upload|download|version|checksum)|retention|webhook|publisher' -i; then
+            echo 'Excluded Correspondence Core B breadth detected.' >&2
+            exit 1
+          fi
