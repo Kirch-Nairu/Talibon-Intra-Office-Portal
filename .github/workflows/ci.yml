@@ -1,75 +1,83 @@
-name: Talibon Platform CI
+name: Materialize Integration Foundation A Engineering Log
 
 on:
   push:
     branches:
-      - KIRCH-PROTOTYPE-**
-      - KIRCH-PHASE1-**
-  pull_request:
+      - KIRCH-PHASE1-INTEGRATION-LOG-MATERIALIZE
+
+permissions:
+  contents: write
 
 jobs:
-  verify:
+  materialize:
     runs-on: ubuntu-latest
-
-    services:
-      postgres:
-        image: postgres:16
-        env:
-          POSTGRES_DB: talibon_portal
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: postgres
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
+    env:
+      BASE_SHA: 47f1ceb479b3839ce7d22d24d3e93585f7231c46
+      CANDIDATE_SHA: 4b098990398182054b04be93f7799b3543bf7865
 
     steps:
-      - name: Checkout
+      - name: Checkout materialization branch
         uses: actions/checkout@v4
-
-      - name: Setup PHP
-        uses: shivammathur/setup-php@v2
         with:
-          php-version: '8.4'
-          extensions: mbstring, pdo_pgsql
-          coverage: none
+          fetch-depth: 0
 
-      - name: Setup Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: '22'
-
-      - name: Prepare environment
+      - name: Insert mandatory engineering log entry
+        shell: bash
         run: |
-          cp .env.example .env
-          sed -i 's/DB_PASSWORD=$/DB_PASSWORD=postgres/' .env
+          set -euo pipefail
+          python3 <<'PY'
+          from pathlib import Path
 
-      - name: Install PHP dependencies
-        run: composer install --no-interaction --prefer-dist --no-progress
+          path = Path('docs/ENGINEERING_LOG.md')
+          text = path.read_text()
+          marker = '\n## Current release state\n'
+          if marker not in text:
+              raise SystemExit('Engineering-log release marker not found')
 
-      - name: Generate application key
-        run: php artisan key:generate
+          entry = r'''
+## 2026-08-23 — Integration Foundation A
 
-      - name: Validate Composer metadata
-        run: composer validate --no-check-publish
+### `feat: establish scoped integration client boundary`
+- Exact production parent: `47f1ceb479b3839ce7d22d24d3e93585f7231c46` (`docs: record exact-head MFA closure verification`). Requirement: Contract Phase 1 Integration Foundation A only; Foundation B is not started.
+- Machine identity model: `IntegrationClient` and `IntegrationClientCredential` are first-class machine identities and are never represented as `User` records. Human authentication remains `Authenticate -> Active Account -> MFA Assurance -> Authorization -> Domain Action`; machine requests use `Correlation Identity -> Integration Authentication -> Active/Valid Credential -> Scope -> Rate Limit -> Validation -> Application Action -> Domain Engine -> Audit`.
+- Credential model: tokens are `<public credential UUID>.<high-entropy secret>`. Secrets are generated from `random_bytes(32)`, URL-safe encoded, displayed/returned only at issuance, and only `SHA-256(secret)` is persisted. Authentication performs UUID lookup plus `hash_equals()` comparison. `secret_hash` is hidden from serialization. No default or seeded production integration credential is introduced.
+- Credential lifecycle: malformed, unknown, wrong-secret, revoked, expired and inactive-client credentials fail closed with the same outward HTTP `401` / `integration_authentication_failed` envelope. Persisted `expires_at` uses the credential model's datetime cast and is evaluated against current application time before scope authorization. Rotation issues a new credential without mutating or implicitly revoking the previous credential; explicit revocation remains separate.
+- Schema/migrations: additive `2026_08_23_090000_create_integration_client_tables.php` creates `integration_clients` and `integration_client_credentials`; additive `2026_08_23_090100_add_integration_client_to_audit_logs.php` adds nullable `audit_logs.integration_client_id`. Historical users and audit migrations are unchanged; human `actor_user_id` remains nullable and distinct from machine identity.
+- Scope model: `App\Domain\Integration\IntegrationScope` is the single authoritative registry and Foundation A exposes only `integration.self.read`. Unknown scope issuance fails. The API route consumes the enum rather than duplicating the literal scope string.
+- Correlation identity: `AssignIntegrationCorrelationId` generates a new internal UUID for every integration request, caller-supplied `X-Correlation-ID` is not trusted as authoritative, the response receives `X-Correlation-ID`, and the same value is available to stable JSON errors and `AuditLogger`. Multiple audit records from one request share one correlation ID; separate requests receive separate IDs; non-integration/non-request logging retains a generated UUID fallback.
+- Audit boundary: integration audit uses nullable `integration_client_id` without populating `actor_user_id`. Authentication success/failure, safely classifiable revoked/expired/inactive rejection, scope denial, rate-limit denial and successful authorized requests are recorded without bearer tokens, secrets, hashes or Authorization headers in audit summaries.
+- Middleware/request chain: `Assign Correlation ID -> Authenticate Integration Client -> Require Scope -> Per-client Throttle -> Validation/Application -> Audit success envelope`. Authentication, scope and rate-limit middleware record their own denial evidence so failures remain auditable even when the success envelope is not reached. API routes are registered through `routes/api.php` and do not use human session/MFA middleware.
+- Rate limiting: authenticated integration-client public identity is the limiter key, `integration_clients.requests_per_minute` is authoritative, denial is stable HTTP `429` with correlation identity and `Retry-After`, and integration limiter state is separate from password-login/MFA limiters.
+- API/request boundary: only `GET /api/v1/integration/self` is exposed. Stable JSON errors cover authentication `401`, scope `403`, rate limit `429`, and invalid request `422`. Unexpected input is rejected through a Form Request boundary.
+- Operational commands: `integration:client-create`, `integration:credential-issue`, and `integration:credential-revoke` are registered. Credential issuance displays plaintext only at issuance. Service-level rotation semantics create a new credential and are covered by the focused regression suite.
+- FAILED diagnostic evidence retained separately: the first disposable PostgreSQL candidate run produced **15 passed / 1 failed / 81 assertions / 1.30s**. `test_expired_credential_returns_generic_401` incorrectly received HTTP `200`; this is failed evidence only and is not transferred as a PASS.
+- Recovered corrected-candidate evidence retained separately: the later recovered candidate produced **16 passed / 87 assertions / 1.20s** after persisted expiration behavior was corrected. The temporary workflow later failed only while attempting a non-fast-forward push to a disposable branch; its earlier lint, Composer validation, disposable migration/seed, focused test, route and command steps had passed. This is historical recovered-candidate evidence, not final clean-tree proof.
+- Final clean candidate verification actually observed for exact code/test/schema SHA `4b098990398182054b04be93f7799b3543bf7865`: Composer install from the committed 109-package lock graph PASS; `composer validate --no-check-publish` PASS; PHP syntax validation PASS for every changed/new PHP file; disposable PostgreSQL `php artisan migrate:fresh --seed --force` PASS including both additive integration migrations; focused `tests/Feature/IntegrationFoundationTest.php` **17 passed / 129 assertions / 1.14s**; `/api/v1` route inspection PASS with one Foundation A route; all three `integration:*` commands present; production scope-literal guard PASS with `integration.self.read` appearing only in the authoritative enum; production LOC/cap inspection PASS; excluded-domain static guard PASS. The disposable database was CI/test-only and was not Kirch's presentation database.
+- Production LOC review: largest new service is `IntegrationCredentialService.php` at **191 LOC**, below the 400-LOC service hard cap. All other new/modified production PHP files remain below their applicable repository caps; no line-splitting/formatting workaround is used.
+- Scope exclusions: no Correspondence API, Documents API, Legislative API, HR/payroll API, OAuth, JWT platform, webhook, external HTTP publication, idempotency replay storage, response replay, outbox, queue transport or generic gateway DSL is added. MFA production implementation, `EmployeeLifecycleService.php`, existing workflow/Correspondence behavior, Legislative, Property and HRIS domains are untouched.
+- Unresolved risks / later hardening: horizontally distributed deployment requires a shared authoritative cache backend for globally coherent per-client rate limits; client/credential administration is command/service based rather than a privileged management UI; shell-issued credentials have no human operator attribution unless a future privileged administration surface supplies `issued_by_user_id`; durable idempotency/replay protection, outbox publication, webhooks and domain APIs remain intentionally deferred to Foundation B; no full Phase 1 runtime regression or cloud/production integration claim is made by this milestone.
+- Documentation materialization note: this engineering-log addition is documentation-only on top of the validated `4b098990...` code/test/schema tree and does not change the runtime candidate that produced the focused evidence above.
+- Release labels remain `PHASE1_CANDIDATE_OPEN_GATES` and `CONTRACT_PHASE_1_OPEN_GATES`.
+- Next action: Foundation B only after this clean Foundation A production commit is promoted and separately accepted.
+'''
 
-      - name: Install frontend dependencies
-        run: npm install --no-audit --no-fund
+          text = text.replace(marker, '\n' + entry.strip() + '\n' + marker, 1)
+          path.write_text(text)
+          PY
 
-      - name: TypeScript check
-        run: npm run types:check
-
-      - name: Production frontend build
-        run: npm run build
-
-      - name: Migrate and seed PostgreSQL
-        run: php artisan migrate:fresh --seed --force
-
-      - name: Run feature tests
-        run: php artisan test --testsuite=Feature
-
-      - name: Verify application routes
-        run: php artisan route:list
+      - name: Restore validation-neutral repository tree and create direct-parent tree commit
+        shell: bash
+        run: |
+          set -euo pipefail
+          git checkout "$CANDIDATE_SHA" -- .github/workflows/ci.yml
+          rm -f .phpunit.result.cache
+          git add -A
+          TREE_SHA=$(git write-tree)
+          export GIT_AUTHOR_NAME='github-actions[bot]'
+          export GIT_AUTHOR_EMAIL='41898282+github-actions[bot]@users.noreply.github.com'
+          export GIT_COMMITTER_NAME='github-actions[bot]'
+          export GIT_COMMITTER_EMAIL='41898282+github-actions[bot]@users.noreply.github.com'
+          TEMP_SHA=$(printf '%s\n' 'chore: materialize Integration Foundation A final tree' | git commit-tree "$TREE_SHA" -p "$BASE_SHA")
+          echo "Final tree SHA: $TREE_SHA"
+          echo "Temporary direct-parent commit: $TEMP_SHA"
+          git push origin "$TEMP_SHA":refs/heads/KIRCH-INTEGRATION-FOUNDATION-A-FINAL-TREE
