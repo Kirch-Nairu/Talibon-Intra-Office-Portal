@@ -1,0 +1,88 @@
+name: Temporary Integration Foundation A Validation
+
+on:
+  push:
+    branches:
+      - KIRCH-INTEGRATION-FOUNDATION-A-TEMP
+
+permissions:
+  contents: write
+
+jobs:
+  focused-integration:
+    runs-on: ubuntu-latest
+    env:
+      APP_ENV: testing
+      DB_CONNECTION: pgsql
+      DB_HOST: 127.0.0.1
+      DB_PORT: 5432
+      DB_DATABASE: talibon_portal_test
+      DB_USERNAME: postgres
+      DB_PASSWORD: postgres
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: talibon_portal_test
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout temporary branch
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: mbstring, pdo_pgsql
+          coverage: none
+
+      - name: Prepare application
+        run: |
+          cp .env.example .env
+          composer install --no-interaction --prefer-dist --no-progress
+          php artisan key:generate
+          composer validate --no-check-publish
+
+      - name: Materialize candidate slice
+        run: |
+          base64 -d integration-foundation-a.bundle.b64 > /tmp/integration-foundation-a.tar.gz
+          tar -xzf /tmp/integration-foundation-a.tar.gz
+          while IFS= read -r file; do
+            case "$file" in
+              *.php) php -l "$file" ;;
+            esac
+          done < <(tar -tzf /tmp/integration-foundation-a.tar.gz | sed 's#^./##')
+
+      - name: Apply disposable PostgreSQL schema
+        run: php artisan migrate:fresh --seed --force
+
+      - name: Run focused Integration Foundation A tests
+        run: php artisan test tests/Feature/IntegrationFoundationTest.php
+
+      - name: Inspect API route and commands
+        run: |
+          php artisan route:list --path=api/v1
+          php artisan list --raw | grep '^integration:'
+
+      - name: Materialize verified implementation tree
+        run: |
+          rm -f integration-foundation-a.bundle.b64
+          rm -f .github/workflows/integration-foundation-a-temp.yml
+          rm -f .phpunit.result.cache
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "chore: materialize verified integration foundation A"
+          git push origin HEAD:KIRCH-INTEGRATION-FOUNDATION-A-TEMP
