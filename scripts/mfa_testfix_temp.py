@@ -24,7 +24,7 @@ test = replace_between(
 
         $this->actingAs($user)
             ->withSession($sessionA)
-            ->get('/dashboard')
+            ->get('/security/mfa')
             ->assertOk();
 
         $newSecret = app(MfaService::class)->resetEnrollment($user);
@@ -119,8 +119,9 @@ entry = '''
 ### `test: correct MFA security regression harness`
 - Scope: focused MFA test-harness correction on parent `b2d3687020ae1c14dd8950657c716692ce25db2d`; production MFA services, middleware, controllers, route ordering, epoch/version semantics, and sensitive-response behavior are intentionally unchanged.
 - Parent runtime evidence supplied by Kirch: Composer install PASS; Composer validate PASS; Composer audit PASS with no advisories; npm install PASS; additive MFA-version migration PASS; `PrivilegedMfaAuthenticationTest` PASS. Parent `b2d3687` is not green because `MfaSecurityControlsTest` failed.
-- Exact focused diagnostic rerun: **MfaSecurityControlsTest: 2 failed / 8 passed / 1 pending / 61 assertions**. The earlier full run exposed **3 failures / 8 passed / 62 assertions** because the recovery-code test also hit the same incomplete Inertia-request HTTP 409 condition. Both are failure evidence, not PASS evidence.
-- Harness corrections: the stale-session regression now takes a deterministic epoch-N snapshot from `assuredSession($user->fresh())` instead of assuming `session()->only(...)` captured the post-challenge version key. The sensitive enrollment and recovery-code tests now use normal initial Inertia responses with `assertInertia`; recovery-code flash uses the supported Inertia v3 `hasFlash()` assertion. No Inertia asset-version negotiation is bypassed or disabled.
+- Exact focused diagnostic rerun supplied by Kirch: **MfaSecurityControlsTest: 2 failed / 8 passed / 1 pending / 61 assertions**. The earlier full run exposed **3 failures / 8 passed / 62 assertions** because the recovery-code test also hit the same incomplete Inertia-request HTTP 409 condition. Both are failure evidence, not PASS evidence.
+- Isolated harness diagnostic after the initial corrections: **1 failed / 10 passed / 101 assertions**. Both sensitive Inertia tests passed; the remaining failure was the harness using `/dashboard` to prove epoch-N assurance, which reached unrelated downstream domain authorization and returned 403. The baseline check was corrected to the MFA settings route so it measures authentication assurance directly without weakening production authorization.
+- Harness corrections: the stale-session regression takes a deterministic epoch-N snapshot from `assuredSession($user->fresh())` instead of assuming `session()->only(...)` captured the post-challenge version key. The sensitive enrollment and recovery-code tests use normal initial Inertia responses with `assertInertia`; recovery-code flash uses the supported Inertia v3 `hasFlash()` assertion. No Inertia asset-version negotiation is bypassed or disabled.
 - Verification for this corrective tree: __FOCUSED_RESULT__
 - Next action: after this corrective commit is pushed, Kirch may resume the exact-HEAD MFA closure pipeline. No full Phase 1 runtime PASS is claimed by this entry.
 '''
