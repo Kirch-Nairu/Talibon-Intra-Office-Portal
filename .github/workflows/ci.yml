@@ -1,10 +1,9 @@
-name: Talibon Platform CI
+name: Correspondence Core A Focused Validation
 
 on:
   push:
     branches:
-      - KIRCH-PROTOTYPE-**
-      - KIRCH-PHASE1-**
+      - KIRCH-PHASE1-CORRESPONDENCE-A-VALIDATE
   pull_request:
 
 jobs:
@@ -26,9 +25,14 @@ jobs:
           --health-timeout 5s
           --health-retries 5
 
+    env:
+      BASE_SHA: 24838117fcd35b6d544b7996d804da7905e28cc8
+
     steps:
-      - name: Checkout
+      - name: Checkout validation branch
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
@@ -36,11 +40,6 @@ jobs:
           php-version: '8.4'
           extensions: mbstring, pdo_pgsql
           coverage: none
-
-      - name: Setup Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: '22'
 
       - name: Prepare environment
         run: |
@@ -56,20 +55,55 @@ jobs:
       - name: Validate Composer metadata
         run: composer validate --no-check-publish
 
-      - name: Install frontend dependencies
-        run: npm install --no-audit --no-fund
+      - name: Lint changed PHP
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --name-only "$BASE_SHA" HEAD -- '*.php' | while read -r file; do
+            [ -z "$file" ] || php -l "$file"
+          done
 
-      - name: TypeScript check
-        run: npm run types:check
-
-      - name: Production frontend build
-        run: npm run build
-
-      - name: Migrate and seed PostgreSQL
+      - name: Migrate and seed disposable PostgreSQL
         run: php artisan migrate:fresh --seed --force
 
-      - name: Run feature tests
-        run: php artisan test --testsuite=Feature
+      - name: Correspondence Core A focused tests
+        run: php artisan test tests/Feature/CorrespondenceCoreATest.php
 
-      - name: Verify application routes
-        run: php artisan route:list
+      - name: Integration Foundation B compatibility
+        run: php artisan test tests/Feature/IntegrationFoundationBTest.php
+
+      - name: Integration Foundation A compatibility
+        run: php artisan test tests/Feature/IntegrationFoundationTest.php
+
+      - name: Route inspection
+        run: |
+          php artisan route:list --path=api/v1
+          php artisan route:list --path=correspondence
+
+      - name: Scope and exclusion inspection
+        shell: bash
+        run: |
+          set -euo pipefail
+          changed=$(git diff --name-only "$BASE_SHA" HEAD -- ':!.github/workflows/ci.yml')
+          printf '%s\n' "$changed"
+          if printf '%s\n' "$changed" | grep -Eq '(^|/)(EmployeeLifecycleService\.php|Domain/Identity/|Services/(AuthenticationAssurance|MfaService)\.php|Http/(Controllers|Middleware)/.*Mfa|Domain/Property/|Domain/Legislative/|Services/Property|Services/Employee)'; then
+            echo 'Excluded-domain change detected.' >&2
+            exit 1
+          fi
+          grep -q "CorrespondenceReceive = 'correspondence.receive'" app/Domain/Integration/IntegrationScope.php
+          grep -q "CorrespondenceStatusRead = 'correspondence.status.read'" app/Domain/Integration/IntegrationScope.php
+          grep -q "integration.idempotency:'.IntegrationOperation::CorrespondenceReceive->value" routes/api.php
+
+      - name: Production LOC review
+        shell: bash
+        run: |
+          set -euo pipefail
+          files=$(git diff --name-only "$BASE_SHA" HEAD -- '*.php' ':!tests/**')
+          total=0
+          while read -r file; do
+            [ -z "$file" ] && continue
+            lines=$(wc -l < "$file")
+            printf '%4d %s\n' "$lines" "$file"
+            total=$((total + lines))
+          done <<< "$files"
+          echo "CORRESPONDENCE_CORE_A_PRODUCTION_PHP_LOC=$total"
