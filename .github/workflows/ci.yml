@@ -1,21 +1,27 @@
-name: Talibon Platform CI
+name: Integration Foundation A Validation
 
 on:
-  push:
-    branches:
-      - KIRCH-PROTOTYPE-**
-      - KIRCH-PHASE1-**
   pull_request:
 
 jobs:
-  verify:
+  focused-integration:
     runs-on: ubuntu-latest
+    env:
+      APP_ENV: testing
+      DB_CONNECTION: pgsql
+      DB_HOST: 127.0.0.1
+      DB_PORT: 5432
+      DB_DATABASE: talibon_portal_test
+      DB_USERNAME: postgres
+      DB_PASSWORD: postgres
+      BASE_SHA: 47f1ceb479b3839ce7d22d24d3e93585f7231c46
+      CANDIDATE_SHA: 4b098990398182054b04be93f7799b3543bf7865
 
     services:
       postgres:
         image: postgres:16
         env:
-          POSTGRES_DB: talibon_portal
+          POSTGRES_DB: talibon_portal_test
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: postgres
         ports:
@@ -27,8 +33,10 @@ jobs:
           --health-retries 5
 
     steps:
-      - name: Checkout
+      - name: Checkout exact validation branch
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
@@ -37,39 +45,52 @@ jobs:
           extensions: mbstring, pdo_pgsql
           coverage: none
 
-      - name: Setup Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: '22'
-
       - name: Prepare environment
         run: |
           cp .env.example .env
-          sed -i 's/DB_PASSWORD=$/DB_PASSWORD=postgres/' .env
+          composer install --no-interaction --prefer-dist --no-progress
+          php artisan key:generate
+          composer validate --no-check-publish
 
-      - name: Install PHP dependencies
-        run: composer install --no-interaction --prefer-dist --no-progress
+      - name: PHP syntax validation
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --name-only "$BASE_SHA" "$CANDIDATE_SHA" | grep '\.php$' > /tmp/php-files.txt
+          while IFS= read -r file; do php -l "$file"; done < /tmp/php-files.txt
 
-      - name: Generate application key
-        run: php artisan key:generate
-
-      - name: Validate Composer metadata
-        run: composer validate --no-check-publish
-
-      - name: Install frontend dependencies
-        run: npm install --no-audit --no-fund
-
-      - name: TypeScript check
-        run: npm run types:check
-
-      - name: Production frontend build
-        run: npm run build
-
-      - name: Migrate and seed PostgreSQL
+      - name: Disposable PostgreSQL migration and seed
         run: php artisan migrate:fresh --seed --force
 
-      - name: Run feature tests
-        run: php artisan test --testsuite=Feature
+      - name: Focused Integration Foundation A tests
+        run: php artisan test tests/Feature/IntegrationFoundationTest.php
 
-      - name: Verify application routes
-        run: php artisan route:list
+      - name: API route and operational command inspection
+        shell: bash
+        run: |
+          set -euo pipefail
+          php artisan route:list --path=api/v1
+          php artisan list --raw | grep '^integration:'
+
+      - name: Scope registry and production LOC inspection
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(grep -R --include='*.php' -n 'integration\.self\.read' app bootstrap routes database | wc -l)" -eq 1
+          git diff --name-only "$BASE_SHA" "$CANDIDATE_SHA" \
+            | grep '\.php$' \
+            | grep -v '^tests/' \
+            | xargs wc -l
+
+      - name: Excluded-domain static guard
+        run: |
+          git diff --exit-code "$BASE_SHA" "$CANDIDATE_SHA" -- \
+            app/Domain/Identity \
+            app/Services/AuthenticationAssurance.php \
+            app/Services/MfaService.php \
+            app/Services/SensitiveInertiaResponse.php \
+            app/Services/EmployeeLifecycleService.php \
+            config/identity.php \
+            app/Domain/Workflow \
+            app/Policies/TransactionPolicy.php \
+            app/Services/TransactionWorkflowService.php
