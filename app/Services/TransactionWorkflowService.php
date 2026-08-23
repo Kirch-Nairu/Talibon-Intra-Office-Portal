@@ -17,6 +17,7 @@ use App\Models\User;
 use App\Models\WorkflowTransaction;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
+use LogicException;
 
 class TransactionWorkflowService
 {
@@ -42,6 +43,26 @@ class TransactionWorkflowService
                 $originDepartmentId,
                 $targetDepartment,
             ),
+        );
+    }
+
+    public function createWithinExistingTransaction(User $actor, array $data): WorkflowTransaction
+    {
+        if (DB::connection()->transactionLevel() < 1) {
+            throw new LogicException('Workflow creation through this boundary requires an existing database transaction.');
+        }
+
+        $originDepartmentId = $this->originDepartmentId($actor);
+        $targetDepartment = $this->receivingDepartment(
+            (int) $data['target_department_id'],
+            $originDepartmentId,
+        );
+
+        return $this->createWithinTransaction(
+            $actor,
+            $data,
+            $originDepartmentId,
+            $targetDepartment,
         );
     }
 
