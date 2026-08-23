@@ -145,7 +145,7 @@ Route::middleware(['auth', 'active', 'mfa.assured'])->group(function (): void {
         Route::post('/lifecycle/onboarding/tasks/{task}/complete', [HrisLifecycleController::class, 'completeOnboardingTask'])->name('hris.lifecycle.onboarding.tasks.complete');
         Route::post('/lifecycle/onboarding/{case}/complete', [HrisLifecycleController::class, 'completeOnboarding'])->name('hris.lifecycle.onboarding.complete');
         Route::post('/lifecycle/employees/{employee}/movements', [HrisLifecycleController::class, 'applyMovement'])->name('hris.lifecycle.movements.store');
-        Route::post('/lifecycle/movement-tasks/{task}/complete', [HrisLifecycleController::class, 'completeMovementTask'])->name('hris.lifecycle.movements.tasks.complete');
+        Route::post('/lifecycle/movement-tasks/{task}/complete', [HrisLifecycleController::class, 'completeMovementTask'])->name('hris.lifecycle.movement.tasks.complete');
 
         Route::get('/offboarding', [HrisOffboardingController::class, 'index'])->name('hris.offboarding.index');
         Route::post('/offboarding', [HrisOffboardingController::class, 'store'])->name('hris.offboarding.store');
