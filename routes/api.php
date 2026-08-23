@@ -1,6 +1,8 @@
 <?php
 
+use App\Domain\Integration\IntegrationOperation;
 use App\Domain\Integration\IntegrationScope;
+use App\Http\Controllers\Api\V1\IntegrationProofWriteController;
 use App\Http\Controllers\Api\V1\IntegrationSelfController;
 use Illuminate\Support\Facades\Route;
 
@@ -17,4 +19,13 @@ Route::prefix('v1')
                 'integration.audit',
             ])
             ->name('api.v1.integration.self');
+
+        Route::post('/integration/proof-writes', IntegrationProofWriteController::class)
+            ->middleware([
+                'integration.scope:'.IntegrationScope::ProofWrite->value,
+                'integration.rate',
+                'integration.idempotency:'.IntegrationOperation::ProofWrite->value,
+                'integration.audit',
+            ])
+            ->name('api.v1.integration.proof-writes.store');
     });

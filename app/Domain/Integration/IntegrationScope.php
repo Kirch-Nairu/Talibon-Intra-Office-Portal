@@ -5,6 +5,7 @@ namespace App\Domain\Integration;
 enum IntegrationScope: string
 {
     case SelfRead = 'integration.self.read';
+    case ProofWrite = 'integration.proof.write';
 
     /**
      * @return array<int, string>
