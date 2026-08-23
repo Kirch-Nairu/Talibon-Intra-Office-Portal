@@ -55,6 +55,11 @@ class IntegrationFoundationTest extends TestCase
         $this->assertAuthenticationFailure($token);
     }
 
+    public function test_malformed_credential_returns_generic_401(): void
+    {
+        $this->assertAuthenticationFailure('malformed-token');
+    }
+
     public function test_revoked_credential_returns_generic_401(): void
     {
         [, $credential, $token] = $this->credential([IntegrationScope::SelfRead->value]);
@@ -85,6 +90,7 @@ class IntegrationFoundationTest extends TestCase
         [, $secret] = explode('.', $token, 2);
         $raw = DB::table('integration_client_credentials')->where('id', $credential->id)->first();
 
+        $this->assertSame(hash('sha256', $secret), $raw->secret_hash);
         $this->assertNotSame($secret, $raw->secret_hash);
         $this->assertNotSame($token, $raw->secret_hash);
         $this->assertStringNotContainsString($secret, json_encode($raw, JSON_THROW_ON_ERROR));
@@ -94,13 +100,18 @@ class IntegrationFoundationTest extends TestCase
 
     public function test_missing_scope_returns_403_without_hiding_authorization_failure(): void
     {
-        [, , $token] = $this->credential([]);
+        [$client, , $token] = $this->credential([]);
 
         $response = $this->withToken($token)->getJson('/api/v1/integration/self');
 
         $response->assertForbidden()
             ->assertJsonPath('error.code', IntegrationErrorCode::ScopeDenied->value);
         $this->assertNotNull($response->headers->get('X-Correlation-ID'));
+        $this->assertDatabaseHas('audit_logs', [
+            'integration_client_id' => $client->id,
+            'action' => 'integration.scope.denied',
+            'outcome' => 'denied',
+        ]);
     }
 
     public function test_unknown_scope_cannot_be_issued(): void
@@ -121,6 +132,7 @@ class IntegrationFoundationTest extends TestCase
         $response->assertStatus(429)
             ->assertJsonPath('error.code', IntegrationErrorCode::RateLimited->value);
         $this->assertNotNull($response->headers->get('Retry-After'));
+        $this->assertNotNull($response->headers->get('X-Correlation-ID'));
         $this->assertDatabaseHas('audit_logs', [
             'integration_client_id' => $client->id,
             'action' => 'integration.rate_limit.denied',
@@ -190,6 +202,9 @@ class IntegrationFoundationTest extends TestCase
         $response->assertStatus(422)
             ->assertJsonPath('error.code', IntegrationErrorCode::RequestInvalid->value)
             ->assertJsonStructure(['error' => ['code', 'message'], 'correlation_id']);
+        $correlationId = $response->headers->get('X-Correlation-ID');
+        $this->assertNotNull($correlationId);
+        $this->assertSame($correlationId, $response->json('correlation_id'));
     }
 
     public function test_rotation_creates_new_credential_without_implicitly_revoking_old_one(): void
@@ -228,6 +243,14 @@ class IntegrationFoundationTest extends TestCase
         $response->assertUnauthorized()
             ->assertJsonPath('error.code', IntegrationErrorCode::AuthenticationFailed->value)
             ->assertJsonStructure(['error' => ['code', 'message'], 'correlation_id']);
-        $this->assertNotNull($response->headers->get('X-Correlation-ID'));
+        $correlationId = $response->headers->get('X-Correlation-ID');
+        $this->assertNotNull($correlationId);
+        $this->assertSame($correlationId, $response->json('correlation_id'));
+
+        $log = AuditLog::query()->latest('id')->firstOrFail();
+        $this->assertSame('integration.authentication.failed', $log->action);
+        $this->assertSame('denied', $log->outcome);
+        $this->assertSame($correlationId, $log->correlation_id);
+        $this->assertStringNotContainsString($token, $log->summary);
     }
 }
