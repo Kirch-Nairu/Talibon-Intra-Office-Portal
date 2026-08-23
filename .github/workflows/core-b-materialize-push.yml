@@ -1,0 +1,90 @@
+name: Materialize Correspondence Core B Final Tree
+
+on:
+  push:
+    branches:
+      - KIRCH-CORRESPONDENCE-CORE-B-MATERIALIZE-PUSH
+
+permissions:
+  contents: write
+
+jobs:
+  materialize:
+    runs-on: ubuntu-latest
+    env:
+      BASE_SHA: 72782c86653dd871cbd6c15fcb162eaff2789cbd
+      RUNTIME_SHA: 8ac6689b2d682c1f743cb759f9ea5802bd0ba3d6
+      RUNTIME_TREE_SHA: e3630f4c37d6bdb750239c4277a3db95c8d6876c
+      BASE_LOG_BLOB: d354eaa1c615f468f3f5639eac18442330e46c73
+      FINAL_BRANCH: KIRCH-CORRESPONDENCE-CORE-B-FINAL-TREE
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Build exact runtime tree plus engineering log
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git merge-base "$BASE_SHA" "$RUNTIME_SHA")" = "$BASE_SHA"
+          test "$(git rev-parse "$RUNTIME_SHA^{tree}")" = "$RUNTIME_TREE_SHA"
+          test "$(git rev-parse "$RUNTIME_SHA:docs/ENGINEERING_LOG.md")" = "$BASE_LOG_BLOB"
+          git reset --hard "$RUNTIME_SHA"
+
+          python3 <<'PY'
+          from pathlib import Path
+
+          path = Path('docs/ENGINEERING_LOG.md')
+          text = path.read_text()
+          marker = '\n## Current release state\n'
+          if marker not in text:
+              raise SystemExit('Engineering Log release-state marker not found')
+          if '## 2026-08-24 — Correspondence Core B' in text:
+              raise SystemExit('Correspondence Core B entry already exists')
+
+          entry = r'''
+## 2026-08-24 — Correspondence Core B
+
+### `feat: bridge correspondence routing and action workflow`
+- Parent/base: `72782c86653dd871cbd6c15fcb162eaff2789cbd` (`feat: establish correspondence receive register classify core`). Requirement: Contract Phase 1 Correspondence Core B only — extend the authoritative correspondence lifecycle from `received -> registered -> classified` through human `routed -> in_action`, while preserving Core A machine/human separation, classification, integration ownership, idempotency and outbox boundaries. This milestone does not close the full correspondence lifecycle.
+- Runtime candidate/evidence identity: `8ac6689b2d682c1f743cb759f9ea5802bd0ba3d6` with tree `e3630f4c37d6bdb750239c4277a3db95c8d6876c` is the validated runtime/code/schema/test candidate and has sole parent `72782c86653dd871cbd6c15fcb162eaff2789cbd`. The final production commit is reconstructed from that exact tree with only this Engineering Log entry added; runtime evidence below applies to the candidate runtime tree and is not represented as an exact-SHA run of the documentation-bearing final commit.
+- Workflow bridge: `TransactionWorkflowService` keeps its normal human `create()` behavior and existing workflow persistence/routing rules. Core B adds `createWithinExistingTransaction()` as an application-facing boundary that requires an already-active database transaction, derives origin office from the real human actor exactly as normal workflow creation does, validates the existing active/routable target-office rule, and delegates to the same private workflow creation path. Correspondence does not copy generic workflow transaction/event persistence or routing rules.
+- ROUTE semantics: human `POST /correspondence/{correspondence}/route` remains behind `auth -> active -> mfa.assured`. `CorrespondenceRoutingService` row-locks the aggregate, requires lifecycle `classified`, requires no existing workflow link, authorizes through `CorrespondenceAccessDecider`, invokes the existing workflow engine using workflow type `document_review`, verifies the created workflow matches the deliberate routed mapping, links `workflow_transaction_id`, records `routed_by_user_id`/`routed_at`, advances lifecycle to `routed`, appends the append-only `routed` correspondence event, records audit evidence, and emits `correspondence.routed` through `TransactionalOutbox`, all in one authoritative database transaction. Repeated routing is state/link rejected and cannot create a second workflow transaction.
+- Machine/human identity boundary: integration clients cannot invoke the human ROUTE or ACT surfaces and are never written into workflow `created_by_user_id`. The linked `WorkflowTransaction` is created by the authenticated municipal human and retains the existing human-origin office derivation. Core A RECEIVE/STATUS API ownership and Foundation B proof endpoint remain unchanged.
+- ACT/lifecycle mapping: correspondence does not duplicate generic workflow assignment state. `CorrespondenceWorkflowStateMapper` defines the bridge deliberately: a newly linked workflow represents correspondence `routed` only while it is at the resolved workflow definition's initial state and remains unassigned; correspondence may move `routed -> in_action` only when the linked workflow is non-terminal and either has an existing employee assignment or is in a status produced by the existing workflow definition's `mark_review` / `send_to_mayor` actions. Terminal, missing, or otherwise mismatched workflow state fails closed. The ACT boundary does not itself mutate generic workflow assignment/routing state.
+- ACT transaction: human `POST /correspondence/{correspondence}/act` row-locks the correspondence and linked workflow rows, requires `routed`, classification/office authorization and a valid linked actionable workflow state, then records `action_started_by_user_id`/`action_started_at`, advances correspondence to `in_action`, appends the append-only `in_action` event, records audit evidence, and emits exactly one `correspondence.in_action` outbox row in the authoritative transaction. A repeated ACT attempt is state-rejected.
+- Classification-aware human operations: `CorrespondenceAccessDecider` now governs human read, ROUTE and ACT using active municipal identity, role, receiving/current workflow office, exact workflow assignment context, and `public/internal/confidential/restricted` classification. Confidential and restricted records remain more restrictive than ordinary internal correspondence; `system_admin` remains infrastructure authority and is not automatic restricted-content authority. Explicit record grants/delegations remain deferred.
+- Minimal human read surface: `GET /correspondence/{correspondence}` is added under the same human MFA-assured boundary. It returns correspondence state, classification, safe human operational metadata, linked workflow state and append-only correspondence history only after classification-aware authorization. No large frontend redesign is introduced.
+- Schema impact: additive migration `2026_08_24_010000_add_route_action_fields_to_correspondence_records.php` adds nullable human audit fields `routed_by_user_id`, `routed_at`, `action_started_by_user_id`, and `action_started_at`; historical migrations and Core A aggregate/event tables are unchanged.
+- Transaction/locking semantics: ROUTE holds a row lock on the correspondence aggregate while existing workflow creation, correspondence link/state mutation, correspondence event, workflow event/listener database effects, outbox insert and audit work execute in the same outer transaction. A late outbox failure was observed to roll back both the newly created workflow transaction/event and all correspondence ROUTE mutations. ACT locks both correspondence and linked workflow before validating the mapping and recording the action boundary.
+- Outbox/events: Core B adds `correspondence.routed` and `correspondence.in_action`; both are persisted through the existing transport-free transactional outbox in the same transaction as authoritative state. No webhook, publisher, scheduler, external delivery, Kafka/RabbitMQ or queue-publication behavior is added. Correspondence history remains append-only.
+- External status safety: the existing integration STATUS endpoint remains client-owned and continues to expose only the safe external correspondence state. After ROUTE/ACT it may expose the lifecycle value but does not expose workflow transaction/reference, human routing/action actor IDs, or confidential/restricted classification details.
+- FAILED diagnostic evidence retained separately: the first disposable Core B harness run produced **15 passed / 2 failed / 148 assertions / 3.20s**. Both failures were test-harness defects rather than production behavior changes: the machine-client test retained the prior `actingAs()` human session while adding a bearer token, and the standalone transaction-level assertion was invalid under `RefreshDatabase`, which already wraps the test in a database transaction. This remains FAILED diagnostic evidence, not a PASS claim.
+- Final focused verification actually observed for runtime candidate `8ac6689b2d682c1f743cb759f9ea5802bd0ba3d6`: Composer install from the committed **109-package** graph PASS; `composer validate --no-check-publish` PASS; PHP lint PASS for every changed/new PHP file; disposable PostgreSQL 16 `php artisan migrate:fresh --seed --force` PASS including the additive Core B migration; `CorrespondenceCoreBTest` **16 passed / 148 assertions / 3.08s**; Core A compatibility `CorrespondenceCoreATest` **17 passed / 100 assertions / 1.86s**; Foundation B compatibility `IntegrationFoundationBTest` **15 passed / 86 assertions / 1.44s**; Foundation A compatibility `IntegrationFoundationTest` **17 passed / 129 assertions / 1.28s**; route inspection PASS with seven correspondence routes total and the `/api/v1` surface unchanged at four routes; excluded-domain static guard PASS. PostgreSQL evidence is disposable CI/test-environment evidence only, not production database evidence.
+- Focused coverage includes authorized classified routing, early-route rejection, unauthorized-office denial, classification-aware read/route authorization, non-global `system_admin`, exactly-one workflow creation, repeated-route rejection, atomic workflow/correspondence linking, rollback after late workflow-linked route failure, append-only routed event, exactly-once routed outbox, machine-client route denial, workflow-gated `in_action`, fail-closed workflow mismatch, exactly-once ACT event/outbox, safe integration status after ROUTE/ACT, and classification-authorized human history read.
+- Production size review: the complete touched production PHP files total **1,339 LOC** (tests excluded; includes the modified route file), and the base-to-runtime diff adds **555 production PHP lines** excluding the focused test. `CorrespondenceRoutingService.php` is **246 LOC**, `TransactionWorkflowService.php` is **370 LOC** after the narrow transaction-boundary refactor, `CorrespondenceLifecycleController.php` is **188 LOC**, and `CorrespondenceAccessDecider.php` is **145 LOC**. No hard source-size cap is exceeded; the workflow service remains in the repository's 301–400 LOC review band.
+- Explicit exclusions/unchanged domains: no RELEASE, ARCHIVE, protected document upload/download, binary document handling, document versions/checksums, retention/destruction, public publication, correspondence webhook/outbox publisher, external delivery, Legislative work, HRIS work or Property work. MFA production implementation and `EmployeeLifecycleService.php` are untouched. Existing generic workflow rules/status definitions are not changed; only the explicit existing-transaction application boundary is added. Integration Foundations A/B and Core A integration RECEIVE/STATUS semantics remain intact.
+- Residual risks: explicit correspondence grants/delegations are still absent; the human read surface is JSON-only; ACT eligibility intentionally depends on existing workflow definition actions and must be re-reviewed if those definitions change; workflow advancement is synchronized to correspondence only when an authorized ACT call occurs, so generic workflow state changes do not automatically mutate correspondence lifecycle; Core B currently binds correspondence ROUTE to the existing `document_review` workflow type and future type selection requires explicit policy; Foundation B stale `processing` claim recovery remains deferred; the outbox remains transport-free; protected documents, RELEASE and ARCHIVE are still absent.
+- Release labels remain `PHASE1_CANDIDATE_OPEN_GATES` and `CONTRACT_PHASE_1_OPEN_GATES`.
+- Next action: **review Correspondence Core B**. Do not begin RELEASE / ARCHIVE / protected-document work until this ROUTE/ACT bridge is reviewed.
+'''
+
+          text = text.replace(marker, '\n' + entry.strip() + '\n' + marker, 1)
+          path.write_text(text)
+          PY
+
+          test "$(git diff --name-only "$RUNTIME_SHA")" = "docs/ENGINEERING_LOG.md"
+          grep -q 'PHASE1_CANDIDATE_OPEN_GATES' docs/ENGINEERING_LOG.md
+          grep -q 'CONTRACT_PHASE_1_OPEN_GATES' docs/ENGINEERING_LOG.md
+
+          git add docs/ENGINEERING_LOG.md
+          TREE_SHA=$(git write-tree)
+          export GIT_AUTHOR_NAME='Kirch Ivan Balite'
+          export GIT_AUTHOR_EMAIL='kirchbalite.careers@gmail.com'
+          export GIT_COMMITTER_NAME='Kirch Ivan Balite'
+          export GIT_COMMITTER_EMAIL='kirchbalite.careers@gmail.com'
+          FINAL_SHA=$(printf '%s\n' 'feat: bridge correspondence routing and action workflow' | git commit-tree "$TREE_SHA" -p "$BASE_SHA")
+          echo "FINAL_TREE_SHA=$TREE_SHA"
+          echo "FINAL_SHA=$FINAL_SHA"
+          git push origin "$FINAL_SHA":refs/heads/$FINAL_BRANCH
