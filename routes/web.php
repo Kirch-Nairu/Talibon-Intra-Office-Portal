@@ -66,8 +66,11 @@ Route::middleware(['auth', 'active', 'mfa.assured'])->group(function (): void {
     Route::get('/calendar', CalendarController::class)->name('calendar.index');
     Route::get('/operations', OperationsMonitoringController::class)->name('operations.index');
 
+    Route::get('/correspondence/{correspondence}', [CorrespondenceLifecycleController::class, 'show'])->name('correspondence.show');
     Route::post('/correspondence/{correspondence}/register', [CorrespondenceLifecycleController::class, 'register'])->name('correspondence.register');
     Route::post('/correspondence/{correspondence}/classify', [CorrespondenceLifecycleController::class, 'classify'])->name('correspondence.classify');
+    Route::post('/correspondence/{correspondence}/route', [CorrespondenceLifecycleController::class, 'route'])->name('correspondence.route');
+    Route::post('/correspondence/{correspondence}/act', [CorrespondenceLifecycleController::class, 'act'])->name('correspondence.act');
 
     Route::get('/property', [PropertyController::class, 'index'])->name('property.index');
     Route::post('/property', [PropertyController::class, 'store'])->name('property.store');
@@ -142,7 +145,7 @@ Route::middleware(['auth', 'active', 'mfa.assured'])->group(function (): void {
         Route::post('/lifecycle/onboarding/tasks/{task}/complete', [HrisLifecycleController::class, 'completeOnboardingTask'])->name('hris.lifecycle.onboarding.tasks.complete');
         Route::post('/lifecycle/onboarding/{case}/complete', [HrisLifecycleController::class, 'completeOnboarding'])->name('hris.lifecycle.onboarding.complete');
         Route::post('/lifecycle/employees/{employee}/movements', [HrisLifecycleController::class, 'applyMovement'])->name('hris.lifecycle.movements.store');
-        Route::post('/lifecycle/movement-tasks/{task}/complete', [HrisLifecycleController::class, 'completeMovementTask'])->name('hris.lifecycle.movement.tasks.complete');
+        Route::post('/lifecycle/movement-tasks/{task}/complete', [HrisLifecycleController::class, 'completeMovementTask'])->name('hris.lifecycle.movements.tasks.complete');
 
         Route::get('/offboarding', [HrisOffboardingController::class, 'index'])->name('hris.offboarding.index');
         Route::post('/offboarding', [HrisOffboardingController::class, 'store'])->name('hris.offboarding.store');
