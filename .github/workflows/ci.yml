@@ -1,15 +1,14 @@
-name: Temporary MFA Focused Test Harness
+name: Talibon Platform CI
 
 on:
-  pull_request:
+  push:
     branches:
-      - KIRCH-PHASE1-MFA-TESTFIX-TEMP
-
-permissions:
-  contents: write
+      - KIRCH-PROTOTYPE-**
+      - KIRCH-PHASE1-**
+  pull_request:
 
 jobs:
-  focused-mfa:
+  verify:
     runs-on: ubuntu-latest
 
     services:
@@ -28,11 +27,8 @@ jobs:
           --health-retries 5
 
     steps:
-      - name: Checkout temporary run branch
+      - name: Checkout
         uses: actions/checkout@v4
-        with:
-          ref: KIRCH-PHASE1-MFA-TESTFIX-RUN
-          fetch-depth: 0
 
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
@@ -41,49 +37,39 @@ jobs:
           extensions: mbstring, pdo_pgsql
           coverage: none
 
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
       - name: Prepare environment
         run: |
           cp .env.example .env
           sed -i 's/DB_PASSWORD=$/DB_PASSWORD=postgres/' .env
 
-      - name: Install locked PHP dependencies
+      - name: Install PHP dependencies
         run: composer install --no-interaction --prefer-dist --no-progress
 
       - name: Generate application key
         run: php artisan key:generate
 
-      - name: Apply test-only correction
-        run: python scripts/mfa_testfix_temp.py
+      - name: Validate Composer metadata
+        run: composer validate --no-check-publish
 
-      - name: PHP syntax check
-        run: php -l tests/Feature/MfaSecurityControlsTest.php
+      - name: Install frontend dependencies
+        run: npm install --no-audit --no-fund
 
-      - name: Prepare PostgreSQL schema
+      - name: TypeScript check
+        run: npm run types:check
+
+      - name: Production frontend build
+        run: npm run build
+
+      - name: Migrate and seed PostgreSQL
         run: php artisan migrate:fresh --seed --force
 
-      - name: Run MFA security controls
-        run: php artisan test tests/Feature/MfaSecurityControlsTest.php
+      - name: Run feature tests
+        run: php artisan test --testsuite=Feature
 
-      - name: Re-run privileged MFA authentication
-        run: php artisan test --filter=PrivilegedMfaAuthenticationTest
-
-      - name: Materialize verified test and log only
-        run: |
-          python - <<'PY'
-          from pathlib import Path
-          path = Path('docs/ENGINEERING_LOG.md')
-          text = path.read_text()
-          text = text.replace(
-              '__FOCUSED_RESULT__',
-              '`php -l tests/Feature/MfaSecurityControlsTest.php` PASS; `php artisan test tests/Feature/MfaSecurityControlsTest.php` PASS; `php artisan test --filter=PrivilegedMfaAuthenticationTest` PASS on the isolated focused runtime harness. The full Phase 1 suite was not run.',
-              1,
-          )
-          path.write_text(text)
-          PY
-          git checkout b2d3687020ae1c14dd8950657c716692ce25db2d -- .github/workflows/ci.yml
-          rm scripts/mfa_testfix_temp.py mfa-testfix-run-trigger.txt
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -A
-          git commit -m "chore: materialize verified MFA test correction"
-          git push origin HEAD:KIRCH-PHASE1-MFA-TESTFIX-RUN
+      - name: Verify application routes
+        run: php artisan route:list

@@ -195,19 +195,13 @@ class MfaSecurityControlsTest extends TestCase
     public function test_old_assured_session_is_invalid_after_other_session_reset_and_reenrollment(): void
     {
         $user = $this->configuredPrivilegedUser();
-        $secret = $user->mfa_secret;
-        Auth::guard('web')->login($user);
-
-        $this->post('/security/mfa/challenge', [
-            'code' => $this->totp()->getCurrentOtp($secret),
-        ])->assertRedirect(route('dashboard'));
-
-        $sessionA = session()->only([
-            AuthenticationAssurance::SESSION_USER_KEY,
-            AuthenticationAssurance::SESSION_VERSION_KEY,
-            AuthenticationAssurance::SESSION_VERIFIED_AT_KEY,
-        ]);
+        $sessionA = $this->assuredSession($user->fresh());
         $oldVersion = (int) $sessionA[AuthenticationAssurance::SESSION_VERSION_KEY];
+
+        $this->actingAs($user)
+            ->withSession($sessionA)
+            ->get('/security/mfa')
+            ->assertOk();
 
         $newSecret = app(MfaService::class)->resetEnrollment($user);
         $afterReset = $user->fresh();
@@ -238,11 +232,16 @@ class MfaSecurityControlsTest extends TestCase
         $user = $this->user('system_admin');
         $this->post('/login', ['email' => $user->email, 'password' => self::PASSWORD]);
 
-        $response = $this->get('/security/mfa/enroll', ['X-Inertia' => 'true']);
+        $response = $this->get('/security/mfa/enroll');
 
         $response->assertOk()
-            ->assertJsonPath('encryptHistory', true)
-            ->assertJsonStructure(['props' => ['secret', 'provisioningUri']]);
+            ->assertInertia(function (Assert $page): void {
+                $page->component('Auth/MfaEnrollment')
+                    ->has('secret')
+                    ->has('provisioningUri')
+                    ->missing('mfa_recovery_codes');
+                $this->assertTrue($page->toArray()['encryptHistory'] ?? false);
+            });
         $this->assertSensitiveCacheHeaders($response);
     }
 
@@ -256,13 +255,17 @@ class MfaSecurityControlsTest extends TestCase
         $response = $this->withSession([
             ...$this->assuredSession($user),
             'mfa_recovery_codes_sealed' => $sealed,
-        ])->get('/security/mfa/recovery-codes', ['X-Inertia' => 'true']);
+        ])->get('/security/mfa/recovery-codes');
 
         $response->assertOk()
-            ->assertJsonPath('encryptHistory', true)
-            ->assertJsonPath('flash.mfaRecoveryCodes.0', $codes[0])
-            ->assertJsonPath('flash.mfaRecoveryCodes.1', $codes[1])
-            ->assertJsonMissingPath('props.codes');
+            ->assertInertia(function (Assert $page) use ($codes): void {
+                $page->component('Auth/MfaRecoveryCodes')
+                    ->hasFlash('mfaRecoveryCodes', $codes)
+                    ->missing('codes')
+                    ->missing('mfaRecoveryCodes')
+                    ->has('continueUrl');
+                $this->assertTrue($page->toArray()['encryptHistory'] ?? false);
+            });
         $this->assertSensitiveCacheHeaders($response);
 
         $this->get('/security/mfa/recovery-codes')
