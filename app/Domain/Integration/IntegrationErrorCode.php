@@ -11,6 +11,7 @@ enum IntegrationErrorCode: string
     case IdempotencyKeyRequired = 'integration_idempotency_key_required';
     case IdempotencyConflict = 'integration_idempotency_conflict';
     case IdempotencyInProgress = 'integration_idempotency_in_progress';
+    case CorrespondenceNotFound = 'correspondence_not_found';
 
     public function message(): string
     {
@@ -22,6 +23,7 @@ enum IntegrationErrorCode: string
             self::IdempotencyKeyRequired => 'This operation requires a valid Idempotency-Key header.',
             self::IdempotencyConflict => 'The idempotency key was already used with a different request.',
             self::IdempotencyInProgress => 'A request with this idempotency key is already in progress.',
+            self::CorrespondenceNotFound => 'The requested correspondence status is not available to this client.',
         };
     }
 }
