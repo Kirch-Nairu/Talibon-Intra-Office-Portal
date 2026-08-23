@@ -1,5 +1,6 @@
 <?php
 
+use App\Domain\Integration\IntegrationScope;
 use App\Http\Controllers\Api\V1\IntegrationSelfController;
 use Illuminate\Support\Facades\Route;
 
@@ -11,7 +12,7 @@ Route::prefix('v1')
     ->group(function (): void {
         Route::get('/integration/self', IntegrationSelfController::class)
             ->middleware([
-                'integration.scope:integration.self.read',
+                'integration.scope:'.IntegrationScope::SelfRead->value,
                 'integration.rate',
                 'integration.audit',
             ])
