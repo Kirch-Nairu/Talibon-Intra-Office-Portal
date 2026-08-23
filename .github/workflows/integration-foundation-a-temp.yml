@@ -4,6 +4,9 @@ on:
   push:
     branches:
       - KIRCH-INTEGRATION-FOUNDATION-A-TEMP
+  pull_request:
+    branches:
+      - KIRCH-INTEGRATION-FOUNDATION-A-TEMP
 
 permissions:
   contents: write
@@ -36,9 +39,10 @@ jobs:
           --health-retries 5
 
     steps:
-      - name: Checkout temporary branch
+      - name: Checkout temporary run branch
         uses: actions/checkout@v4
         with:
+          ref: KIRCH-INTEGRATION-FOUNDATION-A-RUN
           fetch-depth: 0
 
       - name: Setup PHP
@@ -80,6 +84,7 @@ jobs:
         run: |
           rm -f integration-foundation-a.bundle.b64
           rm -f .github/workflows/integration-foundation-a-temp.yml
+          rm -f integration-foundation-a-trigger.txt
           rm -f .phpunit.result.cache
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
