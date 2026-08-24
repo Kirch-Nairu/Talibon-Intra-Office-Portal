@@ -111,6 +111,31 @@ Every implementation commit must update this file in the same commit. Never conv
 - Residual risks: exact dependency-backed runtime/TypeScript/build verification remains open until an executable checkout or CI result is available; capability props are intentionally server-only preparation for Slice 4 and are not rendered as controls.
 - Stop condition: **Slice 3 only**. Do not begin lifecycle-action UI automatically.
 
+### `feat: expose correspondence lifecycle actions in portal`
+
+- Current TOR requirement / Slice: **Slice 4 — Human Correspondence Lifecycle Actions** only.
+- Parent: `88294c6d8670e59376638bb597ec07d7d5ac3eb6` (`feat: add correspondence detail workspace`).
+- Intent: make the existing authoritative correspondence lifecycle operable from the human Inertia workspace through `RECEIVED -> REGISTERED -> CLASSIFIED -> ROUTED -> IN_ACTION` without implementing any post-IN_ACTION semantics.
+- New browser mutation routes:
+  - `POST /correspondence/{correspondence}/workspace/register` → `correspondence.workspace.register`;
+  - `POST /correspondence/{correspondence}/workspace/classify` → `correspondence.workspace.classify`;
+  - `POST /correspondence/{correspondence}/workspace/route` → `correspondence.workspace.route`;
+  - `POST /correspondence/{correspondence}/workspace/act` → `correspondence.workspace.act`.
+- Preserved contracts: existing JSON `POST /correspondence/{correspondence}/register|classify|route|act`, human JSON `GET /correspondence/{correspondence}`, and machine `GET /api/v1/correspondence/{publicId}` remain registered and are not converted to Inertia redirects.
+- Controller boundary: new `CorrespondenceWorkspaceActionController` is a thin browser adapter only: existing request validation where applicable → existing lifecycle/routing service → redirect to `correspondence.workspace.show` with the application's existing success flash convention. No mutation logic was moved into `CorrespondenceWorkspaceController`.
+- Service reuse: REGISTER/CLASSIFY continue through `CorrespondenceLifecycleService`; ROUTE/ACT continue through `CorrespondenceRoutingService`, which still delegates workflow creation to the existing `TransactionWorkflowService::createWithinExistingTransaction()`; authorization/state locking remains in the existing access decider/services/workflow-state mapper.
+- Presentation authorization: Slice 3 `canRegister`, `canClassify`, `canRoute`, and strict `canAct` remain presentation hints only. React contains no role-name authorization. Backend authorization and locked lifecycle validation remain authoritative, so stale/double submissions fail safely.
+- Routing options: `CorrespondenceDetailPresenter` now emits `routeOptions` only when `canRoute` is true. Options contain only `id/code/name/shortName` for active+routable departments and exclude the actor's own office; the existing workflow service still rejects self/invalid destinations.
+- Frontend: new `CorrespondenceActionPanel.tsx` keeps the main detail page compact and renders only the current valid next action: Register, Classify, Route, or Start Action. REGISTER requires confirmation and no editable municipal reference. CLASSIFY uses exactly public/internal/confidential/restricted with optional remarks and a concise sensitivity note. ROUTE uses exactly target_department_id, priority, due_at and remarks. ACT accepts optional remarks and is shown only when the existing access decider **and** workflow-state mapper allow it. Routed-but-not-actionable records continue to rely on the linked generic workflow for assignment/review rather than duplicating workflow controls.
+- Error/double-submit behavior: Inertia `useForm` renders field/domain validation errors from existing backend contracts; processing disables the active submit button. No client lifecycle lock or swallowed backend exception path was added.
+- Tests authored: new `CorrespondenceWorkspaceActionsTest` covers workspace REGISTER reference generation/redirect/event/outbox/exactly-once; CLASSIFY persistence/remarks/unauthorized staff/restricted visibility/invalid classification; ROUTE workflow creation/destination/priority/due/remarks/self+disabled+past-date rejection/exactly-once; conditional routing options; non-actionable ACT rejection; actionable ACT + event/outbox exactly-once; wrong-office and non-global `system_admin` mutation denial; all four existing JSON mutation contracts; existing human JSON detail; and machine status route preservation.
+- Schema/migration impact: **none**.
+- Verification actually observed before commit: authorized starting remote HEAD verified exactly at `88294c6d8670e59376638bb597ec07d7d5ac3eb6`. The isolated execution container still cannot resolve `github.com` (`git ls-remote` failed with `Could not resolve host: github.com`), so a dependency-backed checkout could not be established. Changed-PHP syntax checks, `CorrespondenceWorkspaceActionsTest`, `CorrespondenceDetailWorkspaceTest`, `CorrespondenceWorkspaceTest`, `CorrespondenceCoreATest`, `CorrespondenceCoreBTest`, repository TypeScript, and Vite production build are therefore **NOT OBSERVED** in this environment. No PASS is inferred from source inspection.
+- Complexity: production changes remain focused: action controller about **100 LOC**, detail presenter about **236 LOC**, action panel about **276 LOC**, main correspondence detail page about **217 LOC**. No generic workflow service is expanded and no new lifecycle/authorization framework is introduced.
+- Explicit exclusions: no RELEASE, ARCHIVE, completion semantics, attachments, retention, records search, task-queue work, dashboard work, user administration, parked-module work, generic workflow-state changes, or schema migration.
+- Residual risk: dependency-backed runtime/TypeScript/build verification remains open until CI or an executable checkout is available; browser confirmation behavior is client-side usability only and does not replace server state guards.
+- Stop condition / next action: **Slice 4 complete candidate only; do not begin Slice 5 automatically.**
+
 ## Current release / prototype state
 
 - Formal project state: `PRE-MOBILIZATION / WORKING PROTOTYPE PREPARATION`.

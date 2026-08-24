@@ -1,5 +1,6 @@
 import { Link } from '@inertiajs/react';
 import { ArrowLeft, Building2, CalendarClock, FileText, GitBranch, UserRound } from 'lucide-react';
+import CorrespondenceActionPanel, { type CorrespondenceCapabilities, type CorrespondenceRouteOption } from '../../components/correspondence/CorrespondenceActionPanel';
 import AppLayout from '../../layouts/AppLayout';
 
 type Office = { code: string; name: string; shortName?: string | null };
@@ -49,12 +50,8 @@ type Props = {
         };
     };
     timeline: TimelineEvent[];
-    capabilities: {
-        canRegister: boolean;
-        canClassify: boolean;
-        canRoute: boolean;
-        canAct: boolean;
-    };
+    capabilities: CorrespondenceCapabilities;
+    routeOptions: CorrespondenceRouteOption[];
 };
 
 const humanize = (value?: string | null) => value
@@ -89,7 +86,7 @@ function DetailRow({ label, value }: { label: string; value?: string | null }) {
     );
 }
 
-export default function CorrespondenceShow({ correspondence, timeline }: Props) {
+export default function CorrespondenceShow({ correspondence, timeline, capabilities, routeOptions }: Props) {
     const workflow = correspondence.accountability.workflow;
     const currentOffice = correspondence.accountability.currentOffice;
     const receivingOffice = correspondence.accountability.receivingOffice;
@@ -120,6 +117,14 @@ export default function CorrespondenceShow({ correspondence, timeline }: Props) 
                         </div>
                     </div>
                 </section>
+
+                <CorrespondenceActionPanel
+                    publicId={correspondence.publicId}
+                    lifecycleState={correspondence.lifecycleState}
+                    capabilities={capabilities}
+                    routeOptions={routeOptions}
+                    linkedWorkflowUrl={workflow?.detailUrl}
+                />
 
                 <div className="grid gap-4 lg:grid-cols-[minmax(0,1.35fr)_minmax(300px,0.65fr)] lg:gap-6">
                     <div className="space-y-4 sm:space-y-6">

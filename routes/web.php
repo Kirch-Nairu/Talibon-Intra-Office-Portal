@@ -7,6 +7,7 @@ use App\Http\Controllers\Auth\MfaEnrollmentController;
 use App\Http\Controllers\Auth\MfaSecurityController;
 use App\Http\Controllers\CalendarController;
 use App\Http\Controllers\CorrespondenceLifecycleController;
+use App\Http\Controllers\CorrespondenceWorkspaceActionController;
 use App\Http\Controllers\CorrespondenceWorkspaceController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DepartmentController;
@@ -69,6 +70,10 @@ Route::middleware(['auth', 'active', 'mfa.assured'])->group(function (): void {
 
     Route::get('/correspondence', CorrespondenceWorkspaceController::class)->name('correspondence.index');
     Route::get('/correspondence/{correspondence}/workspace', [CorrespondenceWorkspaceController::class, 'show'])->name('correspondence.workspace.show');
+    Route::post('/correspondence/{correspondence}/workspace/register', [CorrespondenceWorkspaceActionController::class, 'register'])->name('correspondence.workspace.register');
+    Route::post('/correspondence/{correspondence}/workspace/classify', [CorrespondenceWorkspaceActionController::class, 'classify'])->name('correspondence.workspace.classify');
+    Route::post('/correspondence/{correspondence}/workspace/route', [CorrespondenceWorkspaceActionController::class, 'route'])->name('correspondence.workspace.route');
+    Route::post('/correspondence/{correspondence}/workspace/act', [CorrespondenceWorkspaceActionController::class, 'act'])->name('correspondence.workspace.act');
     Route::get('/correspondence/{correspondence}', [CorrespondenceLifecycleController::class, 'show'])->name('correspondence.show');
     Route::post('/correspondence/{correspondence}/register', [CorrespondenceLifecycleController::class, 'register'])->name('correspondence.register');
     Route::post('/correspondence/{correspondence}/classify', [CorrespondenceLifecycleController::class, 'classify'])->name('correspondence.classify');

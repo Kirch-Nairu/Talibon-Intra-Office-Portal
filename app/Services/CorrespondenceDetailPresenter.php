@@ -48,6 +48,7 @@ final class CorrespondenceDetailPresenter
         $this->loadCore($record);
         $workflow = $record->workflowTransaction;
         $currentOffice = $workflow?->currentDepartment ?? $record->receivingDepartment;
+        $capabilities = $this->capabilities($actor, $record);
 
         return [
             'correspondence' => [
@@ -81,7 +82,10 @@ final class CorrespondenceDetailPresenter
                 ],
             ],
             'timeline' => $this->workspaceTimeline($record),
-            'capabilities' => $this->capabilities($actor, $record),
+            'capabilities' => $capabilities,
+            'routeOptions' => $capabilities['canRoute']
+                ? $this->routeOptions($actor)
+                : [],
         ];
     }
 
@@ -189,6 +193,28 @@ final class CorrespondenceDetailPresenter
             'name' => $employee->full_name,
             'position' => $employee->position_title,
         ];
+    }
+
+    /** @return array<int, array{id:int,code:string,name:string,shortName:?string}> */
+    private function routeOptions(User $actor): array
+    {
+        $actor->loadMissing('employee');
+        $actorDepartmentId = $actor->employee?->department_id;
+
+        return Department::query()
+            ->activeRoutable()
+            ->when($actorDepartmentId, fn ($query) => $query->where('id', '!=', $actorDepartmentId))
+            ->orderBy('branch')
+            ->orderBy('sort_order')
+            ->orderBy('name')
+            ->get(['id', 'code', 'name', 'short_name'])
+            ->map(fn (Department $department): array => [
+                'id' => (int) $department->id,
+                'code' => $department->code,
+                'name' => $department->name,
+                'shortName' => $department->short_name,
+            ])
+            ->all();
     }
 
     /** @return array{canRegister:bool,canClassify:bool,canRoute:bool,canAct:bool} */
