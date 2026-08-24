@@ -1,7 +1,8 @@
-import { Link, router } from '@inertiajs/react';
+import { Link } from '@inertiajs/react';
 import { AlertTriangle, ArrowRight, Building2, Radio, RotateCcw } from 'lucide-react';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import AppLayout from '../layouts/AppLayout';
+import { useVisiblePolling } from '../hooks/useVisiblePolling';
 
 type Office = { name: string; short_name?: string | null };
 type Tx = {
@@ -31,16 +32,37 @@ type Props = {
     };
 };
 
-export default function MayorOffice({ queue, overdue, returned, bottlenecks, stats }: Props) {
+export default function MayorOffice(initial: Props) {
+    const [live, setLive] = useState(initial);
+
     useEffect(() => {
-        const refresh = () => {
-            if (document.visibilityState !== 'visible') return;
-            router.reload({ only: ['queue', 'overdue', 'returned', 'bottlenecks', 'stats'] });
-        };
-        const timer = window.setInterval(refresh, 4000);
-        window.addEventListener('focus', refresh);
-        return () => { window.clearInterval(timer); window.removeEventListener('focus', refresh); };
-    }, []);
+        setLive(initial);
+    }, [
+        initial.queue,
+        initial.overdue,
+        initial.returned,
+        initial.bottlenecks,
+        initial.stats,
+    ]);
+
+    useVisiblePolling(async (signal) => {
+        const response = await fetch('/mayor-office/live', {
+            credentials: 'same-origin',
+            headers: { Accept: 'application/json' },
+            signal,
+        });
+
+        if (
+            !response.ok
+            || !response.headers.get('content-type')?.includes('application/json')
+        ) {
+            return;
+        }
+
+        setLive(await response.json() as Props);
+    }, 8000);
+
+    const { queue, overdue, returned, bottlenecks, stats } = live;
 
     const cards = [
         ['Mayor Queue', stats.total],

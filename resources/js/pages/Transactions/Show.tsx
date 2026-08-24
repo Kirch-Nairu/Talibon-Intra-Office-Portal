@@ -1,7 +1,8 @@
-import { Link, router, useForm } from '@inertiajs/react';
+import { Link, useForm } from '@inertiajs/react';
 import { ArrowRight, CheckCircle2, Clock3, Radio, RotateCcw, Send, UserRoundCheck } from 'lucide-react';
-import { useEffect } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import AppLayout from '../../layouts/AppLayout';
+import { useVisiblePolling } from '../../hooks/useVisiblePolling';
 
 type Dept = { id: number; code: string; name: string; short_name?: string };
 type Employee = { id: number; employee_number: string; full_name?: string; position_title: string };
@@ -42,6 +43,20 @@ type Accountability = {
     completedAt?: string | null;
 };
 type Permissions = { canTransition: boolean; canMayorDecision: boolean; canAssign: boolean };
+type LivePayload = {
+    transaction: {
+        status: string;
+        current_department: Dept;
+        assigned_employee?: Employee | null;
+        received_at?: string | null;
+        due_at?: string | null;
+        completed_at?: string | null;
+    };
+    accountability: Accountability;
+    permissions: Permissions;
+    assignableEmployees: Employee[];
+    events: Event[];
+};
 
 const dueTone: Record<Accountability['dueState'], string> = {
     on_track: 'bg-emerald-50 text-emerald-800',
@@ -50,29 +65,95 @@ const dueTone: Record<Accountability['dueState'], string> = {
     completed: 'bg-slate-100 text-slate-700',
 };
 
-export default function Show({ transaction: tx, departments, assignableEmployees, accountability, permissions }: { transaction: Tx; departments: Dept[]; assignableEmployees: Employee[]; accountability: Accountability; permissions: Permissions }) {
+export default function Show({
+    transaction: initialTx,
+    departments,
+    assignableEmployees: initialAssignableEmployees,
+    accountability: initialAccountability,
+    permissions: initialPermissions,
+}: {
+    transaction: Tx;
+    departments: Dept[];
+    assignableEmployees: Employee[];
+    accountability: Accountability;
+    permissions: Permissions;
+}) {
+    const [tx, setTx] = useState(initialTx);
+    const [assignableEmployees, setAssignableEmployees] = useState(initialAssignableEmployees);
+    const [accountability, setAccountability] = useState(initialAccountability);
+    const [permissions, setPermissions] = useState(initialPermissions);
+    const latestEventId = useRef(
+        initialTx.events.reduce((latest, event) => Math.max(latest, event.id), 0),
+    );
     const form = useForm<{ action: string; target_department_id: number | ''; assigned_employee_id: number | ''; remarks: string }>({
         action: 'mark_review',
         target_department_id: '',
-        assigned_employee_id: tx.assigned_employee?.id ?? '',
+        assigned_employee_id: initialTx.assigned_employee?.id ?? '',
         remarks: '',
     });
 
     useEffect(() => {
-        const refresh = () => {
-            if (document.visibilityState !== 'visible' || form.processing) return;
-            router.reload({
-                only: ['transaction', 'permissions', 'accountability', 'assignableEmployees'],
-            });
-        };
+        setTx(initialTx);
+        setAssignableEmployees(initialAssignableEmployees);
+        setAccountability(initialAccountability);
+        setPermissions(initialPermissions);
+        latestEventId.current = initialTx.events.reduce(
+            (latest, event) => Math.max(latest, event.id),
+            0,
+        );
+    }, [
+        initialTx,
+        initialAssignableEmployees,
+        initialAccountability,
+        initialPermissions,
+    ]);
 
-        const timer = window.setInterval(refresh, 2000);
-        window.addEventListener('focus', refresh);
-        return () => {
-            window.clearInterval(timer);
-            window.removeEventListener('focus', refresh);
-        };
-    }, [form.processing]);
+    useVisiblePolling(async (signal) => {
+        const response = await fetch(
+            `/transactions/${tx.id}/live?after_event_id=${latestEventId.current}`,
+            {
+                credentials: 'same-origin',
+                headers: { Accept: 'application/json' },
+                signal,
+            },
+        );
+
+        if (
+            !response.ok
+            || !response.headers.get('content-type')?.includes('application/json')
+        ) {
+            return;
+        }
+
+        const payload = await response.json() as LivePayload;
+        if (payload.events.length > 0) {
+            latestEventId.current = Math.max(
+                latestEventId.current,
+                ...payload.events.map((event) => event.id),
+            );
+        }
+
+        setTx((current) => {
+            const knownEventIds = new Set(current.events.map((event) => event.id));
+            const newEvents = payload.events.filter(
+                (event) => !knownEventIds.has(event.id),
+            );
+
+            return {
+                ...current,
+                status: payload.transaction.status,
+                current_department: payload.transaction.current_department,
+                assigned_employee: payload.transaction.assigned_employee,
+                received_at: payload.transaction.received_at ?? undefined,
+                due_at: payload.transaction.due_at ?? undefined,
+                completed_at: payload.transaction.completed_at ?? undefined,
+                events: [...current.events, ...newEvents],
+            };
+        });
+        setAssignableEmployees(payload.assignableEmployees);
+        setAccountability(payload.accountability);
+        setPermissions(payload.permissions);
+    }, 4000, !form.processing);
 
     useEffect(() => {
         form.setData('assigned_employee_id', tx.assigned_employee?.id ?? '');

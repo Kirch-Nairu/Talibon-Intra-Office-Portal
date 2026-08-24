@@ -1,7 +1,8 @@
 import { Head, Link, router, usePage } from '@inertiajs/react';
 import { Bell, Building2, FileSearch, FileText, Inbox, LayoutDashboard, LogOut, Menu, ShieldCheck, X } from 'lucide-react';
 import { PropsWithChildren, useEffect, useRef, useState } from 'react';
-import type { LiveNotification, SharedProps } from '../types';
+import { useVisiblePolling } from '../hooks/useVisiblePolling';
+import type { LiveNotification, NotificationFeed, SharedProps } from '../types';
 
 type Props = PropsWithChildren<{ title: string }>;
 
@@ -25,7 +26,15 @@ function relativeTime(value?: string | null): string {
 }
 
 export default function AppLayout({ title, children }: Props) {
-    const { auth, pendingMemo, unreadMemoCount, notifications, flash } = usePage<SharedProps>().props;
+    const pageProps = usePage<SharedProps>().props;
+    const { auth, flash } = pageProps;
+    const [feed, setFeed] = useState<NotificationFeed>(() => ({
+        pendingMemo: pageProps.pendingMemo,
+        unreadMemoCount: pageProps.unreadMemoCount,
+        unreadPlatformNotificationCount: pageProps.unreadPlatformNotificationCount,
+        notifications: pageProps.notifications,
+        notificationCount: pageProps.notificationCount,
+    }));
     const [mobileOpen, setMobileOpen] = useState(false);
     const [notificationsOpen, setNotificationsOpen] = useState(false);
     const [dismissedMemoId, setDismissedMemoId] = useState<number | null>(null);
@@ -34,26 +43,42 @@ export default function AppLayout({ title, children }: Props) {
     const knownNotificationKeys = useRef<Set<string>>(new Set());
     const notificationsInitialized = useRef(false);
     const user = auth.user;
+    const { pendingMemo, unreadMemoCount, notifications } = feed;
     const isMayor = ['system_admin', 'mayor_approver', 'mayor_staff'].includes(user?.role ?? '');
     const canAudit = ['system_admin', 'mayor_approver'].includes(user?.role ?? '');
 
     useEffect(() => {
-        const refresh = () => {
-            if (document.visibilityState !== 'visible') return;
+        setFeed({
+            pendingMemo: pageProps.pendingMemo,
+            unreadMemoCount: pageProps.unreadMemoCount,
+            unreadPlatformNotificationCount: pageProps.unreadPlatformNotificationCount,
+            notifications: pageProps.notifications,
+            notificationCount: pageProps.notificationCount,
+        });
+    }, [
+        pageProps.pendingMemo,
+        pageProps.unreadMemoCount,
+        pageProps.unreadPlatformNotificationCount,
+        pageProps.notifications,
+        pageProps.notificationCount,
+    ]);
 
-            router.reload({
-                only: ['pendingMemo', 'unreadMemoCount', 'notifications', 'notificationCount'],
-            });
-        };
+    useVisiblePolling(async (signal) => {
+        const response = await fetch('/notifications/feed', {
+            credentials: 'same-origin',
+            headers: { Accept: 'application/json' },
+            signal,
+        });
 
-        const timer = window.setInterval(refresh, 2000);
-        window.addEventListener('focus', refresh);
+        if (
+            !response.ok
+            || !response.headers.get('content-type')?.includes('application/json')
+        ) {
+            return;
+        }
 
-        return () => {
-            window.clearInterval(timer);
-            window.removeEventListener('focus', refresh);
-        };
-    }, []);
+        setFeed(await response.json() as NotificationFeed);
+    }, 8000);
 
     useEffect(() => {
         const workflowNotifications = notifications.filter((notification) => notification.type === 'transaction');
