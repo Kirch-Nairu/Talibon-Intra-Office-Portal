@@ -1,175 +1,370 @@
 import { Link } from '@inertiajs/react';
-import { AlertTriangle, ArrowRight, Building2, FileText, ShieldCheck } from 'lucide-react';
+import {
+    AlertTriangle,
+    ArrowRight,
+    Building2,
+    Clock3,
+    FileSearch,
+    Inbox,
+    ListTodo,
+    Route,
+    UserRound,
+} from 'lucide-react';
+import { type ReactNode } from 'react';
 import AppLayout from '../layouts/AppLayout';
 
-type Stat = { label: string; value: number; tone: string };
-type Recent = { id: number; ref: string; title: string; status: string; from: string };
-type MunicipalOverview = {
-    activeTransactions: number;
-    executiveQueue: number;
-    overdue: number;
-    highPriority: number;
-    completedThisMonth: number;
-    offices: number;
+type Metric = {
+    label: string;
+    value: number;
+    link: string;
 };
+
+type Office = {
+    code: string;
+    name: string;
+    shortName?: string | null;
+};
+
+type CorrespondenceStatus = {
+    lifecycle: string;
+    label: string;
+    count: number;
+    link: string;
+};
+
+type RecentCorrespondence = {
+    reference?: string | null;
+    subject: string;
+    sender?: string;
+    lifecycle: string;
+    currentOffice?: Office | null;
+    receivedAt?: string | null;
+    routedAt?: string | null;
+    detailUrl: string;
+};
+
+type RecentWork = {
+    reference: string;
+    title: string;
+    transactionType: string;
+    status: string;
+    priority: string;
+    originOffice?: Office | null;
+    currentOffice?: Office | null;
+    assignedEmployee?: {
+        name: string;
+        position?: string | null;
+    } | null;
+    dueState: 'on_track' | 'due_soon' | 'overdue' | 'completed';
+    detailUrl: string;
+};
+
+type MunicipalOverview = {
+    activeMunicipalWork: number;
+    municipalOverdue: number;
+    municipalUnassigned: number;
+    dueSoon: number;
+    executiveQueue: number;
+    completedThisMonth: number;
+};
+
 type OfficeWorkload = {
     id: number;
     code: string;
     name: string;
-    shortName?: string;
+    shortName?: string | null;
     active: number;
-    overdue: number;
+    unassigned: number;
     dueSoon: number;
+    overdue: number;
 };
+
 type Props = {
     workspace: {
-        kind: 'mayor' | 'department';
         departmentName: string;
-        departmentCode: string | null;
+        departmentCode?: string | null;
         canSeeMunicipalOverview: boolean;
     };
-    stats: Stat[];
-    recent: Recent[];
+    departmentMetrics: {
+        requiresMyAction: Metric;
+        pendingInMyOffice: Metric;
+        unassignedInMyOffice: Metric;
+        overdue: Metric;
+        waitingOnOtherOffices: Metric;
+        dueSoon: Metric;
+        completedThisMonth: Metric;
+    };
+    correspondenceAttention: Metric;
+    correspondenceStatus: CorrespondenceStatus[];
+    recentlyReceivedCorrespondence: RecentCorrespondence[];
+    recentlyRoutedCorrespondence: RecentCorrespondence[];
+    recentWork: RecentWork[];
     municipalOverview?: MunicipalOverview | null;
-    departmentWorkload: OfficeWorkload[];
+    departmentWorkload?: OfficeWorkload[];
 };
 
-const toneClass: Record<string, string> = {
-    blue: 'bg-blue-50 text-blue-800 ring-blue-100',
-    amber: 'bg-amber-50 text-amber-800 ring-amber-100',
-    rose: 'bg-rose-50 text-rose-800 ring-rose-100',
-    emerald: 'bg-emerald-50 text-emerald-800 ring-emerald-100',
+const humanize = (value: string) => value.replaceAll('_', ' ').replace(/\b\w/g, (letter) => letter.toUpperCase());
+
+const formatDate = (value?: string | null) => {
+    if (!value) return 'Not recorded';
+
+    const date = new Date(value);
+    return Number.isNaN(date.getTime())
+        ? 'Not recorded'
+        : date.toLocaleString(undefined, {
+            month: 'short',
+            day: 'numeric',
+            hour: 'numeric',
+            minute: '2-digit',
+        });
 };
 
-export default function Dashboard({ workspace, stats, recent, municipalOverview, departmentWorkload }: Props) {
-    const isMayor = workspace.kind === 'mayor';
-    const overviewCards = municipalOverview ? [
-        ['Active Work', municipalOverview.activeTransactions],
+const dueTone: Record<RecentWork['dueState'], string> = {
+    on_track: 'bg-slate-100 text-slate-600',
+    due_soon: 'bg-amber-50 text-amber-800',
+    overdue: 'bg-rose-50 text-rose-800',
+    completed: 'bg-emerald-50 text-emerald-800',
+};
+
+function MetricCard({ metric, icon }: { metric: Metric; icon: ReactNode }) {
+    return (
+        <Link
+            href={metric.link}
+            className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition hover:border-blue-200 hover:bg-blue-50/30 sm:p-5"
+        >
+            <div className="flex items-center justify-between gap-3">
+                <div className="text-slate-400">{icon}</div>
+                <ArrowRight size={14} className="text-slate-300" />
+            </div>
+            <div className="mt-4 text-2xl font-bold text-slate-950 sm:text-3xl">{metric.value}</div>
+            <div className="mt-1 text-[10px] font-bold uppercase tracking-wide text-slate-500 sm:text-xs">{metric.label}</div>
+        </Link>
+    );
+}
+
+export default function Dashboard({
+    workspace,
+    departmentMetrics,
+    correspondenceAttention,
+    correspondenceStatus,
+    recentlyReceivedCorrespondence,
+    recentlyRoutedCorrespondence,
+    recentWork,
+    municipalOverview,
+    departmentWorkload = [],
+}: Props) {
+    const municipalCards = municipalOverview ? [
+        ['Active Municipal Work', municipalOverview.activeMunicipalWork],
+        ['Municipal Overdue', municipalOverview.municipalOverdue],
+        ['Municipal Unassigned', municipalOverview.municipalUnassigned],
+        ['Due Soon', municipalOverview.dueSoon],
         ['Executive Queue', municipalOverview.executiveQueue],
-        ['Overdue', municipalOverview.overdue],
-        ['High Priority', municipalOverview.highPriority],
         ['Completed This Month', municipalOverview.completedThisMonth],
-        ['Active Offices', municipalOverview.offices],
     ] : [];
 
     return (
-        <AppLayout title={isMayor ? "Mayor's Office Dashboard" : `${workspace.departmentName} Dashboard`}>
+        <AppLayout title="Dashboard">
             <div className="mx-auto max-w-7xl space-y-4 sm:space-y-6">
-                <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm sm:rounded-3xl">
-                    <div className="grid gap-4 p-4 sm:gap-6 sm:p-6 md:p-8 lg:grid-cols-[1.35fr_.65fr] lg:items-center">
+                <header className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:rounded-3xl sm:p-6 md:p-8">
+                    <div className="text-[10px] font-bold uppercase tracking-[0.18em] text-blue-700 sm:text-xs">Current intra-office operations</div>
+                    <h1 className="mt-2 text-2xl font-bold tracking-tight text-slate-950 sm:text-3xl">{workspace.departmentName}</h1>
+                    <p className="mt-2 max-w-3xl text-[11px] leading-5 text-slate-500 sm:text-sm">
+                        Review work requiring attention, current office accountability, recent correspondence, and authorized municipal records.
+                    </p>
+                </header>
+
+                <section>
+                    <div className="mb-3 flex items-end justify-between gap-3">
                         <div>
-                            <div className="text-[9px] font-bold uppercase tracking-[0.18em] text-blue-700 sm:text-xs sm:tracking-[0.2em]">
-                                {isMayor ? 'Municipal oversight' : 'Department workspace'}
-                            </div>
-                            <h1 className="mt-2 text-2xl font-bold tracking-tight text-slate-950 sm:mt-3 sm:text-3xl md:text-4xl">{workspace.departmentName}</h1>
-                            <p className="mt-2 max-w-2xl text-[12px] leading-5 text-slate-600 sm:mt-3 sm:text-sm sm:leading-6">
-                                {isMayor
-                                    ? 'Review active intra-office work, identify overdue items, monitor office workload, and act on requests requiring executive attention.'
-                                    : 'Receive, review, route, and track authorized intra-office work from one accountable workspace.'}
-                            </p>
+                            <div className="text-[10px] font-bold uppercase tracking-[0.18em] text-blue-700 sm:text-xs">Needs attention</div>
+                            <h2 className="mt-1 text-lg font-bold text-slate-950 sm:text-xl">Current responsibility</h2>
                         </div>
-                        <div className="rounded-xl bg-[#0b2852] p-4 text-white sm:rounded-2xl sm:p-5">
-                            <div className="flex items-center gap-2 text-[12px] font-semibold sm:text-sm"><ShieldCheck size={16} /> Authorized workspace</div>
-                            <div className="mt-2 text-[11px] leading-5 text-blue-100 sm:mt-3 sm:text-sm">Access remains scoped by authenticated employee identity, office, and server-side authorization.</div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2.5 sm:gap-4 xl:grid-cols-4">
+                        <MetricCard metric={departmentMetrics.requiresMyAction} icon={<UserRound size={18} />} />
+                        <MetricCard metric={departmentMetrics.pendingInMyOffice} icon={<Building2 size={18} />} />
+                        <MetricCard metric={departmentMetrics.overdue} icon={<AlertTriangle size={18} />} />
+                        <MetricCard metric={departmentMetrics.waitingOnOtherOffices} icon={<Route size={18} />} />
+                    </div>
+                    <div className="mt-3 grid gap-2.5 sm:grid-cols-2 lg:grid-cols-4">
+                        {[departmentMetrics.unassignedInMyOffice, departmentMetrics.dueSoon, departmentMetrics.completedThisMonth, correspondenceAttention].map((metric) => (
+                            <Link key={metric.label} href={metric.link} className="flex items-center justify-between rounded-xl border border-slate-200 bg-white px-4 py-3 text-[11px] shadow-sm hover:bg-slate-50 sm:text-sm">
+                                <span className="font-semibold text-slate-600">{metric.label}</span>
+                                <span className="text-base font-bold text-slate-950 sm:text-lg">{metric.value}</span>
+                            </Link>
+                        ))}
+                    </div>
+                </section>
+
+                <section className="grid gap-3 sm:grid-cols-3">
+                    <Link href="/transactions" className="flex items-center justify-between rounded-2xl border border-slate-200 bg-white p-4 shadow-sm hover:bg-slate-50">
+                        <span className="flex items-center gap-2 text-[11px] font-semibold text-slate-700 sm:text-sm"><ListTodo size={16} /> Open My Work</span>
+                        <ArrowRight size={14} className="text-slate-400" />
+                    </Link>
+                    <Link href="/correspondence" className="flex items-center justify-between rounded-2xl border border-slate-200 bg-white p-4 shadow-sm hover:bg-slate-50">
+                        <span className="flex items-center gap-2 text-[11px] font-semibold text-slate-700 sm:text-sm"><Inbox size={16} /> Open Correspondence</span>
+                        <ArrowRight size={14} className="text-slate-400" />
+                    </Link>
+                    <Link href="/records" className="flex items-center justify-between rounded-2xl border border-slate-200 bg-white p-4 shadow-sm hover:bg-slate-50">
+                        <span className="flex items-center gap-2 text-[11px] font-semibold text-slate-700 sm:text-sm"><FileSearch size={16} /> Search Records</span>
+                        <ArrowRight size={14} className="text-slate-400" />
+                    </Link>
+                </section>
+
+                <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:rounded-3xl sm:p-5">
+                    <div className="flex items-end justify-between gap-3">
+                        <div>
+                            <div className="text-[10px] font-bold uppercase tracking-[0.18em] text-blue-700 sm:text-xs">Correspondence status</div>
+                            <h2 className="mt-1 text-base font-bold text-slate-950 sm:text-lg">Authorized lifecycle overview</h2>
+                        </div>
+                        <Link href="/correspondence" className="text-[10px] font-semibold text-blue-700 sm:text-xs">Open inbox</Link>
+                    </div>
+                    <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-5">
+                        {correspondenceStatus.map((item) => (
+                            <Link key={item.lifecycle} href={item.link} className="rounded-xl bg-slate-50 p-3 hover:bg-blue-50">
+                                <div className="text-xl font-bold text-slate-950">{item.count}</div>
+                                <div className="mt-1 text-[9px] font-bold uppercase tracking-wide text-slate-500 sm:text-[10px]">{item.label}</div>
+                            </Link>
+                        ))}
+                    </div>
+                </section>
+
+                <section className="grid gap-4 xl:grid-cols-2">
+                    <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm sm:rounded-3xl">
+                        <div className="border-b border-slate-100 px-4 py-3 sm:px-5">
+                            <h2 className="text-sm font-bold text-slate-950 sm:text-base">Recently Received Correspondence</h2>
+                            <p className="mt-1 text-[10px] text-slate-500 sm:text-xs">Latest authorized intake and correspondence movement.</p>
+                        </div>
+                        <div className="divide-y divide-slate-100">
+                            {recentlyReceivedCorrespondence.map((item) => (
+                                <Link key={item.detailUrl} href={item.detailUrl} className="block px-4 py-3.5 hover:bg-slate-50 sm:px-5">
+                                    <div className="flex items-start justify-between gap-3">
+                                        <div className="min-w-0">
+                                            <div className="text-[9px] font-bold uppercase tracking-wide text-blue-700 sm:text-[10px]">{item.reference || 'Reference pending'}</div>
+                                            <div className="mt-1 truncate text-[12px] font-semibold text-slate-950 sm:text-sm">{item.subject}</div>
+                                            <div className="mt-1 truncate text-[9px] text-slate-400 sm:text-[10px]">{item.sender || 'Sender not recorded'} · {item.currentOffice?.shortName || item.currentOffice?.name || 'Office pending'}</div>
+                                        </div>
+                                        <div className="shrink-0 text-right">
+                                            <div className="text-[8px] font-bold uppercase text-slate-500 sm:text-[9px]">{humanize(item.lifecycle)}</div>
+                                            <div className="mt-1 text-[8px] text-slate-400 sm:text-[9px]">{formatDate(item.receivedAt)}</div>
+                                        </div>
+                                    </div>
+                                </Link>
+                            ))}
+                            {recentlyReceivedCorrespondence.length === 0 && <div className="px-5 py-8 text-center text-[11px] text-slate-500">No visible correspondence received yet.</div>}
+                        </div>
+                    </div>
+
+                    <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm sm:rounded-3xl">
+                        <div className="border-b border-slate-100 px-4 py-3 sm:px-5">
+                            <h2 className="text-sm font-bold text-slate-950 sm:text-base">Recently Routed Correspondence</h2>
+                            <p className="mt-1 text-[10px] text-slate-500 sm:text-xs">Latest authorized correspondence with recorded routing activity.</p>
+                        </div>
+                        <div className="divide-y divide-slate-100">
+                            {recentlyRoutedCorrespondence.map((item) => (
+                                <Link key={item.detailUrl} href={item.detailUrl} className="block px-4 py-3.5 hover:bg-slate-50 sm:px-5">
+                                    <div className="flex items-start justify-between gap-3">
+                                        <div className="min-w-0">
+                                            <div className="text-[9px] font-bold uppercase tracking-wide text-blue-700 sm:text-[10px]">{item.reference || 'Reference pending'}</div>
+                                            <div className="mt-1 truncate text-[12px] font-semibold text-slate-950 sm:text-sm">{item.subject}</div>
+                                            <div className="mt-1 text-[9px] text-slate-400 sm:text-[10px]">{item.currentOffice?.shortName || item.currentOffice?.name || 'Office pending'}</div>
+                                        </div>
+                                        <div className="shrink-0 text-right">
+                                            <div className="text-[8px] font-bold uppercase text-slate-500 sm:text-[9px]">{humanize(item.lifecycle)}</div>
+                                            <div className="mt-1 text-[8px] text-slate-400 sm:text-[9px]">{formatDate(item.routedAt)}</div>
+                                        </div>
+                                    </div>
+                                </Link>
+                            ))}
+                            {recentlyRoutedCorrespondence.length === 0 && <div className="px-5 py-8 text-center text-[11px] text-slate-500">No visible routed correspondence yet.</div>}
                         </div>
                     </div>
                 </section>
 
-                {municipalOverview && (
-                    <>
-                        <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:rounded-3xl sm:p-6">
-                            <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+                <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm sm:rounded-3xl">
+                    <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3 sm:px-5">
+                        <div>
+                            <h2 className="text-sm font-bold text-slate-950 sm:text-base">Recent Work</h2>
+                            <p className="mt-1 text-[10px] text-slate-500 sm:text-xs">Latest transactions inside your authorized work visibility.</p>
+                        </div>
+                        <Link href="/transactions" className="text-[10px] font-semibold text-blue-700 sm:text-xs">Open My Work</Link>
+                    </div>
+                    <div className="divide-y divide-slate-100">
+                        {recentWork.map((item) => (
+                            <Link key={item.detailUrl} href={item.detailUrl} className="grid gap-2 px-4 py-3.5 hover:bg-slate-50 sm:px-5 md:grid-cols-[130px_1fr_160px_150px] md:items-center">
                                 <div>
-                                    <div className="text-[9px] font-bold uppercase tracking-[0.18em] text-blue-700 sm:text-xs">Municipal intra-office overview</div>
-                                    <h2 className="mt-1.5 text-xl font-bold text-slate-950 sm:text-2xl">Current workload and accountability</h2>
-                                    <p className="mt-1 text-[11px] text-slate-500 sm:text-sm">Operational work only. Parked HRIS, Legislative, Property, project, procurement and fund surfaces are not presented here.</p>
+                                    <div className="text-[9px] font-bold uppercase text-blue-700 sm:text-[10px]">{item.reference}</div>
+                                    <div className="mt-1 text-[8px] text-slate-400 sm:text-[9px]">{item.transactionType}</div>
                                 </div>
-                                <Link href="/transactions" className="inline-flex w-fit items-center gap-2 rounded-xl border border-blue-200 px-3 py-2 text-[11px] font-semibold text-blue-800 sm:text-sm">Open all work <ArrowRight size={14} /></Link>
-                            </div>
-                            <div className="mt-4 grid grid-cols-2 gap-2.5 sm:grid-cols-3 sm:gap-4 xl:grid-cols-6">
-                                {overviewCards.map(([label, value]) => (
-                                    <div key={String(label)} className="rounded-xl bg-slate-50 p-3 sm:p-4">
-                                        <div className="text-[9px] font-bold uppercase tracking-wide text-slate-500 sm:text-[10px]">{label}</div>
-                                        <div className="mt-2 text-xl font-bold text-slate-950 sm:text-2xl">{value}</div>
+                                <div className="min-w-0">
+                                    <div className="truncate text-[12px] font-semibold text-slate-950 sm:text-sm">{item.title}</div>
+                                    <div className="mt-1 text-[9px] text-slate-400 sm:text-[10px]">{item.originOffice?.shortName || item.originOffice?.name || 'Unknown origin'} → {item.currentOffice?.shortName || item.currentOffice?.name || 'Unknown office'}</div>
+                                </div>
+                                <div className="text-[9px] text-slate-500 sm:text-[10px]">{item.assignedEmployee?.name || 'Unassigned'}</div>
+                                <div className="flex items-center justify-between gap-2 md:justify-end">
+                                    <span className={`rounded-full px-2 py-1 text-[8px] font-bold uppercase sm:text-[9px] ${dueTone[item.dueState]}`}>{humanize(item.dueState)}</span>
+                                    <span className="text-[8px] font-bold uppercase text-slate-400 sm:text-[9px]">{humanize(item.status)}</span>
+                                </div>
+                            </Link>
+                        ))}
+                        {recentWork.length === 0 && <div className="px-5 py-8 text-center text-[11px] text-slate-500">No recent authorized work.</div>}
+                    </div>
+                </section>
+
+                {workspace.canSeeMunicipalOverview && municipalOverview && (
+                    <>
+                        <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:rounded-3xl sm:p-5">
+                            <div className="text-[10px] font-bold uppercase tracking-[0.18em] text-blue-700 sm:text-xs">Municipality-wide transaction oversight</div>
+                            <h2 className="mt-1 text-base font-bold text-slate-950 sm:text-lg">Executive workload</h2>
+                            <p className="mt-1 text-[10px] text-slate-500 sm:text-xs">Transaction oversight only. Correspondence remains independently authorization-scoped.</p>
+                            <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-3 xl:grid-cols-6">
+                                {municipalCards.map(([label, value]) => (
+                                    <div key={String(label)} className="rounded-xl bg-slate-50 p-3">
+                                        <div className="text-lg font-bold text-slate-950 sm:text-xl">{value}</div>
+                                        <div className="mt-1 text-[8px] font-bold uppercase tracking-wide text-slate-500 sm:text-[9px]">{label}</div>
                                     </div>
                                 ))}
                             </div>
                         </section>
 
                         <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm sm:rounded-3xl">
-                            <div className="flex items-center justify-between gap-3 border-b border-slate-100 px-4 py-3 sm:px-6 sm:py-5">
+                            <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3 sm:px-5">
                                 <div>
-                                    <h2 className="text-sm font-bold text-slate-950 sm:text-base">Office workload & bottlenecks</h2>
-                                    <p className="mt-1 text-[10px] text-slate-500 sm:text-sm">Offices with overdue or active intra-office work rise to the top.</p>
+                                    <h2 className="text-sm font-bold text-slate-950 sm:text-base">Office Workload & Bottlenecks</h2>
+                                    <p className="mt-1 text-[10px] text-slate-500 sm:text-xs">Active transaction accountability grouped by current responsible office.</p>
                                 </div>
-                                <AlertTriangle size={18} className="text-amber-600" />
+                                <Clock3 size={16} className="text-slate-400" />
                             </div>
-                            <div className="hidden overflow-x-auto md:block">
-                                <table className="w-full text-left text-sm">
-                                    <thead className="bg-slate-50 text-[10px] uppercase tracking-wide text-slate-500">
-                                        <tr><th className="px-5 py-3">Office</th><th className="px-5 py-3">Active</th><th className="px-5 py-3">Due Soon</th><th className="px-5 py-3">Overdue</th></tr>
+                            <div className="overflow-x-auto">
+                                <table className="min-w-full text-left">
+                                    <thead className="bg-slate-50 text-[9px] font-bold uppercase tracking-wide text-slate-400">
+                                        <tr>
+                                            <th className="px-4 py-3">Office</th>
+                                            <th className="px-4 py-3">Active</th>
+                                            <th className="px-4 py-3">Unassigned</th>
+                                            <th className="px-4 py-3">Due Soon</th>
+                                            <th className="px-4 py-3">Overdue</th>
+                                        </tr>
                                     </thead>
-                                    <tbody className="divide-y divide-slate-100">
+                                    <tbody className="divide-y divide-slate-100 text-[10px] text-slate-600 sm:text-xs">
                                         {departmentWorkload.slice(0, 12).map((office) => (
                                             <tr key={office.id}>
-                                                <td className="px-5 py-3.5"><div className="font-semibold text-slate-950">{office.shortName || office.name}</div><div className="mt-0.5 text-xs text-slate-400">{office.code}</div></td>
-                                                <td className="px-5 py-3.5 font-semibold">{office.active}</td>
-                                                <td className="px-5 py-3.5"><span className={`rounded-full px-2.5 py-1 text-[10px] font-bold ${office.dueSoon ? 'bg-amber-50 text-amber-800' : 'bg-slate-100 text-slate-500'}`}>{office.dueSoon}</span></td>
-                                                <td className="px-5 py-3.5"><span className={`rounded-full px-2.5 py-1 text-[10px] font-bold ${office.overdue ? 'bg-rose-50 text-rose-800' : 'bg-emerald-50 text-emerald-800'}`}>{office.overdue}</span></td>
+                                                <td className="px-4 py-3">
+                                                    <div className="font-semibold text-slate-950">{office.shortName || office.name}</div>
+                                                    <div className="mt-0.5 text-[9px] text-slate-400">{office.code}</div>
+                                                </td>
+                                                <td className="px-4 py-3 font-semibold">{office.active}</td>
+                                                <td className="px-4 py-3">{office.unassigned}</td>
+                                                <td className="px-4 py-3">{office.dueSoon}</td>
+                                                <td className={`px-4 py-3 font-semibold ${office.overdue ? 'text-rose-700' : 'text-slate-600'}`}>{office.overdue}</td>
                                             </tr>
                                         ))}
                                     </tbody>
                                 </table>
                             </div>
-                            <div className="divide-y divide-slate-100 md:hidden">
-                                {departmentWorkload.slice(0, 8).map((office) => (
-                                    <div key={office.id} className="p-3.5">
-                                        <div className="flex items-start justify-between gap-3">
-                                            <div><div className="text-[12px] font-semibold text-slate-950">{office.shortName || office.name}</div><div className="mt-0.5 text-[9px] text-slate-400">{office.code}</div></div>
-                                            <div className="text-right"><div className="text-[11px] font-bold">{office.active} active</div><div className={`mt-1 text-[9px] font-semibold ${office.overdue ? 'text-rose-700' : 'text-emerald-700'}`}>{office.overdue} overdue · {office.dueSoon} due soon</div></div>
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
                         </section>
                     </>
                 )}
-
-                <section className="grid grid-cols-2 gap-2.5 sm:gap-4 xl:grid-cols-4">
-                    {stats.map((stat) => (
-                        <div key={stat.label} className="rounded-xl border border-slate-200 bg-white p-3 shadow-sm sm:rounded-2xl sm:p-5">
-                            <div className={`inline-flex rounded-md px-2 py-0.5 text-[9px] font-semibold ring-1 sm:rounded-lg sm:px-2.5 sm:py-1 sm:text-xs ${toneClass[stat.tone]}`}>{stat.label}</div>
-                            <div className="mt-2 text-xl font-bold text-slate-950 sm:mt-4 sm:text-3xl">{stat.value}</div>
-                        </div>
-                    ))}
-                </section>
-
-                <section className="grid gap-4 xl:grid-cols-[1.35fr_.65fr]">
-                    <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm sm:rounded-3xl">
-                        <div className="flex items-center justify-between gap-3 border-b border-slate-100 px-4 py-3 sm:px-6 sm:py-5">
-                            <div><h2 className="text-sm font-bold text-slate-950 sm:text-base">{isMayor ? 'Priority review queue' : 'Recent transactions'}</h2><p className="mt-1 text-[10px] text-slate-500 sm:text-sm">Recent work visible to this authorized workspace.</p></div>
-                            <Link href={isMayor ? '/mayor-office' : '/transactions'} className="shrink-0 text-[11px] font-semibold text-blue-700 sm:text-sm">Open inbox</Link>
-                        </div>
-                        <div className="divide-y divide-slate-100">
-                            {recent.map((item) => (
-                                <Link key={item.id} href={`/transactions/${item.id}`} className="flex items-center justify-between gap-4 px-4 py-3.5 hover:bg-slate-50 sm:px-6 sm:py-4">
-                                    <div className="min-w-0"><div className="text-[9px] font-bold uppercase tracking-wide text-blue-700 sm:text-xs">{item.ref}</div><div className="mt-1 truncate text-[12px] font-semibold text-slate-950 sm:text-sm">{item.title}</div><div className="mt-1 text-[9px] text-slate-400 sm:text-xs">From {item.from}</div></div>
-                                    <div className="shrink-0 text-right"><span className="rounded-full bg-slate-100 px-2.5 py-1 text-[8px] font-bold text-slate-600 sm:text-[10px]">{item.status}</span></div>
-                                </Link>
-                            ))}
-                            {recent.length === 0 && <div className="px-5 py-8 text-center text-[11px] text-slate-500 sm:text-sm">No recent transactions in this workspace.</div>}
-                        </div>
-                    </div>
-
-                    <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:rounded-3xl sm:p-5">
-                        <div className="text-sm font-bold text-slate-950">Portal shortcuts</div>
-                        <div className="mt-3 space-y-2">
-                            <Link href="/transactions" className="flex items-center justify-between rounded-xl border border-slate-200 px-3 py-3 text-[11px] font-semibold text-slate-700 hover:bg-slate-50 sm:text-sm"><span className="flex items-center gap-2"><FileText size={15} /> My Work</span><ArrowRight size={14} /></Link>
-                            <Link href="/memoranda" className="flex items-center justify-between rounded-xl border border-slate-200 px-3 py-3 text-[11px] font-semibold text-slate-700 hover:bg-slate-50 sm:text-sm"><span className="flex items-center gap-2"><FileText size={15} /> Memoranda</span><ArrowRight size={14} /></Link>
-                            <Link href="/departments" className="flex items-center justify-between rounded-xl border border-slate-200 px-3 py-3 text-[11px] font-semibold text-slate-700 hover:bg-slate-50 sm:text-sm"><span className="flex items-center gap-2"><Building2 size={15} /> Departments</span><ArrowRight size={14} /></Link>
-                        </div>
-                    </div>
-                </section>
             </div>
         </AppLayout>
     );

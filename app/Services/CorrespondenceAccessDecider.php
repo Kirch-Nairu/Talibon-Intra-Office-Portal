@@ -236,6 +236,15 @@ class CorrespondenceAccessDecider
         return $states;
     }
 
+    public function scopeActionRequired(Builder $query, User $actor): Builder
+    {
+        $states = $this->actionLifecycleValues($actor);
+
+        return $states === []
+            ? $query->whereRaw('1 = 0')
+            : $query->whereIn('lifecycle_state', $states);
+    }
+
     public function requiresAction(User $actor, CorrespondenceRecord $record): bool
     {
         return $this->canRegister($actor, $record)

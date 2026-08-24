@@ -76,10 +76,7 @@ class CorrespondenceInboxQuery
         }
 
         if (! empty($filters['action_required'])) {
-            $states = $this->access->actionLifecycleValues($actor);
-            $states === []
-                ? $query->whereRaw('1 = 0')
-                : $query->whereIn('lifecycle_state', $states);
+            $this->access->scopeActionRequired($query, $actor);
         }
 
         if (($filters['aging'] ?? null) === 'overdue') {
