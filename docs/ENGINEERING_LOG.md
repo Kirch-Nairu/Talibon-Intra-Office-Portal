@@ -236,6 +236,24 @@ Every implementation commit must update this file in the same commit. Never conv
 - Verification execution: the isolated tool container still cannot resolve `github.com` and has no repository checkout, so direct local post-fix Artisan execution is unavailable there. The branch's existing GitHub Actions CI is the executable verification path after push: PostgreSQL 16, PHP 8.4, Node 22, TypeScript, production build, `migrate:fresh --seed`, full Feature suite and route listing. Exact post-push CI evidence must be reported from the resulting workflow; no pre-push local PASS is inferred.
 - Scope: defect-only correction. No feature work, no new module, no migration, no authorization expansion and no prototype scope change.
 
+### \`perf: replace page reload polling with live feeds\`
+
+- Date / hardening task: **2026-08-25 — Inertia polling performance hardening**.
+- Base branch / parent: \`KIRCH-PHASE1-INTERNAL-OPS-HRIS\` at \`62179e417154e1292079f77154b423908b097ea3\` (\`fix: normalize records lifecycle state options\`).
+- Scope: performance-only hardening for the current Core Intra-Office Portal. No workflow status/action semantics, transaction authorization, MFA policy, correspondence lifecycle, HRIS behavior, database authority, auditing policy or parked-module scope is changed.
+- Global notifications: notification-feed construction is extracted from \`HandleInertiaRequests\` into \`NotificationFeedQuery\`. Shared Inertia notification props remain available through request-local memoized lazy closures for normal page loads, while background refresh uses authenticated \`GET /notifications/feed\` instead of \`router.reload()\`.
+- Transaction live state: new authenticated \`GET /transactions/{transaction}/live\` re-applies the existing \`TransactionPolicy::view\` authorization on every poll and returns only mutable status/current-office/assignee timestamps, accountability, current permissions, assignable employees when authorized, and up to 50 append-only workflow events after the caller's last event id. Static title/description/origin/creator/department lists are not re-fetched by the live endpoint.
+- Transaction page reuse: \`TransactionLiveQuery\` owns the existing accountability/permission/assignable-employee projection so the initial Inertia show action and JSON live endpoint do not carry separate mutable-state semantics. Initial routing history still loads in full, but no longer eager-loads event actor employee/department data that the UI does not render.
+- Mayor Office: existing page authorization and query logic is extracted unchanged into \`MayorOfficeWorkspaceQuery\`. Both the normal Inertia page and new authenticated \`GET /mayor-office/live\` use the same service, preserving the existing system-admin / Mayor-office role boundary and current queue/overdue/returned/bottleneck/stat definitions.
+- Frontend polling: new \`useVisiblePolling\` provides shared non-overlapping polling with hidden-tab suppression, immediate focus/visibility refresh, abort-on-unmount/disable, timer/listener cleanup and stale-request cancellation. Cadences are 8 seconds for notifications, 4 seconds for transaction live state, and 8 seconds for Mayor operational data.
+- Inertia reload removal: background \`router.reload()\` polling is removed from \`AppLayout.tsx\`, \`Transactions/Show.tsx\` and \`MayorOffice.tsx\`; these surfaces now call the dedicated JSON endpoints.
+- Existing Dashboard grouped workload implementation is untouched. No old per-department Dashboard query loop is restored.
+- Tests authored: new \`PerformanceLiveEndpointsTest\` covers authentication/MFA route protection, memo/platform notification feed composition, transaction-event fallback notifications, transaction live-state policy isolation and delta events, Mayor live access parity, endpoint route registration, and a source contract preventing \`router.reload\` polling from returning while requiring visibility/overlap/abort/focus cleanup primitives.
+- Schema/migration impact: **none**.
+- Verification actually observed before implementation commit: exact base branch HEAD was verified as \`62179e417154e1292079f77154b423908b097ea3\`; source-level diff/contract review is performed before branch update. Dependency-backed PHP/TypeScript/Vite/Feature execution is **NOT OBSERVED** until an executable CI/local run is available; no PASS is inferred.
+- Residual risk until executable verification: TypeScript compatibility, Laravel route/controller binding, JSON serialization and full Feature regression remain open gates until actually executed.
+- Next action: run focused endpoint tests plus repository TypeScript/build/full Feature/route-list verification; fix only observed regressions and do not expand feature scope.
+
 ## Current release / prototype state
 
 - Formal project state: `PRE-MOBILIZATION / WORKING PROTOTYPE PREPARATION`.

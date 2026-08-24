@@ -43,6 +43,14 @@ export type LiveNotification = {
     requires_acknowledgement?: boolean;
 };
 
+export type NotificationFeed = {
+    pendingMemo: PendingMemo | null;
+    unreadMemoCount: number;
+    unreadPlatformNotificationCount: number;
+    notifications: LiveNotification[];
+    notificationCount: number;
+};
+
 export type SharedProps = {
     [key: string]: unknown;
     appName: string;

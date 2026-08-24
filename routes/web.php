@@ -25,15 +25,18 @@ use App\Http\Controllers\LeaveRequestController;
 use App\Http\Controllers\LegislativeRecordController;
 use App\Http\Controllers\LegislativeWorkspaceController;
 use App\Http\Controllers\MayorOfficeController;
+use App\Http\Controllers\MayorOfficeLiveController;
 use App\Http\Controllers\MemorandumController;
 use App\Http\Controllers\OperationsMonitoringController;
 use App\Http\Controllers\PayrollController;
+use App\Http\Controllers\NotificationFeedController;
 use App\Http\Controllers\PlatformNotificationController;
 use App\Http\Controllers\PropertyController;
 use App\Http\Controllers\PropertyLifecycleController;
 use App\Http\Controllers\RecordsController;
 use App\Http\Controllers\ReportsController;
 use App\Http\Controllers\TransactionController;
+use App\Http\Controllers\TransactionLiveController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware('guest')->group(function (): void {
@@ -99,15 +102,18 @@ Route::middleware(['auth', 'active', 'mfa.assured'])->group(function (): void {
     Route::get('/reports', [ReportsController::class, 'index'])->name('reports.index');
     Route::get('/reports/export/{report}', [ReportsController::class, 'export'])->name('reports.export');
 
+    Route::get('/notifications/feed', NotificationFeedController::class)->name('notifications.feed');
     Route::post('/notifications/{notification}/read', [PlatformNotificationController::class, 'markRead'])->name('notifications.read');
     Route::post('/notifications/{notification}/acknowledge', [PlatformNotificationController::class, 'acknowledge'])->name('notifications.acknowledge');
 
     Route::get('/transactions', [TransactionController::class, 'index'])->name('transactions.index');
     Route::get('/transactions/create', [TransactionController::class, 'create'])->name('transactions.create');
     Route::post('/transactions', [TransactionController::class, 'store'])->name('transactions.store');
+    Route::get('/transactions/{transaction}/live', TransactionLiveController::class)->name('transactions.live');
     Route::get('/transactions/{transaction}', [TransactionController::class, 'show'])->name('transactions.show');
     Route::post('/transactions/{transaction}/transition', [TransactionController::class, 'transition'])->name('transactions.transition');
 
+    Route::get('/mayor-office/live', MayorOfficeLiveController::class)->name('mayor-office.live');
     Route::get('/mayor-office', MayorOfficeController::class)->name('mayor-office');
 
     Route::get('/memoranda', [MemorandumController::class, 'index'])->name('memoranda.index');
