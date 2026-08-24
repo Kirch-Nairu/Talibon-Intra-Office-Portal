@@ -225,6 +225,17 @@ Every implementation commit must update this file in the same commit. Never conv
 - Residual risks: exact dependency-backed Feature/TypeScript/build verification remains open; grouped workload and simple count queries are prototype read-side behavior and have not been benchmarked against production-scale volume.
 - Next step: **Department Head Prototype Freeze / Integrated Verification Gate**. Do not begin another feature slice after this commit.
 
+### `fix: normalize records lifecycle state options`
+
+- Defect classification: **P1 — Core Workflow Blocker** on the frozen Department Head prototype candidate `9ce03be72f6174298ee9d48543156abf28b17997`.
+- Observed executable failure supplied by verification: `RecordsSearchTest` reported **8 failed, 4 passed (77 assertions)** because `/records` raised `App\\Services\\RecordsSearchQuery::{closure:stateOptions()}(): Argument #1 ($value) must be of type string, App\\Domain\\Correspondence\\CorrespondenceLifecycleState given`.
+- Root cause: `CorrespondenceRecord.lifecycle_state` is intentionally enum-cast. Eloquent `pluck('lifecycle_state')` therefore returned `CorrespondenceLifecycleState` instances while transaction `status` values remained strings; `stateOptions()` merged the mixed collection and its final typed string mapper failed.
+- Correction: normalize only plucked Correspondence lifecycle values to backed strings before merging with transaction statuses. The model cast/domain enum, transaction status semantics, Records authorization, filters, SQL union/pagination architecture, routes and frontend remain unchanged.
+- Regression coverage: existing `test_record_type_and_state_filters_remain_source_specific` now requires `record_type=all` to return both `classified => Classified` and `for_review => For Review` state options, locking mixed-source string normalization and human labels without adding a redundant test method.
+- Schema/migration impact: **none**.
+- Verification execution: the isolated tool container still cannot resolve `github.com` and has no repository checkout, so direct local post-fix Artisan execution is unavailable there. The branch's existing GitHub Actions CI is the executable verification path after push: PostgreSQL 16, PHP 8.4, Node 22, TypeScript, production build, `migrate:fresh --seed`, full Feature suite and route listing. Exact post-push CI evidence must be reported from the resulting workflow; no pre-push local PASS is inferred.
+- Scope: defect-only correction. No feature work, no new module, no migration, no authorization expansion and no prototype scope change.
+
 ## Current release / prototype state
 
 - Formal project state: `PRE-MOBILIZATION / WORKING PROTOTYPE PREPARATION`.

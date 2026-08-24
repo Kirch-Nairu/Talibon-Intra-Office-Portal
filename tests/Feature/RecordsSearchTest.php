@@ -238,7 +238,14 @@ class RecordsSearchTest extends TestCase
 
         $this->actingAs($actor)->get('/records?record_type=all')
             ->assertOk()
-            ->assertInertia(fn (Assert $page) => $page->where('records.total', 2));
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('records.total', 2)
+                ->where('filterOptions.states', function ($states): bool {
+                    $options = collect($states)->keyBy('value');
+
+                    return $options->get('classified')['label'] === 'Classified'
+                        && $options->get('for_review')['label'] === 'For Review';
+                }));
 
         $this->actingAs($actor)->get('/records?record_type=correspondence&state=classified')
             ->assertOk()

@@ -238,7 +238,14 @@ final class RecordsSearchQuery
         $values = collect();
 
         if ($recordType !== 'transaction') {
-            $values = $values->merge((clone $correspondence)->distinct()->pluck('lifecycle_state'));
+            $correspondenceStates = (clone $correspondence)
+                ->distinct()
+                ->pluck('lifecycle_state')
+                ->map(fn ($value): string => $value instanceof \BackedEnum
+                    ? (string) $value->value
+                    : (string) $value);
+
+            $values = $values->merge($correspondenceStates);
         }
 
         if ($recordType !== 'correspondence') {
