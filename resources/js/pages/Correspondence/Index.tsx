@@ -1,5 +1,5 @@
-import { router } from '@inertiajs/react';
-import { AlertTriangle, Inbox, Search, SlidersHorizontal, UserRound, X } from 'lucide-react';
+import { Link, router } from '@inertiajs/react';
+import { AlertTriangle, ArrowRight, Inbox, Search, SlidersHorizontal, UserRound, X } from 'lucide-react';
 import { FormEvent, useState } from 'react';
 import AppLayout from '../../layouts/AppLayout';
 
@@ -147,7 +147,7 @@ export default function CorrespondenceIndex({ records, filters, filterOptions, w
                     <div className="divide-y divide-slate-100">
                         {records.data.map((record) => (
                             <div key={record.publicId} className="grid gap-3 px-4 py-4 sm:px-5 lg:grid-cols-[145px_1.25fr_155px_150px_155px_120px] lg:items-center">
-                                <div><div className="text-[10px] font-bold text-blue-700 sm:text-xs">{record.reference}</div>{record.workflowReference && <div className="mt-1 text-[8px] text-slate-400 sm:text-[9px]">{record.workflowReference}</div>}</div>
+                                <div><div className="text-[10px] font-bold text-blue-700 sm:text-xs">{record.reference}</div>{record.workflowReference && <div className="mt-1 text-[8px] text-slate-400 sm:text-[9px]">{record.workflowReference}</div>}<Link href={`/correspondence/${record.publicId}/workspace`} className="mt-2 inline-flex items-center gap-1 text-[9px] font-bold text-blue-700 hover:text-blue-900 sm:text-[10px]">View <ArrowRight size={11} /></Link></div>
                                 <div className="min-w-0"><div className="text-[11px] font-semibold text-slate-900 sm:text-sm">{record.sender.name}</div><div className="mt-0.5 text-[9px] text-slate-400 sm:text-[10px]">{record.sender.organization || humanize(record.sender.source)}</div><div className="mt-1 truncate text-[12px] font-semibold text-slate-700 sm:text-sm">{record.subject}</div></div>
                                 <div><div className="text-[9px] uppercase text-slate-400 lg:hidden">Current office</div><div className="mt-0.5 text-[11px] font-semibold text-slate-700 sm:text-xs">{record.currentOffice?.shortName || record.currentOffice?.name || 'Unregistered intake'}</div></div>
                                 <div><div className="text-[9px] uppercase text-slate-400 lg:hidden">Responsible</div><div className="mt-0.5 flex items-center gap-1.5 text-[11px] text-slate-700 sm:text-xs"><UserRound size={13} /> {record.assignedEmployee?.name || 'Unassigned'}</div></div>

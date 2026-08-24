@@ -4,9 +4,13 @@ namespace App\Http\Controllers;
 
 use App\Domain\Correspondence\CorrespondenceLifecycleState;
 use App\Http\Requests\CorrespondenceIndexRequest;
+use App\Models\CorrespondenceRecord;
 use App\Models\Department;
 use App\Services\CorrespondenceAccessDecider;
+use App\Services\CorrespondenceDetailPresenter;
 use App\Services\CorrespondenceInboxQuery;
+use Illuminate\Auth\Access\AuthorizationException;
+use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -47,6 +51,21 @@ class CorrespondenceWorkspaceController extends Controller
                 'departmentCode' => $user->employee->department->code,
             ],
         ]);
+    }
+
+    public function show(
+        Request $request,
+        CorrespondenceRecord $correspondence,
+        CorrespondenceAccessDecider $access,
+        CorrespondenceDetailPresenter $presenter,
+    ): Response {
+        $user = $request->user()->loadMissing('employee.department');
+
+        if (! $access->canViewInWorkspace($user, $correspondence)) {
+            throw new AuthorizationException('You are not authorized to view this correspondence workspace.');
+        }
+
+        return Inertia::render('Correspondence/Show', $presenter->workspace($user, $correspondence));
     }
 
     /** @return array<int, string> */

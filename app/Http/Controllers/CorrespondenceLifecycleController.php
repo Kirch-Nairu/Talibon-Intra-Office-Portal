@@ -9,6 +9,7 @@ use App\Http\Requests\CorrespondenceClassifyRequest;
 use App\Http\Requests\CorrespondenceRouteRequest;
 use App\Models\CorrespondenceRecord;
 use App\Services\CorrespondenceAccessDecider;
+use App\Services\CorrespondenceDetailPresenter;
 use App\Services\CorrespondenceLifecycleService;
 use App\Services\CorrespondenceRoutingService;
 use Illuminate\Auth\Access\AuthorizationException;
@@ -22,54 +23,14 @@ class CorrespondenceLifecycleController extends Controller
         Request $request,
         CorrespondenceRecord $correspondence,
         CorrespondenceAccessDecider $access,
+        CorrespondenceDetailPresenter $presenter,
     ): JsonResponse {
         if (! $access->canView($request->user(), $correspondence)) {
             throw new AuthorizationException('You are not authorized to view this correspondence.');
         }
 
-        $correspondence->load([
-            'receivingDepartment:id,code,name,short_name',
-            'workflowTransaction:id,reference_no,status,current_department_id,assigned_employee_id',
-            'workflowTransaction.currentDepartment:id,code,name,short_name',
-            'workflowTransaction.assignedEmployee:id,employee_number,full_name,department_id,position_title',
-        ]);
-
-        $history = $correspondence->events()
-            ->with([
-                'actorUser:id,name',
-                'officeDepartment:id,code,name,short_name',
-            ])
-            ->orderBy('id')
-            ->get()
-            ->map(fn ($event): array => [
-                'event' => $event->event,
-                'previous_lifecycle_state' => $event->previous_lifecycle_state?->value,
-                'new_lifecycle_state' => $event->new_lifecycle_state?->value,
-                'actor_user' => $event->actorUser?->only(['id', 'name']),
-                'office' => $event->officeDepartment?->only(['id', 'code', 'name', 'short_name']),
-                'remarks' => $event->remarks,
-                'occurred_at' => $event->occurred_at?->toISOString(),
-            ]);
-
         return response()->json([
-            'correspondence' => [
-                'public_id' => $correspondence->public_id,
-                'reference' => $correspondence->municipal_reference_no ?? $correspondence->external_reference_no,
-                'lifecycle_state' => $correspondence->lifecycle_state->value,
-                'classification' => $correspondence->classification?->value,
-                'subject' => $correspondence->subject,
-                'summary' => $correspondence->summary,
-                'sender_name' => $correspondence->sender_name,
-                'sender_organization' => $correspondence->sender_organization,
-                'received_at' => $correspondence->received_at?->toISOString(),
-                'registered_at' => $correspondence->registered_at?->toISOString(),
-                'classified_at' => $correspondence->classified_at?->toISOString(),
-                'routed_at' => $correspondence->routed_at?->toISOString(),
-                'action_started_at' => $correspondence->action_started_at?->toISOString(),
-                'receiving_department' => $correspondence->receivingDepartment,
-                'workflow' => $correspondence->workflowTransaction,
-                'history' => $history,
-            ],
+            'correspondence' => $presenter->jsonContract($correspondence),
         ]);
     }
 
