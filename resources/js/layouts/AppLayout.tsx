@@ -1,5 +1,5 @@
 import { Head, Link, router, usePage } from '@inertiajs/react';
-import { Bell, Building2, FileText, LayoutDashboard, LogOut, Menu, ShieldCheck, X } from 'lucide-react';
+import { Bell, Building2, FileText, Inbox, LayoutDashboard, LogOut, Menu, ShieldCheck, X } from 'lucide-react';
 import { PropsWithChildren, useEffect, useRef, useState } from 'react';
 import type { LiveNotification, SharedProps } from '../types';
 
@@ -96,6 +96,7 @@ export default function AppLayout({ title, children }: Props) {
     const nav = [
         { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard, show: true },
         { label: 'My Work', href: '/transactions', icon: FileText, show: true },
+        { label: 'Correspondence', href: '/correspondence', icon: Inbox, show: true },
         { label: "Mayor's Office", href: '/mayor-office', icon: Building2, show: isMayor },
         { label: 'Memoranda', href: '/memoranda', icon: FileText, show: true },
         { label: 'Departments', href: '/departments', icon: Building2, show: true },

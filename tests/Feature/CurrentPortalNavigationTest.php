@@ -17,12 +17,8 @@ class CurrentPortalNavigationTest extends TestCase
         $layout = file_get_contents(resource_path('js/layouts/AppLayout.tsx'));
         $this->assertIsString($layout);
 
-        foreach (['Dashboard', 'My Work', "Mayor's Office", 'Memoranda', 'Departments', 'Audit & Security'] as $label) {
-            $this->assertStringContainsString("label: '{$label}'", $layout);
-        }
-
-        foreach (['Operations', 'Central Records', 'HRIS', 'Employees', 'Reports'] as $label) {
-            $this->assertStringNotContainsString("label: '{$label}'", $layout);
+        foreach (['/dashboard', '/transactions', '/correspondence', '/mayor-office', '/memoranda', '/departments', '/audit'] as $href) {
+            $this->assertStringContainsString("href: '{$href}'", $layout);
         }
 
         foreach (['/operations', '/legislation', '/hris', '/employees', '/reports'] as $href) {
@@ -46,6 +42,8 @@ class CurrentPortalNavigationTest extends TestCase
         ] as $routeName) {
             $this->assertTrue(Route::has($routeName), "Expected parked route {$routeName} to remain registered.");
         }
+
+        $this->assertTrue(Route::has('correspondence.index'));
     }
 
     public function test_dashboard_response_does_not_serialize_parked_module_rollups(): void
