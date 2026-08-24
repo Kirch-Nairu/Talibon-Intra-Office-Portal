@@ -8,13 +8,13 @@ use Illuminate\Validation\Rule;
 class TransactionIndexRequest extends FormRequest
 {
     public const VIEWS = [
+        'all',
         'needs_my_action',
         'assigned_to_me',
         'office_queue',
         'unassigned',
         'overdue',
         'due_soon',
-        'high_priority',
         'waiting_on_others',
         'recently_completed',
     ];

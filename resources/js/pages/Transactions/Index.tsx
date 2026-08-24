@@ -74,6 +74,7 @@ const priorityTone: Record<string, string> = {
 };
 
 export default function Index({ records, filters, views, filterOptions, workspace }: Props) {
+    const currentView = filters.view || 'all';
     const [search, setSearch] = useState(filters.search);
     const [status, setStatus] = useState(filters.status);
     const [priority, setPriority] = useState(filters.priority);
@@ -88,7 +89,7 @@ export default function Index({ records, filters, views, filterOptions, workspac
 
     const queryData = (overrides: Partial<Filters> = {}) => {
         const next = {
-            view: overrides.view ?? filters.view,
+            view: overrides.view ?? currentView,
             search: overrides.search ?? search,
             status: overrides.status ?? status,
             priority: overrides.priority ?? priority,
@@ -114,7 +115,7 @@ export default function Index({ records, filters, views, filterOptions, workspac
         setStatus('');
         setPriority('');
         setOfficeId('');
-        router.get('/transactions', { view: filters.view }, { preserveState: true, preserveScroll: true, replace: true });
+        router.get('/transactions', { view: currentView }, { preserveState: true, preserveScroll: true, replace: true });
     };
 
     return (
@@ -139,7 +140,7 @@ export default function Index({ records, filters, views, filterOptions, workspac
                 <section className="rounded-2xl border border-slate-200 bg-white p-3 shadow-sm sm:rounded-3xl sm:p-4">
                     <div className="flex gap-2 overflow-x-auto pb-1">
                         {views.map((view) => {
-                            const active = view.key === filters.view;
+                            const active = view.key === currentView;
                             return (
                                 <button
                                     key={view.key}
@@ -188,7 +189,7 @@ export default function Index({ records, filters, views, filterOptions, workspac
 
                 <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm sm:rounded-3xl">
                     <div className="flex flex-col gap-1 border-b border-slate-100 bg-slate-50 px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-5">
-                        <div className="text-[11px] font-bold text-slate-800 sm:text-sm">{views.find((view) => view.key === filters.view)?.label || 'Work Queue'}</div>
+                        <div className="text-[11px] font-bold text-slate-800 sm:text-sm">{views.find((view) => view.key === currentView)?.label || 'All'}</div>
                         <div className="text-[9px] text-slate-400 sm:text-xs">
                             {records.total === 0 ? 'No matching records' : `Showing ${records.from || 1}–${records.to || records.data.length} of ${records.total}`}
                         </div>

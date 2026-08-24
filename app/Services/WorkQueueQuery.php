@@ -14,13 +14,13 @@ use Illuminate\Support\Str;
 final class WorkQueueQuery
 {
     private const VIEW_LABELS = [
+        'all' => 'All',
         'needs_my_action' => 'Needs My Action',
         'assigned_to_me' => 'Assigned to Me',
         'office_queue' => 'Office Queue',
         'unassigned' => 'Unassigned',
         'overdue' => 'Overdue',
         'due_soon' => 'Due Soon',
-        'high_priority' => 'High Priority',
         'waiting_on_others' => 'Waiting on Others',
         'recently_completed' => 'Recently Completed',
     ];
@@ -33,7 +33,7 @@ final class WorkQueueQuery
     public function workspace(User $actor, array $filters): array
     {
         $actor->loadMissing('employee.department');
-        $view = (string) ($filters['view'] ?? 'needs_my_action');
+        $view = (string) ($filters['view'] ?? 'all');
 
         $authorized = $this->authorized($actor);
         $filtered = $this->applyCommonFilters(clone $authorized, $filters);
@@ -91,6 +91,7 @@ final class WorkQueueQuery
             $query->where(function (Builder $match) use ($like): void {
                 $match->whereRaw('LOWER(reference_no) LIKE ?', [$like])
                     ->orWhereRaw('LOWER(title) LIKE ?', [$like])
+                    ->orWhereRaw('LOWER(transaction_type) LIKE ?', [$like])
                     ->orWhereRaw('LOWER(COALESCE(description, \'\')) LIKE ?', [$like])
                     ->orWhereHas('originDepartment', fn (Builder $office) => $office->whereRaw('LOWER(name) LIKE ?', [$like]))
                     ->orWhereHas('currentDepartment', fn (Builder $office) => $office->whereRaw('LOWER(name) LIKE ?', [$like]))
@@ -148,21 +149,22 @@ final class WorkQueueQuery
         $employeeId = $actor->employee?->id;
 
         return match ($view) {
-            'assigned_to_me' => $this->active($query, $terminal)
+            'all' => $query,
+            'needs_my_action' => $this->needsMyAction($query, $terminal, $employeeId),
+            'assigned_to_me' => $query
                 ->when($employeeId, fn (Builder $q) => $q->where('assigned_employee_id', $employeeId), fn (Builder $q) => $q->whereRaw('1 = 0')),
             'office_queue' => $this->active($query, $terminal)
                 ->when($departmentId, fn (Builder $q) => $q->where('current_department_id', $departmentId), fn (Builder $q) => $q->whereRaw('1 = 0')),
             'unassigned' => $this->active($query, $terminal)->whereNull('assigned_employee_id'),
             'overdue' => $this->active($query, $terminal)->whereNotNull('due_at')->where('due_at', '<', now()),
             'due_soon' => $this->active($query, $terminal)->whereBetween('due_at', [now(), now()->addDay()]),
-            'high_priority' => $this->active($query, $terminal)->whereIn('priority', ['high', 'urgent']),
             'waiting_on_others' => $this->active($query, $terminal)
                 ->when($departmentId, function (Builder $q) use ($departmentId): void {
                     $q->where('origin_department_id', $departmentId)
                         ->where('current_department_id', '!=', $departmentId);
                 }, fn (Builder $q) => $q->whereRaw('1 = 0')),
             'recently_completed' => $this->recentlyCompleted($query, $terminal),
-            default => $this->needsMyAction($query, $terminal, $departmentId, $employeeId),
+            default => $query,
         };
     }
 
@@ -170,28 +172,14 @@ final class WorkQueueQuery
     private function needsMyAction(
         Builder $query,
         array $terminal,
-        ?int $departmentId,
         ?int $employeeId,
     ): Builder {
-        $this->active($query, $terminal);
-
-        if (! $departmentId && ! $employeeId) {
-            return $query->whereRaw('1 = 0');
-        }
-
-        return $query->where(function (Builder $attention) use ($departmentId, $employeeId): void {
-            if ($employeeId) {
-                $attention->where('assigned_employee_id', $employeeId);
-            }
-
-            if ($departmentId) {
-                $method = $employeeId ? 'orWhere' : 'where';
-                $attention->{$method}(function (Builder $office) use ($departmentId): void {
-                    $office->where('current_department_id', $departmentId)
-                        ->whereNull('assigned_employee_id');
-                });
-            }
-        });
+        return $this->active($query, $terminal)
+            ->when(
+                $employeeId,
+                fn (Builder $q) => $q->where('assigned_employee_id', $employeeId),
+                fn (Builder $q) => $q->whereRaw('1 = 0'),
+            );
     }
 
     /** @param array<int, string> $terminal */
@@ -206,19 +194,14 @@ final class WorkQueueQuery
         $cutoff = now()->subDays(30);
 
         return $query->whereIn('status', $terminal)
-            ->where(function (Builder $recent) use ($cutoff): void {
-                $recent->where('completed_at', '>=', $cutoff)
-                    ->orWhere(function (Builder $fallback) use ($cutoff): void {
-                        $fallback->whereNull('completed_at')
-                            ->where('updated_at', '>=', $cutoff);
-                    });
-            });
+            ->whereNotNull('completed_at')
+            ->where('completed_at', '>=', $cutoff);
     }
 
     private function orderForQueue(Builder $query, string $view): void
     {
         if ($view === 'recently_completed') {
-            $query->orderByDesc('completed_at')->orderByDesc('updated_at');
+            $query->orderByDesc('completed_at')->orderByDesc('id');
 
             return;
         }
@@ -235,7 +218,6 @@ final class WorkQueueQuery
     {
         $terminal = $this->terminalStatuses();
         $active = ! in_array($transaction->status, $terminal, true);
-        $departmentId = $actor->employee?->department_id;
         $employeeId = $actor->employee?->id;
         $dueState = 'on_track';
 
@@ -247,12 +229,9 @@ final class WorkQueueQuery
             $dueState = 'due_soon';
         }
 
-        $requiresAction = $active && (
-            ($employeeId && (int) $transaction->assigned_employee_id === (int) $employeeId)
-            || ($departmentId
-                && (int) $transaction->current_department_id === (int) $departmentId
-                && $transaction->assigned_employee_id === null)
-        );
+        $requiresAction = $active
+            && $employeeId
+            && (int) $transaction->assigned_employee_id === (int) $employeeId;
 
         return [
             'id' => $transaction->id,

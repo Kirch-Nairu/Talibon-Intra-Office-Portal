@@ -15,54 +15,139 @@ class WorkQueueTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_default_needs_my_action_uses_existing_assignment_and_office_scope_without_leaking_unrelated_work(): void
+    public function test_all_is_default_and_returns_the_authorized_base_set_without_cross_office_leakage(): void
     {
-        $office = $this->department('OWN');
-        $otherOffice = $this->department('OTHER');
-        $thirdOffice = $this->department('THIRD');
+        $office = $this->department('ALL-OWN');
+        $other = $this->department('ALL-OTHER');
+        $third = $this->department('ALL-THIRD');
         $actor = $this->human('department_head', $office);
-        $otherStaff = $this->human('department_staff', $office);
-        $mine = $this->transaction('Assigned directly to me', $office, $office, $actor, dueAt: now()->addDays(2));
-        $unassigned = $this->transaction('Unassigned office work', $otherOffice, $office, $actor, dueAt: now()->addDays(3));
-        $this->transaction('Assigned to another officer', $otherOffice, $office, $actor, $otherStaff->employee, now()->addDays(4));
-        $this->transaction('Waiting in another office', $office, $otherOffice, $actor, dueAt: now()->addDays(5));
-        $hidden = $this->transaction('Unrelated hidden transaction', $otherOffice, $thirdOffice, $this->human('department_head', $otherOffice), dueAt: now()->addDays(2));
+        $otherHead = $this->human('department_head', $other);
+
+        $this->transaction('Assigned local work', $office, $office, $actor, $actor->employee, now()->addDays(2));
+        $this->transaction('Unassigned incoming work', $other, $office, $actor, dueAt: now()->addDays(3));
+        $this->transaction('Waiting on another office', $office, $other, $actor, dueAt: now()->addDays(4));
+        $this->transaction(
+            'Recently completed local work',
+            $office,
+            $office,
+            $actor,
+            $actor->employee,
+            now()->subDay(),
+            status: 'approved',
+            completedAt: now()->subDays(2),
+        );
+        $hidden = $this->transaction('Unrelated hidden work', $other, $third, $otherHead, dueAt: now()->addDay());
 
         $response = $this->actingAs($actor)->get('/transactions')
             ->assertOk()
             ->assertInertia(fn (Assert $page) => $page
                 ->component('Transactions/Index')
-                ->where('filters.view', 'needs_my_action')
-                ->where('records.total', 2)
-                ->where('records.data.0.id', $mine->id)
-                ->where('records.data.0.requiresAction', true)
-                ->where('records.data.1.id', $unassigned->id)
-                ->where('records.data.1.requiresAction', true)
-                ->where('views.0.key', 'needs_my_action')
-                ->where('views.0.count', 2)
+                ->where('filters.view', 'all')
+                ->where('records.total', 4)
+                ->has('records.data', 4)
+                ->has('views', 9)
+                ->where('views.0.key', 'all')
+                ->where('views.0.label', 'All')
+                ->where('views.0.count', 4)
+                ->where('views.1.key', 'needs_my_action')
+                ->where('views.2.key', 'assigned_to_me')
+                ->where('views.3.key', 'office_queue')
+                ->where('views.4.key', 'unassigned')
+                ->where('views.5.key', 'overdue')
+                ->where('views.6.key', 'due_soon')
+                ->where('views.7.key', 'waiting_on_others')
+                ->where('views.8.key', 'recently_completed')
                 ->where('workspace.canViewAll', false));
 
         $this->assertStringNotContainsString($hidden->title, $response->getContent());
         $this->assertStringNotContainsString((string) $hidden->reference_no, $response->getContent());
     }
 
-    public function test_named_queue_views_project_existing_workflow_fields_without_task_domain(): void
+    public function test_needs_my_action_is_active_current_assignment_only_and_assigned_to_me_keeps_terminal_assignment(): void
     {
-        $office = $this->department('QUEUE');
-        $otherOffice = $this->department('QUEUE-OTHER');
+        $office = $this->department('ASSIGN');
+        $other = $this->department('ASSIGN-OTHER');
         $actor = $this->human('department_head', $office);
-        $officeStaff = $this->human('department_staff', $office);
-        $otherStaff = $this->human('department_staff', $otherOffice);
+        $otherStaff = $this->human('department_staff', $office);
 
-        $mine = $this->transaction('Mine', $office, $office, $actor, $actor->employee, now()->addDays(3));
-        $this->transaction('Other assigned office item', $otherOffice, $office, $actor, $officeStaff->employee, now()->addDays(4));
-        $unassigned = $this->transaction('Unassigned', $otherOffice, $office, $actor, dueAt: now()->addDays(5));
-        $overdue = $this->transaction('Overdue', $otherOffice, $office, $actor, $officeStaff->employee, now()->subDay());
-        $dueSoon = $this->transaction('Due soon', $otherOffice, $office, $actor, $officeStaff->employee, now()->addHours(6));
-        $high = $this->transaction('Urgent elsewhere', $office, $otherOffice, $actor, $otherStaff->employee, now()->addDays(2), priority: 'urgent');
-        $this->transaction('Waiting elsewhere', $office, $otherOffice, $actor, $otherStaff->employee, now()->addDays(6));
-        $completed = $this->transaction(
-            'Recently completed',
+        $mine = $this->transaction('Active assigned to actor', $other, $office, $actor, $actor->employee, now()->addDays(2));
+        $this->transaction('Active unassigned office work', $other, $office, $actor, dueAt: now()->addDays(3));
+        $this->transaction('Active assigned to another employee', $other, $office, $actor, $otherStaff->employee, now()->addDays(4));
+        $terminalMine = $this->transaction(
+            'Terminal still assigned to actor',
+            $office,
+            $office,
+            $actor,
+            $actor->employee,
+            now()->subDay(),
+            status: 'approved',
+            completedAt: now()->subDay(),
+        );
+
+        $this->actingAs($actor)->get('/transactions?view=needs_my_action')
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('filters.view', 'needs_my_action')
+                ->where('records.total', 1)
+                ->where('records.data.0.id', $mine->id)
+                ->where('records.data.0.requiresAction', true));
+
+        $this->actingAs($actor)->get('/transactions?view=assigned_to_me')
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('records.total', 2)
+                ->where('views.2.count', 2));
+
+        $this->actingAs($actor)->get('/transactions?view=assigned_to_me&status=approved')
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('records.total', 1)
+                ->where('records.data.0.id', $terminalMine->id)
+                ->where('records.data.0.requiresAction', false));
+    }
+
+    public function test_unassigned_and_office_queue_remain_active_projections(): void
+    {
+        $office = $this->department('OFFICE');
+        $other = $this->department('OFFICE-OTHER');
+        $actor = $this->human('department_head', $office);
+
+        $unassigned = $this->transaction('Active unassigned', $other, $office, $actor, dueAt: now()->addDays(2));
+        $assigned = $this->transaction('Active assigned', $other, $office, $actor, $actor->employee, now()->addDays(3));
+        $this->transaction(
+            'Terminal office work',
+            $office,
+            $office,
+            $actor,
+            dueAt: now()->subDay(),
+            status: 'approved',
+            completedAt: now()->subDay(),
+        );
+
+        $this->assertSingleView($actor, 'unassigned', $unassigned);
+
+        $this->actingAs($actor)->get('/transactions?view=office_queue')
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('records.total', 2)
+                ->has('records.data', 2)
+                ->where('records.data.1.id', $assigned->id)
+                ->where('views.3.count', 2));
+    }
+
+    public function test_overdue_due_soon_waiting_and_recently_completed_use_correct_existing_fields(): void
+    {
+        $office = $this->department('TIMING');
+        $other = $this->department('TIMING-OTHER');
+        $actor = $this->human('department_head', $office);
+        $otherStaff = $this->human('department_staff', $other);
+
+        $overdue = $this->transaction('Overdue active', $other, $office, $actor, $actor->employee, now()->subDay());
+        $dueSoon = $this->transaction('Due soon active', $other, $office, $actor, $actor->employee, now()->addHours(6));
+        $this->transaction('Waiting elsewhere', $office, $other, $actor, $otherStaff->employee, now()->addDays(3));
+
+        $recent = $this->transaction(
+            'Recent completed',
             $office,
             $office,
             $actor,
@@ -71,8 +156,20 @@ class WorkQueueTest extends TestCase
             status: 'approved',
             completedAt: now()->subDays(3),
         );
+        $nullCompleted = $this->transaction(
+            'Terminal with no completion timestamp',
+            $office,
+            $office,
+            $actor,
+            $actor->employee,
+            now()->subDay(),
+            status: 'approved',
+            completedAt: null,
+        );
+        $nullCompleted->touch();
+
         $this->transaction(
-            'Old completed',
+            'Old completed timestamp',
             $office,
             $office,
             $actor,
@@ -81,19 +178,62 @@ class WorkQueueTest extends TestCase
             status: 'approved',
             completedAt: now()->subDays(60),
         );
+        $this->transaction(
+            'Active with completion timestamp',
+            $office,
+            $office,
+            $actor,
+            $actor->employee,
+            now()->addDays(4),
+            status: 'submitted',
+            completedAt: now()->subDay(),
+        );
 
-        $this->assertSingleView($actor, 'assigned_to_me', $mine);
-        $this->actingAs($actor)->get('/transactions?view=office_queue')
-            ->assertOk()
-            ->assertInertia(fn (Assert $page) => $page->where('records.total', 5));
-        $this->assertSingleView($actor, 'unassigned', $unassigned);
         $this->assertSingleView($actor, 'overdue', $overdue);
         $this->assertSingleView($actor, 'due_soon', $dueSoon);
-        $this->assertSingleView($actor, 'high_priority', $high);
+
         $this->actingAs($actor)->get('/transactions?view=waiting_on_others')
             ->assertOk()
-            ->assertInertia(fn (Assert $page) => $page->where('records.total', 2));
-        $this->assertSingleView($actor, 'recently_completed', $completed);
+            ->assertInertia(fn (Assert $page) => $page->where('records.total', 1));
+
+        $response = $this->actingAs($actor)->get('/transactions?view=recently_completed')
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('records.total', 1)
+                ->where('records.data.0.id', $recent->id));
+
+        $this->assertStringNotContainsString($nullCompleted->title, $response->getContent());
+    }
+
+    public function test_search_includes_transaction_type_and_existing_search_fields(): void
+    {
+        $office = $this->department('SEARCH');
+        $actor = $this->human('department_head', $office);
+
+        $typeMatch = $this->transaction(
+            'Neutral title',
+            $office,
+            $office,
+            $actor,
+            dueAt: now()->addDays(2),
+            transactionType: 'funding_request',
+        );
+        $this->transaction(
+            'Another neutral title',
+            $office,
+            $office,
+            $actor,
+            dueAt: now()->addDays(3),
+            transactionType: 'internal_request',
+        );
+
+        $this->actingAs($actor)->get('/transactions?view=all&search=funding_request')
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('filters.search', 'funding_request')
+                ->where('records.total', 1)
+                ->where('records.data.0.id', $typeMatch->id)
+                ->where('records.data.0.transactionType', 'funding_request'));
     }
 
     public function test_search_status_priority_and_current_office_filters_intersect_authorized_scope(): void
@@ -104,7 +244,6 @@ class WorkQueueTest extends TestCase
         $actor = $this->human('department_head', $own);
         $otherHead = $this->human('department_head', $engineering);
         $budgetStaff = $this->human('department_staff', $budget);
-        $engineeringStaff = $this->human('department_staff', $engineering);
 
         $match = $this->transaction(
             'Budget Alpha Review',
@@ -124,16 +263,6 @@ class WorkQueueTest extends TestCase
             dueAt: now()->addDays(3),
             priority: 'high',
             status: 'for_review',
-        );
-        $this->transaction(
-            'Engineering Gamma',
-            $own,
-            $engineering,
-            $actor,
-            $engineeringStaff->employee,
-            now()->addDays(4),
-            priority: 'normal',
-            status: 'submitted',
         );
         $hidden = $this->transaction(
             'Budget Hidden Review',
@@ -155,13 +284,39 @@ class WorkQueueTest extends TestCase
                 ->where('filters.search', 'budget')
                 ->where('filters.status', 'for_review')
                 ->where('filters.priority', 'high')
-                ->where('filters.office_id', $budget->id)
-                ->has('filterOptions.offices', 3));
+                ->where('filters.office_id', $budget->id));
 
         $this->assertStringNotContainsString($hidden->title, $response->getContent());
     }
 
-    public function test_view_all_capability_allows_authorized_municipality_wide_queue_filtering(): void
+    public function test_high_priority_view_is_rejected_but_priority_filters_continue_to_work(): void
+    {
+        $office = $this->department('PRIORITY');
+        $actor = $this->human('department_head', $office);
+
+        $high = $this->transaction('High priority work', $office, $office, $actor, dueAt: now()->addDays(2), priority: 'high');
+        $urgent = $this->transaction('Urgent priority work', $office, $office, $actor, dueAt: now()->addDay(), priority: 'urgent');
+        $this->transaction('Normal priority work', $office, $office, $actor, dueAt: now()->addDays(3), priority: 'normal');
+
+        $this->actingAs($actor)
+            ->getJson('/transactions?view=high_priority')
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('view');
+
+        $this->actingAs($actor)->get('/transactions?view=all&priority=high')
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('records.total', 1)
+                ->where('records.data.0.id', $high->id));
+
+        $this->actingAs($actor)->get('/transactions?view=all&priority=urgent')
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('records.total', 1)
+                ->where('records.data.0.id', $urgent->id));
+    }
+
+    public function test_view_all_capability_allows_authorized_municipality_wide_priority_filtering(): void
     {
         $adminOffice = $this->department('GLOBAL-ADMIN');
         $other = $this->department('GLOBAL-OTHER');
@@ -169,6 +324,7 @@ class WorkQueueTest extends TestCase
         $admin = $this->human('system_admin', $adminOffice);
         $creator = $this->human('department_head', $other);
         $targetStaff = $this->human('department_staff', $target);
+
         $municipal = $this->transaction(
             'Municipality wide urgent item',
             $other,
@@ -179,7 +335,7 @@ class WorkQueueTest extends TestCase
             priority: 'urgent',
         );
 
-        $this->actingAs($admin)->get('/transactions?view=high_priority&office_id='.$target->id)
+        $this->actingAs($admin)->get('/transactions?view=all&priority=urgent&office_id='.$target->id)
             ->assertOk()
             ->assertInertia(fn (Assert $page) => $page
                 ->where('workspace.canViewAll', true)
@@ -188,7 +344,7 @@ class WorkQueueTest extends TestCase
                 ->has('filterOptions.offices', 3));
     }
 
-    public function test_queue_paginates_server_side_after_authorization_and_view_projection(): void
+    public function test_queue_paginates_server_side_after_authorization_and_all_projection(): void
     {
         $office = $this->department('PAGE');
         $actor = $this->human('department_head', $office);
@@ -203,7 +359,7 @@ class WorkQueueTest extends TestCase
             );
         }
 
-        $this->actingAs($actor)->get('/transactions?view=needs_my_action&page=2')
+        $this->actingAs($actor)->get('/transactions?view=all&page=2')
             ->assertOk()
             ->assertInertia(fn (Assert $page) => $page
                 ->where('records.total', 26)
@@ -303,10 +459,11 @@ class WorkQueueTest extends TestCase
         string $priority = 'normal',
         string $status = 'submitted',
         $completedAt = null,
+        string $transactionType = 'internal_request',
     ): WorkflowTransaction {
         return WorkflowTransaction::query()->create([
             'reference_no' => 'QUEUE-'.Str::upper(Str::random(12)),
-            'transaction_type' => 'internal_request',
+            'transaction_type' => $transactionType,
             'title' => $title,
             'description' => 'Synthetic work queue test transaction.',
             'priority' => $priority,

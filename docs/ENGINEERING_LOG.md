@@ -156,6 +156,26 @@ Every implementation commit must update this file in the same commit. Never conv
 - Residual risk: exact dependency-backed Feature/TypeScript/Vite verification is still required if the execution environment/CI exposes it; queue semantics are prototype projections and should be validated with Department Heads before becoming the final implementation baseline.
 - Stop condition / next action: **Slice 5 only**. Do not begin Slice 6 automatically.
 
+### `fix: align intra-office work queue semantics`
+
+- Current TOR requirement / Slice: **Slice 5.1 — Work Queue Semantic Correction** only.
+- Parent: `bef1e43c9212db4daa712aeeea9049a70120fbaf` (`feat: refine intra-office work queue`).
+- Intent: reconcile Slice 5 behavior with the authorized My Work / Work Queue contract without introducing a Task domain, workflow mutation change, dashboard work, records-search work or parked-module changes.
+- Corrected view vocabulary: `all`, `needs_my_action`, `assigned_to_me`, `office_queue`, `unassigned`, `overdue`, `due_soon`, `waiting_on_others`, `recently_completed`. The unauthorized `high_priority` quick-view projection is removed; priority remains available through the existing `priority=normal|high|urgent` filter.
+- Default projection: absent `view` now resolves to `all`, which returns the authorized base transaction query after common filters and before any narrower queue projection.
+- Personal assignment semantics: `needs_my_action` now means exactly non-terminal work whose current `assigned_employee_id` equals the actor employee. It no longer absorbs unassigned office work. The row-level `requiresAction` indicator is aligned to the same current-assignment/non-terminal meaning.
+- Assigned-to-me semantics: `assigned_to_me` now means current `assigned_employee_id` equals the actor employee regardless of terminal state; an optional status filter may narrow that result. No assignment-history model is inferred.
+- Search contract: server-side search now includes `transaction_type` in addition to reference, title, description, origin/current office names and assigned employee name.
+- Completion semantics: `recently_completed` now requires a configured terminal workflow state plus non-null `completed_at >= now() - 30 days`, ordered primarily by `completed_at DESC`. The Slice 5 `updated_at` fallback is removed. Existing legacy terminal/closed rows with null `completed_at` will therefore not appear in this projection until their data is corrected; this is recorded as an existing-data limitation rather than redefining completion.
+- Counts/frontend: all nine quick-view counts continue to derive only from the authorized base query after common filters. `Transactions/Index.tsx` now treats `all` as the neutral/default view and no longer receives a High Priority quick-view selector; search/status/priority/current-office filters, responsive queue presentation and server pagination remain unchanged.
+- Tests authored/corrected: `WorkQueueTest` now proves default `all`, authorized-base behavior/non-leakage, exact `needs_my_action`, terminal visibility in `assigned_to_me`, active `unassigned` and `office_queue`, transaction-type search, strict recent `completed_at` semantics including null-completion exclusion, rejection of `view=high_priority`, normal high/urgent priority filtering, VIEW_ALL municipality filtering, authorization/filter intersection, pagination, and existing transaction detail/transition regression.
+- Schema/migration impact: **none**.
+- Verification actually observed before commit: required remote branch HEAD verified exactly at `bef1e43c9212db4daa712aeeea9049a70120fbaf`; exact-source review caught and corrected an intermediate local-variable regression before candidate commit. The execution container still cannot resolve `github.com` (`git ls-remote` returned `Could not resolve host: github.com`), so no dependency-backed repository checkout was available. PHP 8.4.23, Node 22.16.0 and npm 10.9.2 are present, but Laravel Feature tests, repository TypeScript and Vite build are **NOT OBSERVED** without the project checkout/dependencies. No unobserved gate is claimed PASS.
+- Complexity: `WorkQueueQuery` is reduced from about **356 LOC to 336 LOC**, remaining in the repository's 301–400 LOC review band and below the 400-LOC service hard cap; no artificial split is introduced.
+- Explicit exclusions: no `TransactionWorkflowService`, `TransactionPolicy`, workflow-definition, transaction-schema, correspondence, dashboard, records-search, unrelated route or parked-module changes.
+- Residual risk: exact dependency-backed Feature/TypeScript/Vite verification remains open; legacy terminal rows with null `completed_at` are intentionally excluded from Recently Completed under the corrected contract.
+- Stop condition: **correction-only Slice 5.1 complete candidate; do not begin Slice 6 automatically.**
+
 ## Current release / prototype state
 
 - Formal project state: `PRE-MOBILIZATION / WORKING PROTOTYPE PREPARATION`.
