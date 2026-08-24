@@ -4,10 +4,12 @@ namespace App\Http\Controllers;
 
 use App\Domain\Workflow\WorkflowDefinition;
 use App\Domain\Workflow\WorkflowDefinitionResolver;
+use App\Http\Requests\TransactionIndexRequest;
 use App\Models\Department;
 use App\Models\Employee;
 use App\Models\WorkflowTransaction;
 use App\Services\TransactionWorkflowService;
+use App\Services\WorkQueueQuery;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -16,30 +18,16 @@ use Inertia\Response;
 
 class TransactionController extends Controller
 {
-    public function index(Request $request): Response
-    {
+    public function index(
+        TransactionIndexRequest $request,
+        WorkQueueQuery $queue,
+    ): Response {
         $this->authorize('viewAny', WorkflowTransaction::class);
-        $user = $request->user()->loadMissing('employee.department');
-        $departmentId = $user->employee?->department_id;
 
-        $query = WorkflowTransaction::query()
-            ->with([
-                'originDepartment:id,code,name,short_name',
-                'currentDepartment:id,code,name,short_name',
-                'assignedEmployee:id,employee_number,full_name,department_id,position_title',
-            ])
-            ->latest();
-
-        if (! $user->isRole('system_admin', 'mayor_approver', 'mayor_staff')) {
-            $query->where(function ($q) use ($departmentId): void {
-                $q->where('current_department_id', $departmentId)
-                    ->orWhere('origin_department_id', $departmentId);
-            });
-        }
-
-        return Inertia::render('Transactions/Index', [
-            'transactions' => $query->limit(100)->get(),
-        ]);
+        return Inertia::render(
+            'Transactions/Index',
+            $queue->workspace($request->user(), $request->validated()),
+        );
     }
 
     public function create(Request $request): Response
