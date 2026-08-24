@@ -1,69 +1,175 @@
 import { Link } from '@inertiajs/react';
+import { AlertTriangle, ArrowRight, Building2, FileText, ShieldCheck } from 'lucide-react';
 import AppLayout from '../layouts/AppLayout';
-import { AlertTriangle, ArrowRight, Bell, BriefcaseBusiness, Building2, CheckCircle2, Clock3, FileText, ShieldCheck, UsersRound } from 'lucide-react';
 
 type Stat = { label: string; value: number; tone: string };
 type Recent = { id: number; ref: string; title: string; status: string; from: string };
-type MunicipalOverview = { activeTransactions: number; executiveQueue: number; overdue: number; highPriority: number; completedThisMonth: number; workforce: number; offices: number };
-type OfficeWorkload = { id: number; code: string; name: string; shortName?: string; employees: number; active: number; overdue: number; dueSoon: number };
-type CentralRecords = {
-    memoranda: number;
-    ordinances: number;
-    resolutions: number;
-    executiveOrders: number;
-    officeOrders: number;
-    administrativeOrders: number;
-    circulars: number;
-    latestRecords: { id: number; type: string; number: string; title: string; issuingBody: string }[];
-    latestMemos: { id: number; number: string; title: string; publishedAt?: string | null }[];
+type MunicipalOverview = {
+    activeTransactions: number;
+    executiveQueue: number;
+    overdue: number;
+    highPriority: number;
+    completedThisMonth: number;
+    offices: number;
 };
-type OperationsSnapshot = { projects: number; procurement: number; funds: number; compliance: number; overdue: number; fundUtilizationPercent: number };
+type OfficeWorkload = {
+    id: number;
+    code: string;
+    name: string;
+    shortName?: string;
+    active: number;
+    overdue: number;
+    dueSoon: number;
+};
 type Props = {
-    workspace: { kind: 'mayor' | 'department'; departmentName: string; departmentCode: string | null; canAccessHris: boolean; canManageLegislation: boolean; canSeeMunicipalOverview: boolean };
+    workspace: {
+        kind: 'mayor' | 'department';
+        departmentName: string;
+        departmentCode: string | null;
+        canSeeMunicipalOverview: boolean;
+    };
     stats: Stat[];
     recent: Recent[];
-    departmentsCount: number;
     municipalOverview?: MunicipalOverview | null;
     departmentWorkload: OfficeWorkload[];
-    centralRecords: CentralRecords;
-    operationsSnapshot?: OperationsSnapshot | null;
 };
 
 const toneClass: Record<string, string> = {
-    blue: 'bg-blue-50 text-blue-800 ring-blue-100', amber: 'bg-amber-50 text-amber-800 ring-amber-100', rose: 'bg-rose-50 text-rose-800 ring-rose-100', emerald: 'bg-emerald-50 text-emerald-800 ring-emerald-100',
+    blue: 'bg-blue-50 text-blue-800 ring-blue-100',
+    amber: 'bg-amber-50 text-amber-800 ring-amber-100',
+    rose: 'bg-rose-50 text-rose-800 ring-rose-100',
+    emerald: 'bg-emerald-50 text-emerald-800 ring-emerald-100',
 };
 
-export default function Dashboard({ workspace, stats, recent, departmentsCount, municipalOverview, departmentWorkload, centralRecords, operationsSnapshot }: Props) {
+export default function Dashboard({ workspace, stats, recent, municipalOverview, departmentWorkload }: Props) {
     const isMayor = workspace.kind === 'mayor';
     const overviewCards = municipalOverview ? [
-        ['Active Work', municipalOverview.activeTransactions], ['Executive Queue', municipalOverview.executiveQueue], ['Overdue', municipalOverview.overdue], ['High Priority', municipalOverview.highPriority], ['Completed This Month', municipalOverview.completedThisMonth], ['Municipal Workforce', municipalOverview.workforce],
+        ['Active Work', municipalOverview.activeTransactions],
+        ['Executive Queue', municipalOverview.executiveQueue],
+        ['Overdue', municipalOverview.overdue],
+        ['High Priority', municipalOverview.highPriority],
+        ['Completed This Month', municipalOverview.completedThisMonth],
+        ['Active Offices', municipalOverview.offices],
     ] : [];
-    const recordCards = [
-        ['Memoranda', centralRecords.memoranda], ['Ordinances', centralRecords.ordinances], ['Resolutions', centralRecords.resolutions], ['Executive Orders', centralRecords.executiveOrders], ['Office Orders', centralRecords.officeOrders], ['Admin Orders', centralRecords.administrativeOrders], ['Circulars', centralRecords.circulars],
-    ];
 
     return (
-        <AppLayout title={isMayor ? "Mayor's Office Command Dashboard" : `${workspace.departmentName} Dashboard`}>
-            <div className="mx-auto max-w-7xl space-y-4 sm:space-y-7">
-                <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm sm:rounded-3xl"><div className="grid gap-4 p-4 sm:gap-6 sm:p-6 md:p-8 lg:grid-cols-[1.35fr_.65fr] lg:items-center"><div><div className="text-[9px] font-bold uppercase tracking-[0.18em] text-blue-700 sm:text-xs sm:tracking-[0.2em]">{isMayor ? 'Municipal oversight' : 'Department workspace'}</div><h1 className="mt-2 text-2xl font-bold tracking-tight text-slate-950 sm:mt-3 sm:text-3xl md:text-4xl">{workspace.departmentName}</h1><p className="mt-2 max-w-2xl text-[12px] leading-5 text-slate-600 sm:mt-3 sm:text-sm sm:leading-6">{isMayor ? 'Review municipal transactions, monitor department workload, identify bottlenecks, and act on items requiring executive attention.' : 'Receive, review, route, and track your office transactions from one accountable workspace.'}</p></div><div className="rounded-xl bg-[#0b2852] p-4 text-white sm:rounded-2xl sm:p-5"><div className="flex items-center gap-2 text-[12px] font-semibold sm:text-sm"><ShieldCheck size={16} /> Authorized workspace</div><div className="mt-2 text-[11px] leading-5 text-blue-100 sm:mt-3 sm:text-sm">Access is scoped by employee identity, department, and role. Protected actions are enforced on the server.</div></div></div></section>
+        <AppLayout title={isMayor ? "Mayor's Office Dashboard" : `${workspace.departmentName} Dashboard`}>
+            <div className="mx-auto max-w-7xl space-y-4 sm:space-y-6">
+                <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm sm:rounded-3xl">
+                    <div className="grid gap-4 p-4 sm:gap-6 sm:p-6 md:p-8 lg:grid-cols-[1.35fr_.65fr] lg:items-center">
+                        <div>
+                            <div className="text-[9px] font-bold uppercase tracking-[0.18em] text-blue-700 sm:text-xs sm:tracking-[0.2em]">
+                                {isMayor ? 'Municipal oversight' : 'Department workspace'}
+                            </div>
+                            <h1 className="mt-2 text-2xl font-bold tracking-tight text-slate-950 sm:mt-3 sm:text-3xl md:text-4xl">{workspace.departmentName}</h1>
+                            <p className="mt-2 max-w-2xl text-[12px] leading-5 text-slate-600 sm:mt-3 sm:text-sm sm:leading-6">
+                                {isMayor
+                                    ? 'Review active intra-office work, identify overdue items, monitor office workload, and act on requests requiring executive attention.'
+                                    : 'Receive, review, route, and track authorized intra-office work from one accountable workspace.'}
+                            </p>
+                        </div>
+                        <div className="rounded-xl bg-[#0b2852] p-4 text-white sm:rounded-2xl sm:p-5">
+                            <div className="flex items-center gap-2 text-[12px] font-semibold sm:text-sm"><ShieldCheck size={16} /> Authorized workspace</div>
+                            <div className="mt-2 text-[11px] leading-5 text-blue-100 sm:mt-3 sm:text-sm">Access remains scoped by authenticated employee identity, office, and server-side authorization.</div>
+                        </div>
+                    </div>
+                </section>
 
-                {municipalOverview && <>
-                    <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:rounded-3xl sm:p-6"><div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between"><div><div className="text-[9px] font-bold uppercase tracking-[0.18em] text-blue-700 sm:text-xs">Municipal operations overview</div><h2 className="mt-1.5 text-xl font-bold text-slate-950 sm:text-2xl">Municipality-wide operational visibility</h2><p className="mt-1 text-[11px] text-slate-500 sm:text-sm">Workload, deadlines, executive attention, and workforce scale from the shared municipal database.</p></div><Link href="/employees" className="inline-flex w-fit items-center gap-2 rounded-xl border border-blue-200 px-3 py-2 text-[11px] font-semibold text-blue-800 sm:text-sm"><UsersRound size={15} /> View {municipalOverview.workforce} employees</Link></div><div className="mt-4 grid grid-cols-2 gap-2.5 sm:grid-cols-3 sm:gap-4 xl:grid-cols-6">{overviewCards.map(([label, value]) => <div key={String(label)} className="rounded-xl bg-slate-50 p-3 sm:p-4"><div className="text-[9px] font-bold uppercase tracking-wide text-slate-500 sm:text-[10px]">{label}</div><div className="mt-2 text-xl font-bold text-slate-950 sm:text-2xl">{value}</div></div>)}</div></section>
+                {municipalOverview && (
+                    <>
+                        <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:rounded-3xl sm:p-6">
+                            <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+                                <div>
+                                    <div className="text-[9px] font-bold uppercase tracking-[0.18em] text-blue-700 sm:text-xs">Municipal intra-office overview</div>
+                                    <h2 className="mt-1.5 text-xl font-bold text-slate-950 sm:text-2xl">Current workload and accountability</h2>
+                                    <p className="mt-1 text-[11px] text-slate-500 sm:text-sm">Operational work only. Parked HRIS, Legislative, Property, project, procurement and fund surfaces are not presented here.</p>
+                                </div>
+                                <Link href="/transactions" className="inline-flex w-fit items-center gap-2 rounded-xl border border-blue-200 px-3 py-2 text-[11px] font-semibold text-blue-800 sm:text-sm">Open all work <ArrowRight size={14} /></Link>
+                            </div>
+                            <div className="mt-4 grid grid-cols-2 gap-2.5 sm:grid-cols-3 sm:gap-4 xl:grid-cols-6">
+                                {overviewCards.map(([label, value]) => (
+                                    <div key={String(label)} className="rounded-xl bg-slate-50 p-3 sm:p-4">
+                                        <div className="text-[9px] font-bold uppercase tracking-wide text-slate-500 sm:text-[10px]">{label}</div>
+                                        <div className="mt-2 text-xl font-bold text-slate-950 sm:text-2xl">{value}</div>
+                                    </div>
+                                ))}
+                            </div>
+                        </section>
 
-                    <section className="grid gap-4 xl:grid-cols-[1.25fr_.75fr]">
-                        <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm sm:rounded-3xl"><div className="flex items-center justify-between gap-3 border-b border-slate-100 px-4 py-3 sm:px-6 sm:py-5"><div><h2 className="text-sm font-bold text-slate-950 sm:text-base">Department workload & bottlenecks</h2><p className="mt-1 text-[10px] text-slate-500 sm:text-sm">Offices with overdue work rise to the top.</p></div><AlertTriangle size={18} className="text-amber-600" /></div><div className="hidden overflow-x-auto md:block"><table className="w-full text-left text-sm"><thead className="bg-slate-50 text-[10px] uppercase tracking-wide text-slate-500"><tr><th className="px-5 py-3">Office</th><th className="px-5 py-3">Employees</th><th className="px-5 py-3">Active</th><th className="px-5 py-3">Due Soon</th><th className="px-5 py-3">Overdue</th></tr></thead><tbody className="divide-y divide-slate-100">{departmentWorkload.slice(0, 12).map((office) => <tr key={office.id}><td className="px-5 py-3.5"><div className="font-semibold text-slate-950">{office.shortName || office.name}</div><div className="mt-0.5 text-xs text-slate-400">{office.code}</div></td><td className="px-5 py-3.5 text-slate-700">{office.employees}</td><td className="px-5 py-3.5 font-semibold">{office.active}</td><td className="px-5 py-3.5"><span className={`rounded-full px-2.5 py-1 text-[10px] font-bold ${office.dueSoon ? 'bg-amber-50 text-amber-800' : 'bg-slate-100 text-slate-500'}`}>{office.dueSoon}</span></td><td className="px-5 py-3.5"><span className={`rounded-full px-2.5 py-1 text-[10px] font-bold ${office.overdue ? 'bg-rose-50 text-rose-800' : 'bg-emerald-50 text-emerald-800'}`}>{office.overdue}</span></td></tr>)}</tbody></table></div><div className="divide-y divide-slate-100 md:hidden">{departmentWorkload.slice(0, 8).map((office) => <div key={office.id} className="p-3.5"><div className="flex items-start justify-between gap-3"><div><div className="text-[12px] font-semibold text-slate-950">{office.shortName || office.name}</div><div className="mt-0.5 text-[9px] text-slate-400">{office.employees} employees</div></div><div className="text-right"><div className="text-[11px] font-bold">{office.active} active</div><div className={`mt-1 text-[9px] font-semibold ${office.overdue ? 'text-rose-700' : 'text-emerald-700'}`}>{office.overdue} overdue · {office.dueSoon} due soon</div></div></div></div>)}</div></div>
+                        <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm sm:rounded-3xl">
+                            <div className="flex items-center justify-between gap-3 border-b border-slate-100 px-4 py-3 sm:px-6 sm:py-5">
+                                <div>
+                                    <h2 className="text-sm font-bold text-slate-950 sm:text-base">Office workload & bottlenecks</h2>
+                                    <p className="mt-1 text-[10px] text-slate-500 sm:text-sm">Offices with overdue or active intra-office work rise to the top.</p>
+                                </div>
+                                <AlertTriangle size={18} className="text-amber-600" />
+                            </div>
+                            <div className="hidden overflow-x-auto md:block">
+                                <table className="w-full text-left text-sm">
+                                    <thead className="bg-slate-50 text-[10px] uppercase tracking-wide text-slate-500">
+                                        <tr><th className="px-5 py-3">Office</th><th className="px-5 py-3">Active</th><th className="px-5 py-3">Due Soon</th><th className="px-5 py-3">Overdue</th></tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-slate-100">
+                                        {departmentWorkload.slice(0, 12).map((office) => (
+                                            <tr key={office.id}>
+                                                <td className="px-5 py-3.5"><div className="font-semibold text-slate-950">{office.shortName || office.name}</div><div className="mt-0.5 text-xs text-slate-400">{office.code}</div></td>
+                                                <td className="px-5 py-3.5 font-semibold">{office.active}</td>
+                                                <td className="px-5 py-3.5"><span className={`rounded-full px-2.5 py-1 text-[10px] font-bold ${office.dueSoon ? 'bg-amber-50 text-amber-800' : 'bg-slate-100 text-slate-500'}`}>{office.dueSoon}</span></td>
+                                                <td className="px-5 py-3.5"><span className={`rounded-full px-2.5 py-1 text-[10px] font-bold ${office.overdue ? 'bg-rose-50 text-rose-800' : 'bg-emerald-50 text-emerald-800'}`}>{office.overdue}</span></td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                            <div className="divide-y divide-slate-100 md:hidden">
+                                {departmentWorkload.slice(0, 8).map((office) => (
+                                    <div key={office.id} className="p-3.5">
+                                        <div className="flex items-start justify-between gap-3">
+                                            <div><div className="text-[12px] font-semibold text-slate-950">{office.shortName || office.name}</div><div className="mt-0.5 text-[9px] text-slate-400">{office.code}</div></div>
+                                            <div className="text-right"><div className="text-[11px] font-bold">{office.active} active</div><div className={`mt-1 text-[9px] font-semibold ${office.overdue ? 'text-rose-700' : 'text-emerald-700'}`}>{office.overdue} overdue · {office.dueSoon} due soon</div></div>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </section>
+                    </>
+                )}
 
-                        {operationsSnapshot && <Link href="/operations" className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition hover:border-blue-200 sm:rounded-3xl sm:p-5"><div className="flex items-center gap-2"><BriefcaseBusiness size={18} className="text-blue-800" /><div><div className="text-sm font-bold text-slate-950">Operations Monitoring</div><div className="text-[9px] text-slate-500 sm:text-xs">Projects · Procurement · Funds · Compliance</div></div></div><div className="mt-4 grid grid-cols-2 gap-2">{[['Projects', operationsSnapshot.projects], ['Procurement', operationsSnapshot.procurement], ['Funds', operationsSnapshot.funds], ['Compliance', operationsSnapshot.compliance]].map(([label, value]) => <div key={String(label)} className="rounded-xl bg-slate-50 p-3"><div className="text-[8px] uppercase text-slate-400">{label}</div><div className="mt-1 text-xl font-bold text-slate-950">{value}</div></div>)}</div><div className="mt-3 grid grid-cols-2 gap-2"><div className="rounded-xl bg-rose-50 p-3"><div className="text-[8px] uppercase text-rose-600">Overdue</div><div className="mt-1 text-xl font-bold text-rose-800">{operationsSnapshot.overdue}</div></div><div className="rounded-xl bg-emerald-50 p-3"><div className="text-[8px] uppercase text-emerald-600">Fund utilized</div><div className="mt-1 text-xl font-bold text-emerald-800">{operationsSnapshot.fundUtilizationPercent}%</div></div></div><div className="mt-3 text-[10px] font-semibold text-blue-700">Open executive monitoring →</div></Link>}
-                    </section>
-                </>}
+                <section className="grid grid-cols-2 gap-2.5 sm:gap-4 xl:grid-cols-4">
+                    {stats.map((stat) => (
+                        <div key={stat.label} className="rounded-xl border border-slate-200 bg-white p-3 shadow-sm sm:rounded-2xl sm:p-5">
+                            <div className={`inline-flex rounded-md px-2 py-0.5 text-[9px] font-semibold ring-1 sm:rounded-lg sm:px-2.5 sm:py-1 sm:text-xs ${toneClass[stat.tone]}`}>{stat.label}</div>
+                            <div className="mt-2 text-xl font-bold text-slate-950 sm:mt-4 sm:text-3xl">{stat.value}</div>
+                        </div>
+                    ))}
+                </section>
 
-                <section className="rounded-2xl border border-slate-200 bg-white shadow-sm sm:rounded-3xl"><div className="flex flex-col gap-3 border-b border-slate-100 px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-6 sm:py-5"><div><div className="flex items-center gap-2"><FileText size={17} className="text-blue-800" /><h2 className="text-sm font-bold text-slate-950 sm:text-base">Central Records</h2></div><p className="mt-1 text-[10px] text-slate-500 sm:text-xs">Memoranda and municipal issuances accessible from one dashboard.</p></div><div className="flex gap-2"><Link href="/memoranda" className="rounded-lg border border-slate-200 px-2.5 py-1.5 text-[9px] font-semibold text-slate-700 sm:text-xs">Memoranda</Link><Link href="/legislation" className="rounded-lg bg-[#0b2852] px-2.5 py-1.5 text-[9px] font-semibold text-white sm:text-xs">All Records</Link></div></div><div className="p-4 sm:p-5"><div className="grid grid-cols-3 gap-2 sm:grid-cols-4 xl:grid-cols-7">{recordCards.map(([label, value]) => <div key={String(label)} className="rounded-xl bg-slate-50 p-2.5 sm:p-3"><div className="text-[7px] font-bold uppercase tracking-wide text-slate-400 sm:text-[9px]">{label}</div><div className="mt-1 text-lg font-bold text-slate-950 sm:text-xl">{value}</div></div>)}</div><div className="mt-4 grid gap-3 lg:grid-cols-2"><div><div className="mb-2 text-[9px] font-bold uppercase tracking-wide text-slate-400">Latest municipal issuances</div><div className="divide-y divide-slate-100 rounded-xl border border-slate-100">{centralRecords.latestRecords.map((record) => <Link key={record.id} href={`/legislation/${record.id}`} className="block px-3 py-2.5 hover:bg-slate-50"><div className="text-[9px] font-bold text-blue-700">{record.number}</div><div className="mt-0.5 text-[11px] font-semibold text-slate-900 sm:text-sm">{record.title}</div><div className="mt-0.5 text-[8px] text-slate-400">{record.type.replaceAll('_', ' ')} · {record.issuingBody}</div></Link>)}</div></div><div><div className="mb-2 text-[9px] font-bold uppercase tracking-wide text-slate-400">Latest memoranda</div><div className="divide-y divide-slate-100 rounded-xl border border-slate-100">{centralRecords.latestMemos.map((memo) => <Link key={memo.id} href={`/memoranda/${memo.id}`} className="block px-3 py-2.5 hover:bg-slate-50"><div className="text-[9px] font-bold text-blue-700">{memo.number}</div><div className="mt-0.5 text-[11px] font-semibold text-slate-900 sm:text-sm">{memo.title}</div><div className="mt-0.5 text-[8px] text-slate-400">{memo.publishedAt ? new Date(memo.publishedAt).toLocaleDateString() : 'Published'}</div></Link>)}{centralRecords.latestMemos.length === 0 && <div className="px-3 py-5 text-[10px] text-slate-400">No published memoranda.</div>}</div></div></div></div></section>
+                <section className="grid gap-4 xl:grid-cols-[1.35fr_.65fr]">
+                    <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm sm:rounded-3xl">
+                        <div className="flex items-center justify-between gap-3 border-b border-slate-100 px-4 py-3 sm:px-6 sm:py-5">
+                            <div><h2 className="text-sm font-bold text-slate-950 sm:text-base">{isMayor ? 'Priority review queue' : 'Recent transactions'}</h2><p className="mt-1 text-[10px] text-slate-500 sm:text-sm">Recent work visible to this authorized workspace.</p></div>
+                            <Link href={isMayor ? '/mayor-office' : '/transactions'} className="shrink-0 text-[11px] font-semibold text-blue-700 sm:text-sm">Open inbox</Link>
+                        </div>
+                        <div className="divide-y divide-slate-100">
+                            {recent.map((item) => (
+                                <Link key={item.id} href={`/transactions/${item.id}`} className="flex items-center justify-between gap-4 px-4 py-3.5 hover:bg-slate-50 sm:px-6 sm:py-4">
+                                    <div className="min-w-0"><div className="text-[9px] font-bold uppercase tracking-wide text-blue-700 sm:text-xs">{item.ref}</div><div className="mt-1 truncate text-[12px] font-semibold text-slate-950 sm:text-sm">{item.title}</div><div className="mt-1 text-[9px] text-slate-400 sm:text-xs">From {item.from}</div></div>
+                                    <div className="shrink-0 text-right"><span className="rounded-full bg-slate-100 px-2.5 py-1 text-[8px] font-bold text-slate-600 sm:text-[10px]">{item.status}</span></div>
+                                </Link>
+                            ))}
+                            {recent.length === 0 && <div className="px-5 py-8 text-center text-[11px] text-slate-500 sm:text-sm">No recent transactions in this workspace.</div>}
+                        </div>
+                    </div>
 
-                <section className="grid grid-cols-2 gap-2.5 sm:gap-4 xl:grid-cols-4">{stats.map((stat) => <div key={stat.label} className="rounded-xl border border-slate-200 bg-white p-3 shadow-sm sm:rounded-2xl sm:p-5"><div className={`inline-flex rounded-md px-2 py-0.5 text-[9px] font-semibold ring-1 sm:rounded-lg sm:px-2.5 sm:py-1 sm:text-xs ${toneClass[stat.tone]}`}>{stat.label}</div><div className="mt-2 text-xl font-bold text-slate-950 sm:mt-4 sm:text-3xl">{stat.value}</div></div>)}</section>
-
-                <section className="grid gap-4 sm:gap-6 xl:grid-cols-[1.5fr_.75fr]"><div className="rounded-2xl border border-slate-200 bg-white shadow-sm sm:rounded-3xl"><div className="flex items-center justify-between gap-3 border-b border-slate-100 px-4 py-3 sm:px-6 sm:py-5"><div><h2 className="text-sm font-bold text-slate-950 sm:text-base">{isMayor ? 'Priority review queue' : 'Recent transactions'}</h2><p className="mt-1 text-[10px] text-slate-500 sm:text-sm">Live from the shared municipal workflow database</p></div><Link href={isMayor ? '/mayor-office' : '/transactions'} className="shrink-0 text-[11px] font-semibold text-blue-700 sm:text-sm">Open inbox</Link></div><div className="divide-y divide-slate-100">{recent.map((item) => <Link key={item.id} href={`/transactions/${item.id}`} className="flex flex-col gap-2.5 px-4 py-3.5 transition hover:bg-blue-50/40 sm:gap-4 sm:px-6 sm:py-5 md:flex-row md:items-center md:justify-between"><div className="min-w-0"><div className="text-[10px] font-bold tracking-wide text-blue-700 sm:text-xs">{item.ref}</div><div className="mt-1 text-sm font-semibold text-slate-950 sm:text-base">{item.title}</div><div className="mt-1 text-[11px] text-slate-500 sm:text-sm">Origin: {item.from}</div></div><div className="flex items-center gap-2"><span className="rounded-full bg-slate-100 px-2.5 py-1 text-[9px] font-semibold text-slate-700 sm:text-xs">{item.status}</span><ArrowRight size={15} /></div></Link>)}{recent.length === 0 && <div className="p-6 text-center text-[12px] text-slate-500">No workflow activity is currently visible to this office.</div>}</div></div><div className="space-y-3"><Link href="/memoranda" className="block rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition hover:border-blue-200"><div className="flex items-center gap-2"><Bell size={18} className="text-blue-800" /><div className="text-sm font-bold text-slate-950">Municipal Memoranda</div></div><p className="mt-2 text-[11px] leading-5 text-slate-600">Delivery, popup notification, review, and acknowledgement.</p></Link><Link href="/departments" className="block rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition hover:border-blue-200"><div className="flex items-center gap-2"><Building2 size={18} className="text-blue-800" /><div className="text-sm font-bold text-slate-950">Municipal Structure</div></div><div className="mt-2 text-2xl font-bold">{departmentsCount}</div><div className="text-[10px] text-slate-500">configured prototype offices</div></Link></div></section>
-
-                <section className="grid gap-2.5 sm:gap-4 md:grid-cols-3"><Link href="/legislation" className="rounded-xl border border-slate-200 bg-white p-4"><FileText className="text-blue-800" size={18} /><div className="mt-3 text-sm font-bold">Central Records</div><div className="mt-1 text-[11px] leading-5 text-slate-500">Search memoranda, ordinances, resolutions, orders, and circulars.</div></Link><Link href="/employees" className="rounded-xl border border-slate-200 bg-white p-4"><UsersRound className="text-blue-800" size={18} /><div className="mt-3 text-sm font-bold">Municipal Workforce</div><div className="mt-1 text-[11px] leading-5 text-slate-500">Employee directory, office membership, and portal identity separation.</div></Link><div className="rounded-xl border border-slate-200 bg-white p-4"><ShieldCheck className="text-blue-800" size={18} /><div className="mt-3 text-sm font-bold">Audit & Security</div><div className="mt-1 text-[11px] leading-5 text-slate-500">Accountable actions, denied access, and workflow evidence.</div></div></section>
+                    <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:rounded-3xl sm:p-5">
+                        <div className="text-sm font-bold text-slate-950">Portal shortcuts</div>
+                        <div className="mt-3 space-y-2">
+                            <Link href="/transactions" className="flex items-center justify-between rounded-xl border border-slate-200 px-3 py-3 text-[11px] font-semibold text-slate-700 hover:bg-slate-50 sm:text-sm"><span className="flex items-center gap-2"><FileText size={15} /> My Work</span><ArrowRight size={14} /></Link>
+                            <Link href="/memoranda" className="flex items-center justify-between rounded-xl border border-slate-200 px-3 py-3 text-[11px] font-semibold text-slate-700 hover:bg-slate-50 sm:text-sm"><span className="flex items-center gap-2"><FileText size={15} /> Memoranda</span><ArrowRight size={14} /></Link>
+                            <Link href="/departments" className="flex items-center justify-between rounded-xl border border-slate-200 px-3 py-3 text-[11px] font-semibold text-slate-700 hover:bg-slate-50 sm:text-sm"><span className="flex items-center gap-2"><Building2 size={15} /> Departments</span><ArrowRight size={14} /></Link>
+                        </div>
+                    </div>
+                </section>
             </div>
         </AppLayout>
     );

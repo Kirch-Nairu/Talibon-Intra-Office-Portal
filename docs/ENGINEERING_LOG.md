@@ -61,19 +61,38 @@ Every implementation commit must update this file in the same commit. Never conv
 
 - Current TOR requirement / Slice: **Slice 0 — Current Procurement Authority**.
 - Parent: `8e4f97da892b8cb7205f53b150531bc1cd4687f4`.
+- Commit: `7af0df82ec9abb18d64a77c84fc8d3a658b7691a`.
 - Intent: make the present Core Intra-Office Portal procurement the active development authority without deleting historical SSOT/commercial records or broader implementation already present.
-- Files/modules changed:
-  - new `SSOT_CURRENT_INTRA_OFFICE_PORTAL_SCOPE.md`;
-  - `AGENTS.md` read order, active scope freeze, architecture rules and prototype presentation rules;
-  - `docs/ENGINEERING_LOG.md` authority/consolidation and this entry.
+- Files/modules changed: new `SSOT_CURRENT_INTRA_OFFICE_PORTAL_SCOPE.md`; `AGENTS.md`; `docs/ENGINEERING_LOG.md`.
 - Scope authority recorded: ALZA IT Solutions is the legal/implementing entity; Team ALZA is the project team; Kirch Ivan A. Balite is Technical Lead for System Architecture & Engineering Direction; current state is PRE-MOBILIZATION / WORKING PROTOTYPE PREPARATION; active work maps only to the Core Intra-Office Portal TOR.
 - Preserved/parked: broader HRIS, payroll/DTR/attendance/leave, health-vault expansion, Property expansion, Legislative expansion, GAD, public portal, eBOSS, biometric, project/procurement expansion and other future modules remain in the repository but are not current implementation authority.
 - Commercial/state rule: existing pre-mobilization implementation is engineering/prototype progress and is not contractual completion. Department Head prototype evaluation precedes the final implementation baseline.
 - Schema/migration impact: **none**.
 - Runtime impact: **none**; documentation/governance only.
-- Verification actually observed before commit: remote branch HEAD verified as exactly `8e4f97da892b8cb7205f53b150531bc1cd4687f4` with parent `72782c86653dd871cbd6c15fcb162eaff2789cbd`; the three documentation blobs were constructed against that exact base tree. No runtime, Laravel, TypeScript or Vite test is claimed for this docs-only slice.
+- Verification actually observed: remote branch HEAD verified as exactly `8e4f97da892b8cb7205f53b150531bc1cd4687f4` before implementation; final branch ref then verified at `7af0df82ec9abb18d64a77c84fc8d3a658b7691a`. No runtime, Laravel, TypeScript or Vite test is claimed for this docs-only slice.
 - Known gaps/risks: older historical documents still contain broader commercial terminology by design; agents/developers must follow the new read order so those files do not silently expand active scope.
 - Next slice: **Slice 1 — Prototype Navigation Isolation**.
+
+### `feat: isolate current intra-office portal prototype navigation`
+
+- Current TOR requirement / Slice: **Slice 1 — Prototype Navigation Isolation**.
+- Parent: `7af0df82ec9abb18d64a77c84fc8d3a658b7691a`.
+- Intent: present only current Core Intra-Office Portal surfaces to Department Heads while preserving all parked routes and backend modules.
+- Files/modules changed:
+  - `resources/js/layouts/AppLayout.tsx` — removes Operations, Central Records/Legislative, HRIS, Employees and broad Reports from the prototype navigation while retaining Dashboard, My Work, authorized Mayor's Office, Memoranda, Departments and authorized Audit & Security;
+  - `app/Http/Controllers/DashboardController.php` — removes Legislative, HR/workforce and project/procurement/fund/compliance rollups from serialized dashboard data;
+  - `resources/js/pages/Dashboard.tsx` — removes parked-module cards/links and keeps current intra-office workload, recent transactions, office bottlenecks and current portal shortcuts;
+  - `tests/Feature/CurrentPortalNavigationTest.php` — focused presentation-scope and route-preservation coverage;
+  - `docs/ENGINEERING_LOG.md` — this entry.
+- Correspondence navigation sequencing: the clickable Correspondence item is intentionally activated in Slice 2 together with the real `GET /correspondence` index route so Slice 1 does not ship a dead navigation link.
+- Authorization behavior: existing server-side authorization and parked direct-route authorization are unchanged. Audit & Security and Mayor's Office remain role-gated in the shell; hiding parked links does not grant or revoke backend access.
+- Route preservation: Slice 1 does not delete or alter parked routes. Focused test coverage asserts representative Operations, Legislative, HRIS, Property, Reports and Employees routes remain registered even though they are not advertised in the current prototype shell.
+- Schema/migration impact: **none**.
+- Verification authored for this slice: `CurrentPortalNavigationTest` checks current-scope navigation labels, absence of parked navigation hrefs, preservation of parked route registration, and absence of old parked dashboard rollup props.
+- Verification actually observed before commit: source-level inspection of the changed PHP/TSX content and route names only. No PHP runtime, Laravel Feature execution, TypeScript compiler or Vite build is claimed yet because no dependency-backed execution environment is available through the repository connector itself. CI status will be checked after push if GitHub exposes a run for the exact commit.
+- LOC/complexity: rewritten `DashboardController.php` remains comfortably under the 300-LOC controller cap; `Dashboard.tsx` remains under the 400-LOC React page cap; no existing service is enlarged.
+- Residual risks: Correspondence is not yet exposed in navigation until Slice 2 creates a functional index; Slice 7 will later perform the deeper dashboard refocus around correspondence-specific attention metrics.
+- Next slice: **Slice 2 — Correspondence Index / Inbox**.
 
 ## Current release / prototype state
 
