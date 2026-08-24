@@ -17,7 +17,7 @@ class CurrentPortalNavigationTest extends TestCase
         $layout = file_get_contents(resource_path('js/layouts/AppLayout.tsx'));
         $this->assertIsString($layout);
 
-        foreach (['/dashboard', '/transactions', '/correspondence', '/mayor-office', '/memoranda', '/departments', '/audit'] as $href) {
+        foreach (['/dashboard', '/transactions', '/correspondence', '/records', '/mayor-office', '/memoranda', '/departments', '/audit'] as $href) {
             $this->assertStringContainsString("href: '{$href}'", $layout);
         }
 
@@ -44,6 +44,7 @@ class CurrentPortalNavigationTest extends TestCase
         }
 
         $this->assertTrue(Route::has('correspondence.index'));
+        $this->assertTrue(Route::has('records.index'));
     }
 
     public function test_dashboard_response_does_not_serialize_parked_module_rollups(): void

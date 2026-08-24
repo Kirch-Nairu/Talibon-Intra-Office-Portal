@@ -2,7 +2,6 @@
 
 namespace App\Services;
 
-use App\Domain\Workflow\Authorization\TransactionCapabilities;
 use App\Http\Requests\TransactionIndexRequest;
 use App\Models\Department;
 use App\Models\User;
@@ -25,8 +24,9 @@ final class WorkQueueQuery
         'recently_completed' => 'Recently Completed',
     ];
 
-    public function __construct(private readonly TransactionCapabilities $capabilities)
-    {
+    public function __construct(
+        private readonly TransactionVisibilityQuery $visibility,
+    ) {
     }
 
     /** @param array<string, mixed> $filters */
@@ -35,7 +35,7 @@ final class WorkQueueQuery
         $actor->loadMissing('employee.department');
         $view = (string) ($filters['view'] ?? 'all');
 
-        $authorized = $this->authorized($actor);
+        $authorized = $this->visibility->scope($actor);
         $filtered = $this->applyCommonFilters(clone $authorized, $filters);
         $views = $this->viewOptions($filtered, $actor);
         $records = $this->records($filtered, $actor, $view);
@@ -58,28 +58,9 @@ final class WorkQueueQuery
             'workspace' => [
                 'departmentName' => $actor->employee?->department?->name,
                 'departmentCode' => $actor->employee?->department?->code,
-                'canViewAll' => $this->canViewAll($actor),
+                'canViewAll' => $this->visibility->canViewAll($actor),
             ],
         ];
-    }
-
-    private function authorized(User $actor): Builder
-    {
-        $query = WorkflowTransaction::query();
-
-        if ($this->canViewAll($actor)) {
-            return $query;
-        }
-
-        $departmentId = $actor->employee?->department_id;
-        if (! $departmentId) {
-            return $query->whereRaw('1 = 0');
-        }
-
-        return $query->where(function (Builder $visible) use ($departmentId): void {
-            $visible->where('current_department_id', $departmentId)
-                ->orWhere('origin_department_id', $departmentId);
-        });
     }
 
     /** @param array<string, mixed> $filters */
@@ -287,7 +268,7 @@ final class WorkQueueQuery
     /** @return array<int, array{id:int,code:string,name:string,shortName:?string}> */
     private function officeOptions(Builder $authorized, User $actor): array
     {
-        if ($this->canViewAll($actor)) {
+        if ($this->visibility->canViewAll($actor)) {
             $query = Department::query()->where('is_active', true);
         } else {
             $ids = (clone $authorized)->distinct()->pluck('current_department_id')->filter()->all();
@@ -312,15 +293,6 @@ final class WorkQueueQuery
                 'shortName' => $department->short_name,
             ])
             ->all();
-    }
-
-    private function canViewAll(User $actor): bool
-    {
-        $roles = $actor->role ? [$actor->role] : [];
-
-        return $this->capabilities
-            ->resolve($roles)
-            ->allows(TransactionCapabilities::VIEW_ALL);
     }
 
     /** @return array<int, string> */
