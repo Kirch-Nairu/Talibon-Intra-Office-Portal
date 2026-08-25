@@ -26,7 +26,7 @@ class OutboxDispatcher
         return DB::transaction(function () use ($workerId, $limit): Collection {
             $messages = OutboxMessage::query()
                 ->where('status', OutboxMessageStatus::Pending->value)
-                ->where('available_at', '<=', now()->utc())
+                ->where('available_at', '<=', now())
                 ->orderBy('id')
                 ->limit($limit)
                 ->lock('for update skip locked')
@@ -35,7 +35,7 @@ class OutboxDispatcher
             foreach ($messages as $message) {
                 $message->forceFill([
                     'status' => OutboxMessageStatus::Claimed,
-                    'claimed_at' => now()->utc(),
+                    'claimed_at' => now(),
                     'claimed_by' => $workerId,
                     'attempt_count' => $message->attempt_count + 1,
                     'last_error' => null,
@@ -60,7 +60,7 @@ class OutboxDispatcher
                 'claimed_at' => null,
                 'claimed_by' => null,
                 'last_error' => $error,
-                'available_at' => now()->utc(),
+                'available_at' => now(),
             ])->save();
 
             return $locked;
