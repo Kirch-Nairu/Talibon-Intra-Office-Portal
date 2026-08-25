@@ -1,5 +1,5 @@
 import { Head, Link, router, usePage } from '@inertiajs/react';
-import { Bell, Building2, FileSearch, FileText, Inbox, LayoutDashboard, LogOut, Menu, ShieldCheck, X } from 'lucide-react';
+import { BarChart3, Bell, Building2, FileSearch, FileText, Inbox, LayoutDashboard, LogOut, Menu, ShieldCheck, X } from 'lucide-react';
 import { PropsWithChildren, useEffect, useRef, useState } from 'react';
 import { useVisiblePolling } from '../hooks/useVisiblePolling';
 import type { LiveNotification, NotificationFeed, SharedProps } from '../types';
@@ -46,6 +46,7 @@ export default function AppLayout({ title, children }: Props) {
     const { pendingMemo, unreadMemoCount, notifications } = feed;
     const isMayor = ['system_admin', 'mayor_approver', 'mayor_staff'].includes(user?.role ?? '');
     const canAudit = ['system_admin', 'mayor_approver'].includes(user?.role ?? '');
+    const canViewReports = pageProps.permissions.reports;
 
     useEffect(() => {
         setFeed({
@@ -123,6 +124,7 @@ export default function AppLayout({ title, children }: Props) {
         { label: 'My Work', href: '/transactions', icon: FileText, show: true },
         { label: 'Correspondence', href: '/correspondence', icon: Inbox, show: true },
         { label: 'Records', href: '/records', icon: FileSearch, show: true },
+        { label: 'Reports', href: '/reports', icon: BarChart3, show: canViewReports },
         { label: "Mayor's Office", href: '/mayor-office', icon: Building2, show: isMayor },
         { label: 'Memoranda', href: '/memoranda', icon: FileText, show: true },
         { label: 'Departments', href: '/departments', icon: Building2, show: true },

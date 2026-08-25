@@ -21,7 +21,9 @@ class CurrentPortalNavigationTest extends TestCase
             $this->assertStringContainsString("href: '{$href}'", $layout);
         }
 
-        foreach (['/operations', '/legislation', '/hris', '/employees', '/reports'] as $href) {
+        $this->assertStringContainsString("href: '/reports'", $layout);
+
+        foreach (['/operations', '/legislation', '/hris', '/employees'] as $href) {
             $this->assertStringNotContainsString("href: '{$href}'", $layout);
         }
     }

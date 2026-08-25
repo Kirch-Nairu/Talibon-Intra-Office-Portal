@@ -81,7 +81,7 @@ class M6ExecutivePrototypeTest extends TestCase
         $mayor = User::query()->where('email', 'mayor@talibon.demo')->firstOrFail();
 
         $this->actingAs($engineering)->get('/operations')->assertForbidden();
-        $this->actingAs($engineering)->get('/reports')->assertForbidden();
+        $this->actingAs($engineering)->get('/reports')->assertOk();
 
         $this->actingAs($mayor)->get('/operations')->assertOk();
         $this->actingAs($mayor)->get('/reports')->assertOk();
@@ -98,7 +98,7 @@ class M6ExecutivePrototypeTest extends TestCase
         $this->assertFalse($mayor->can('transition', $transaction));
     }
 
-    public function test_hr_can_access_payroll_and_payroll_export_but_engineering_cannot_export_payroll(): void
+    public function test_hr_payroll_page_remains_parked_while_core_reports_excludes_payroll_export(): void
     {
         $this->seed();
 
@@ -106,7 +106,7 @@ class M6ExecutivePrototypeTest extends TestCase
         $engineering = User::query()->where('email', 'engineering@talibon.demo')->firstOrFail();
 
         $this->actingAs($hr)->get('/hris/payroll')->assertOk();
-        $this->actingAs($hr)->get('/reports/export/payroll-summary')->assertOk();
-        $this->actingAs($engineering)->get('/reports/export/payroll-summary')->assertForbidden();
+        $this->actingAs($hr)->get('/reports/export/payroll-summary')->assertNotFound();
+        $this->actingAs($engineering)->get('/reports/export/payroll-summary')->assertNotFound();
     }
 }

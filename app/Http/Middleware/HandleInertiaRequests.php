@@ -4,6 +4,7 @@ namespace App\Http\Middleware;
 
 use App\Services\AuthenticationAssurance;
 use App\Services\NotificationFeedQuery;
+use App\Services\Reports\CorePortalReportAccess;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
 
@@ -58,6 +59,10 @@ class HandleInertiaRequests extends Middleware
                         ] : null,
                     ] : null,
                 ] : null,
+            ],
+            'permissions' => [
+                'reports' => $applicationAssured
+                    && app(CorePortalReportAccess::class)->allows($user),
             ],
             'pendingMemo' => fn () => $notificationFeed()['pendingMemo'],
             'unreadMemoCount' => fn () => $notificationFeed()['unreadMemoCount'],

@@ -19,23 +19,23 @@ class Phase1ReportingAuditSecurityTest extends TestCase
         $hr = User::query()->where('email', 'hr@talibon.demo')->firstOrFail();
         $admin = User::query()->where('email', 'admin@talibon.demo')->firstOrFail();
 
-        $this->actingAs($engineering)->get('/reports')->assertForbidden();
+        $this->actingAs($engineering)->get('/reports')->assertOk();
         $this->actingAs($engineering)->get('/audit')->assertForbidden();
         $this->actingAs($hr)->get('/reports')->assertOk();
         $this->actingAs($hr)->get('/audit')->assertForbidden();
         $this->actingAs($admin)->get('/audit')->assertOk();
     }
 
-    public function test_payroll_export_is_not_available_to_engineering_or_non_hr_executive_roles(): void
+    public function test_parked_payroll_export_is_not_part_of_the_core_reports_surface(): void
     {
         $this->seed();
         $engineering = User::query()->where('email', 'engineering@talibon.demo')->firstOrFail();
         $mayor = User::query()->where('email', 'mayor@talibon.demo')->firstOrFail();
         $hr = User::query()->where('email', 'hr@talibon.demo')->firstOrFail();
 
-        $this->actingAs($engineering)->get('/reports/export/payroll-summary')->assertForbidden();
-        $this->actingAs($mayor)->get('/reports/export/payroll-summary')->assertForbidden();
-        $this->actingAs($hr)->get('/reports/export/payroll-summary')->assertOk();
+        $this->actingAs($engineering)->get('/reports/export/payroll-summary')->assertNotFound();
+        $this->actingAs($mayor)->get('/reports/export/payroll-summary')->assertNotFound();
+        $this->actingAs($hr)->get('/reports/export/payroll-summary')->assertNotFound();
     }
 
     public function test_audit_filters_can_isolate_denied_events_by_department(): void
