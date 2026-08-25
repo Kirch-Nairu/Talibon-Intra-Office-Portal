@@ -9,6 +9,13 @@ return [
             'serve' => true,
             'throw' => false,
         ],
+        'documents' => [
+            'driver' => 'local',
+            'root' => storage_path('app/core-documents'),
+            'visibility' => 'private',
+            'serve' => false,
+            'throw' => true,
+        ],
         'public' => [
             'driver' => 'local',
             'root' => storage_path('app/public'),

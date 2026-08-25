@@ -14,6 +14,7 @@ final class CorrespondenceDetailPresenter
     public function __construct(
         private readonly CorrespondenceAccessDecider $access,
         private readonly CorrespondenceWorkflowStateMapper $workflowStates,
+        private readonly DocumentEvidenceQuery $evidence,
     ) {
     }
 
@@ -86,6 +87,7 @@ final class CorrespondenceDetailPresenter
             'routeOptions' => $capabilities['canRoute']
                 ? $this->routeOptions($actor)
                 : [],
+            'evidence' => $this->evidence->forCorrespondence($record),
         ];
     }
 
@@ -134,6 +136,7 @@ final class CorrespondenceDetailPresenter
             ->orderBy('id')
             ->get()
             ->map(fn (CorrespondenceEvent $event): array => [
+                'id' => $event->id,
                 'event' => $event->event,
                 'previousState' => $event->previous_lifecycle_state?->value,
                 'newState' => $event->new_lifecycle_state?->value,

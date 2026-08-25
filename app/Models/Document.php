@@ -41,6 +41,11 @@ class Document extends Model
         });
     }
 
+    public function getRouteKeyName(): string
+    {
+        return 'public_id';
+    }
+
     public function ownerDepartment(): BelongsTo
     {
         return $this->belongsTo(Department::class, 'owner_department_id');
