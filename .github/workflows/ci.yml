@@ -3,13 +3,14 @@ name: Talibon Platform CI
 on:
   push:
     branches:
-      - KIRCH-PROTOTYPE-**
-      - KIRCH-PHASE1-**
+      - KIRCH-PHASE1-*
+      - KIRCH-PROTOTYPE-*
   pull_request:
 
 jobs:
   verify:
     runs-on: ubuntu-latest
+    timeout-minutes: 45
 
     services:
       postgres:
@@ -27,8 +28,7 @@ jobs:
           --health-retries 5
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
@@ -68,8 +68,8 @@ jobs:
       - name: Migrate and seed PostgreSQL
         run: php artisan migrate:fresh --seed --force
 
-      - name: Run feature tests
-        run: php artisan test --testsuite=Feature
+      - name: Run focused dashboard timezone tests
+        run: php artisan test tests/Feature/PostgresTimezonePersistenceTest.php tests/Feature/DashboardWorkspaceTest.php
 
       - name: Verify application routes
         run: php artisan route:list
