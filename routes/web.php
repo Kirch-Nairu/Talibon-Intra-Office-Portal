@@ -11,6 +11,7 @@ use App\Http\Controllers\CorrespondenceWorkspaceActionController;
 use App\Http\Controllers\CorrespondenceWorkspaceController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DepartmentController;
+use App\Http\Controllers\DocumentController;
 use App\Http\Controllers\DtrController;
 use App\Http\Controllers\EmployeeDirectoryController;
 use App\Http\Controllers\EmployeeHealthVaultController;
@@ -27,9 +28,9 @@ use App\Http\Controllers\LegislativeWorkspaceController;
 use App\Http\Controllers\MayorOfficeController;
 use App\Http\Controllers\MayorOfficeLiveController;
 use App\Http\Controllers\MemorandumController;
+use App\Http\Controllers\NotificationFeedController;
 use App\Http\Controllers\OperationsMonitoringController;
 use App\Http\Controllers\PayrollController;
-use App\Http\Controllers\NotificationFeedController;
 use App\Http\Controllers\PlatformNotificationController;
 use App\Http\Controllers\PropertyController;
 use App\Http\Controllers\PropertyLifecycleController;
@@ -74,6 +75,7 @@ Route::middleware(['auth', 'active', 'mfa.assured'])->group(function (): void {
 
     Route::get('/correspondence', CorrespondenceWorkspaceController::class)->name('correspondence.index');
     Route::get('/records', RecordsController::class)->name('records.index');
+    Route::get('/documents/{document}/download', [DocumentController::class, 'download'])->name('documents.download');
     Route::get('/correspondence/{correspondence}/workspace', [CorrespondenceWorkspaceController::class, 'show'])->name('correspondence.workspace.show');
     Route::post('/correspondence/{correspondence}/workspace/register', [CorrespondenceWorkspaceActionController::class, 'register'])->name('correspondence.workspace.register');
     Route::post('/correspondence/{correspondence}/workspace/classify', [CorrespondenceWorkspaceActionController::class, 'classify'])->name('correspondence.workspace.classify');

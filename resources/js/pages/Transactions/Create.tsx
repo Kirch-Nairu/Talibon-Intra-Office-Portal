@@ -1,5 +1,6 @@
 import { Head, Link, useForm } from '@inertiajs/react';
 import { ArrowRight, Building2 } from 'lucide-react';
+import EvidenceFields from '../../components/documents/EvidenceFields';
 import AppLayout from '../../layouts/AppLayout';
 
 type Department = {
@@ -11,11 +12,22 @@ type Department = {
     office_type?: string;
 };
 
+type TransactionCreateForm = {
+    transaction_type: string;
+    title: string;
+    description: string;
+    priority: string;
+    target_department_id: number | '';
+    due_at: string;
+    remarks: string;
+    evidence: File[];
+};
+
 export default function Create({ departments }: { departments: Department[] }) {
     const executive = departments.filter((department) => department.branch !== 'legislative');
     const legislative = departments.filter((department) => department.branch === 'legislative');
 
-    const { data, setData, post, processing, errors } = useForm({
+    const { data, setData, post, processing, errors } = useForm<TransactionCreateForm>({
         transaction_type: 'internal_request',
         title: '',
         description: '',
@@ -23,6 +35,7 @@ export default function Create({ departments }: { departments: Department[] }) {
         target_department_id: departments[0]?.id ?? '',
         due_at: '',
         remarks: '',
+        evidence: [],
     });
 
     return <AppLayout title="New Transaction">
@@ -34,7 +47,7 @@ export default function Create({ departments }: { departments: Department[] }) {
                 <p className="mt-2 text-sm leading-6 text-slate-500">Create one accountable transaction and send it to any active routable executive, administrative, or legislative office.</p>
             </div>
 
-            <form onSubmit={(event) => { event.preventDefault(); post('/transactions'); }} className="space-y-5 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+            <form onSubmit={(event) => { event.preventDefault(); post('/transactions', { forceFormData: true }); }} className="space-y-5 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
                 <div className="grid gap-5 md:grid-cols-2">
                     <label className="space-y-2 text-sm font-semibold text-slate-700">Transaction type
                         <select value={data.transaction_type} onChange={(event) => setData('transaction_type', event.target.value)} className="w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm">
@@ -80,6 +93,14 @@ export default function Create({ departments }: { departments: Department[] }) {
                 <label className="block space-y-2 text-sm font-semibold text-slate-700">Routing remarks <span className="font-normal text-slate-400">optional</span>
                     <textarea value={data.remarks} onChange={(event) => setData('remarks', event.target.value)} rows={3} className="w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm" placeholder="Instructions for the receiving office" />
                 </label>
+
+                <EvidenceFields
+                    files={data.evidence}
+                    onChange={(files) => setData('evidence', files)}
+                    errors={errors as Record<string, string | undefined>}
+                    disabled={processing}
+                    label="Routing evidence / supporting files"
+                />
 
                 <div className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 pt-5">
                     <Link href="/transactions" className="text-sm font-semibold text-slate-500 hover:text-slate-900">Cancel</Link>

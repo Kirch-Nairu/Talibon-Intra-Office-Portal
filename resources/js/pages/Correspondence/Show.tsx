@@ -1,6 +1,7 @@
 import { Link } from '@inertiajs/react';
 import { ArrowLeft, Building2, CalendarClock, FileText, GitBranch, UserRound } from 'lucide-react';
 import CorrespondenceActionPanel, { type CorrespondenceCapabilities, type CorrespondenceRouteOption } from '../../components/correspondence/CorrespondenceActionPanel';
+import EvidenceList, { type EvidencePayload } from '../../components/documents/EvidenceList';
 import AppLayout from '../../layouts/AppLayout';
 
 type Office = { code: string; name: string; shortName?: string | null };
@@ -13,6 +14,7 @@ type Workflow = {
     detailUrl?: string | null;
 };
 type TimelineEvent = {
+    id: number;
     event: string;
     previousState?: string | null;
     newState: string;
@@ -52,6 +54,7 @@ type Props = {
     timeline: TimelineEvent[];
     capabilities: CorrespondenceCapabilities;
     routeOptions: CorrespondenceRouteOption[];
+    evidence: EvidencePayload;
 };
 
 const humanize = (value?: string | null) => value
@@ -86,7 +89,7 @@ function DetailRow({ label, value }: { label: string; value?: string | null }) {
     );
 }
 
-export default function CorrespondenceShow({ correspondence, timeline, capabilities, routeOptions }: Props) {
+export default function CorrespondenceShow({ correspondence, timeline, capabilities, routeOptions, evidence }: Props) {
     const workflow = correspondence.accountability.workflow;
     const currentOffice = correspondence.accountability.currentOffice;
     const receivingOffice = correspondence.accountability.receivingOffice;
@@ -126,6 +129,14 @@ export default function CorrespondenceShow({ correspondence, timeline, capabilit
                     linkedWorkflowUrl={workflow?.detailUrl}
                 />
 
+                {evidence.record.length > 0 && (
+                    <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
+                        <div className="flex items-center gap-2 text-sm font-bold text-slate-900"><FileText size={17} /> Record evidence</div>
+                        <p className="mt-1 text-[10px] text-slate-500 sm:text-xs">Protected files attached directly to this correspondence record.</p>
+                        <div className="mt-3"><EvidenceList items={evidence.record} /></div>
+                    </section>
+                )}
+
                 <div className="grid gap-4 lg:grid-cols-[minmax(0,1.35fr)_minmax(300px,0.65fr)] lg:gap-6">
                     <div className="space-y-4 sm:space-y-6">
                         <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
@@ -146,7 +157,7 @@ export default function CorrespondenceShow({ correspondence, timeline, capabilit
                             <div className="flex items-center gap-2 text-sm font-bold text-slate-900"><CalendarClock size={17} /> Lifecycle timeline</div>
                             <div className="mt-5 space-y-0">
                                 {timeline.map((event, index) => (
-                                    <div key={`${event.event}-${event.occurredAt || index}`} className="relative pl-7 pb-5 last:pb-0">
+                                    <div key={event.id} className="relative pl-7 pb-5 last:pb-0">
                                         {index < timeline.length - 1 && <div className="absolute left-[7px] top-3 h-full w-px bg-slate-200" />}
                                         <div className="absolute left-0 top-1.5 h-3.5 w-3.5 rounded-full border-2 border-white bg-blue-700 shadow-sm ring-1 ring-blue-200" />
                                         <div className="flex flex-col gap-1 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
@@ -163,6 +174,7 @@ export default function CorrespondenceShow({ correspondence, timeline, capabilit
                                             {event.office && <span> · {event.office.shortName || event.office.name}</span>}
                                         </div>
                                         {event.remarks && <p className="mt-2 rounded-lg bg-slate-50 px-3 py-2 text-[11px] leading-5 text-slate-600 sm:text-xs">{event.remarks}</p>}
+                                        <EvidenceList items={evidence.events[String(event.id)] ?? []} compact />
                                     </div>
                                 ))}
                                 {timeline.length === 0 && <div className="py-6 text-center text-xs text-slate-400">No lifecycle events recorded yet.</div>}

@@ -6,8 +6,10 @@ use App\Domain\Workflow\WorkflowDefinitionResolver;
 use App\Http\Requests\TransactionIndexRequest;
 use App\Models\Department;
 use App\Models\WorkflowTransaction;
+use App\Services\CoreEvidenceRules;
+use App\Services\DocumentEvidenceQuery;
+use App\Services\TransactionEvidenceService;
 use App\Services\TransactionLiveQuery;
-use App\Services\TransactionWorkflowService;
 use App\Services\WorkQueueQuery;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -45,7 +47,7 @@ class TransactionController extends Controller
         ]);
     }
 
-    public function store(Request $request, TransactionWorkflowService $workflow): RedirectResponse
+    public function store(Request $request, TransactionEvidenceService $evidence): RedirectResponse
     {
         $this->authorize('create', WorkflowTransaction::class);
 
@@ -63,9 +65,11 @@ class TransactionController extends Controller
             ],
             'due_at' => ['nullable', 'date', 'after_or_equal:today'],
             'remarks' => ['nullable', 'string', 'max:2000'],
+            ...CoreEvidenceRules::rules(),
         ]);
 
-        $transaction = $workflow->create($request->user(), $data);
+        unset($data['evidence']);
+        $transaction = $evidence->create($request->user(), $data, $this->evidenceFiles($request));
 
         return redirect()->route('transactions.show', $transaction)->with('success', "{$transaction->reference_no} was routed successfully.");
     }
@@ -74,6 +78,7 @@ class TransactionController extends Controller
         Request $request,
         WorkflowTransaction $transaction,
         TransactionLiveQuery $live,
+        DocumentEvidenceQuery $evidence,
     ): Response {
         $this->authorize('view', $transaction);
 
@@ -104,13 +109,14 @@ class TransactionController extends Controller
             'assignableEmployees' => $mutable['assignableEmployees'],
             'accountability' => $mutable['accountability'],
             'permissions' => $mutable['permissions'],
+            'evidence' => $evidence->forTransaction($transaction),
         ]);
     }
 
     public function transition(
         Request $request,
         WorkflowTransaction $transaction,
-        TransactionWorkflowService $workflow,
+        TransactionEvidenceService $evidence,
         WorkflowDefinitionResolver $definitions,
     ): RedirectResponse {
         $definition = $definitions->resolve($transaction);
@@ -126,6 +132,7 @@ class TransactionController extends Controller
             ],
             'assigned_employee_id' => ['nullable', 'integer', 'exists:employees,id'],
             'remarks' => ['nullable', 'string', 'max:2000'],
+            ...CoreEvidenceRules::rules(),
         ]);
 
         if ($data['action'] === 'assign') {
@@ -138,15 +145,29 @@ class TransactionController extends Controller
             $this->authorize('transition', $transaction);
         }
 
-        $updated = $workflow->transition(
+        unset($data['evidence']);
+        $updated = $evidence->transition(
             $request->user(),
             $transaction,
             $data['action'],
             $data['target_department_id'] ?? null,
             $data['assigned_employee_id'] ?? null,
             $data['remarks'] ?? null,
+            $this->evidenceFiles($request),
         );
 
         return redirect()->route('transactions.show', $updated)->with('success', 'Transaction workflow updated.');
+    }
+
+    /** @return array<int, \Illuminate\Http\UploadedFile> */
+    private function evidenceFiles(Request $request): array
+    {
+        $files = $request->file('evidence', []);
+
+        if ($files === null) {
+            return [];
+        }
+
+        return is_array($files) ? array_values($files) : [$files];
     }
 }

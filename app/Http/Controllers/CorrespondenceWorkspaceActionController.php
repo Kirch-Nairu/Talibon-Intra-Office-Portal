@@ -4,12 +4,12 @@ namespace App\Http\Controllers;
 
 use App\Domain\Correspondence\CorrespondenceClassification;
 use App\Domain\Integration\IntegrationRequestAttributes;
-use App\Http\Requests\CorrespondenceActRequest;
-use App\Http\Requests\CorrespondenceClassifyRequest;
-use App\Http\Requests\CorrespondenceRouteRequest;
+use App\Http\Requests\CorrespondenceWorkspaceActRequest;
+use App\Http\Requests\CorrespondenceWorkspaceClassifyRequest;
+use App\Http\Requests\CorrespondenceWorkspaceRegisterRequest;
+use App\Http\Requests\CorrespondenceWorkspaceRouteRequest;
 use App\Models\CorrespondenceRecord;
-use App\Services\CorrespondenceLifecycleService;
-use App\Services\CorrespondenceRoutingService;
+use App\Services\CorrespondenceEvidenceService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
@@ -17,14 +17,15 @@ use Illuminate\Support\Str;
 final class CorrespondenceWorkspaceActionController extends Controller
 {
     public function register(
-        Request $request,
+        CorrespondenceWorkspaceRegisterRequest $request,
         CorrespondenceRecord $correspondence,
-        CorrespondenceLifecycleService $lifecycle,
+        CorrespondenceEvidenceService $evidence,
     ): RedirectResponse {
-        $lifecycle->register(
+        $evidence->register(
             $request->user(),
             $correspondence,
             $this->correlationId($request),
+            $this->evidenceFiles($request),
         );
 
         return redirect()
@@ -33,16 +34,17 @@ final class CorrespondenceWorkspaceActionController extends Controller
     }
 
     public function classify(
-        CorrespondenceClassifyRequest $request,
+        CorrespondenceWorkspaceClassifyRequest $request,
         CorrespondenceRecord $correspondence,
-        CorrespondenceLifecycleService $lifecycle,
+        CorrespondenceEvidenceService $evidence,
     ): RedirectResponse {
-        $lifecycle->classify(
+        $evidence->classify(
             $request->user(),
             $correspondence,
             CorrespondenceClassification::from((string) $request->validated('classification')),
             $this->correlationId($request),
             $request->validated('remarks'),
+            $this->evidenceFiles($request),
         );
 
         return redirect()
@@ -51,15 +53,19 @@ final class CorrespondenceWorkspaceActionController extends Controller
     }
 
     public function route(
-        CorrespondenceRouteRequest $request,
+        CorrespondenceWorkspaceRouteRequest $request,
         CorrespondenceRecord $correspondence,
-        CorrespondenceRoutingService $routing,
+        CorrespondenceEvidenceService $evidence,
     ): RedirectResponse {
-        $routing->route(
+        $data = $request->validated();
+        unset($data['evidence']);
+
+        $evidence->route(
             $request->user(),
             $correspondence,
-            $request->validated(),
+            $data,
             $this->correlationId($request),
+            $this->evidenceFiles($request),
         );
 
         return redirect()
@@ -68,15 +74,16 @@ final class CorrespondenceWorkspaceActionController extends Controller
     }
 
     public function act(
-        CorrespondenceActRequest $request,
+        CorrespondenceWorkspaceActRequest $request,
         CorrespondenceRecord $correspondence,
-        CorrespondenceRoutingService $routing,
+        CorrespondenceEvidenceService $evidence,
     ): RedirectResponse {
-        $routing->markInAction(
+        $evidence->act(
             $request->user(),
             $correspondence,
             $this->correlationId($request),
             $request->validated('remarks'),
+            $this->evidenceFiles($request),
         );
 
         return redirect()
@@ -95,5 +102,17 @@ final class CorrespondenceWorkspaceActionController extends Controller
         $request->attributes->set(IntegrationRequestAttributes::CORRELATION_ID, $correlationId);
 
         return $correlationId;
+    }
+
+    /** @return array<int, \Illuminate\Http\UploadedFile> */
+    private function evidenceFiles(Request $request): array
+    {
+        $files = $request->file('evidence', []);
+
+        if ($files === null) {
+            return [];
+        }
+
+        return is_array($files) ? array_values($files) : [$files];
     }
 }
