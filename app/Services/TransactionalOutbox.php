@@ -25,7 +25,7 @@ class TransactionalOutbox
             throw new LogicException('Outbox records must be created inside the authoritative database transaction.');
         }
 
-        $occurred = ($occurredAt ?? now())->copy()->utc();
+        $occurred = ($occurredAt ?? now())->copy()->setTimezone(config('app.timezone'));
 
         return OutboxMessage::query()->create([
             'public_id' => (string) Str::uuid(),
