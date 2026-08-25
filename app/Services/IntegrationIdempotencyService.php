@@ -24,7 +24,7 @@ class IntegrationIdempotencyService
         return DB::transaction(function () use ($context, $operation, $idempotencyKey, $requestFingerprint): IntegrationIdempotencyDecision {
             $keyHash = hash('sha256', $idempotencyKey);
             $processingToken = (string) Str::uuid();
-            $now = now()->utc();
+            $now = now();
 
             $inserted = DB::table('integration_idempotency_records')->insertOrIgnore([
                 'integration_client_id' => $context->client->id,
@@ -100,7 +100,7 @@ class IntegrationIdempotencyService
             'response_status' => $responseStatus,
             'response_body' => $responseBody,
             'processing_token' => null,
-            'completed_at' => now()->utc(),
+            'completed_at' => now(),
             'failed_at' => null,
         ])->save();
     }
@@ -125,7 +125,7 @@ class IntegrationIdempotencyService
                 'response_status' => null,
                 'response_body' => null,
                 'completed_at' => null,
-                'failed_at' => now()->utc(),
+                'failed_at' => now(),
             ])->save();
         });
     }
