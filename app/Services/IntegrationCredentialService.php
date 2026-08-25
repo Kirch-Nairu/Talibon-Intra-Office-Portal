@@ -75,7 +75,7 @@ class IntegrationCredentialService
                 ->findOrFail($credential->id);
 
             if ($locked->revoked_at === null) {
-                $locked->forceFill(['revoked_at' => now()->utc()])->save();
+                $locked->forceFill(['revoked_at' => now()])->save();
             }
 
             return $locked;
@@ -95,7 +95,7 @@ class IntegrationCredentialService
         }
 
         $this->assertCredentialState($credential, $secret);
-        $credential->newQuery()->whereKey($credential->id)->update(['last_used_at' => now()->utc()]);
+        $credential->newQuery()->whereKey($credential->id)->update(['last_used_at' => now()]);
 
         return new IntegrationClientContext(
             $credential->client,
@@ -177,8 +177,8 @@ class IntegrationCredentialService
                 'integration_client_id' => $client->id,
                 'secret_hash' => hash('sha256', $secret),
                 'scopes' => $scopes,
-                'issued_at' => now()->utc(),
-                'expires_at' => $expiresAt?->copy()->utc(),
+                'issued_at' => now(),
+                'expires_at' => $expiresAt?->copy()->setTimezone(config('app.timezone')),
                 'issued_by_user_id' => $issuedBy?->id,
             ]);
         });

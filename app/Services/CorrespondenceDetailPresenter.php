@@ -14,7 +14,7 @@ final class CorrespondenceDetailPresenter
     public function __construct(
         private readonly CorrespondenceAccessDecider $access,
         private readonly CorrespondenceWorkflowStateMapper $workflowStates,
-        private readonly DocumentEvidenceQuery $evidence,
+        private readonly CorrespondenceTraceQuery $trace,
     ) {
     }
 
@@ -50,6 +50,7 @@ final class CorrespondenceDetailPresenter
         $workflow = $record->workflowTransaction;
         $currentOffice = $workflow?->currentDepartment ?? $record->receivingDepartment;
         $capabilities = $this->capabilities($actor, $record);
+        $trace = $this->trace->forRecord($record);
 
         return [
             'correspondence' => [
@@ -82,12 +83,12 @@ final class CorrespondenceDetailPresenter
                     'actionStartedAt' => $record->action_started_at?->toISOString(),
                 ],
             ],
-            'timeline' => $this->workspaceTimeline($record),
+            'timeline' => $trace['timeline'],
             'capabilities' => $capabilities,
             'routeOptions' => $capabilities['canRoute']
                 ? $this->routeOptions($actor)
                 : [],
-            'evidence' => $this->evidence->forCorrespondence($record),
+            'evidence' => $trace['evidence'],
         ];
     }
 
@@ -119,35 +120,6 @@ final class CorrespondenceDetailPresenter
                 'office' => $event->officeDepartment?->only(['id', 'code', 'name', 'short_name']),
                 'remarks' => $event->remarks,
                 'occurred_at' => $event->occurred_at?->toISOString(),
-            ])
-            ->all();
-    }
-
-    /** @return array<int, array<string, mixed>> */
-    private function workspaceTimeline(CorrespondenceRecord $record): array
-    {
-        return $record->events()
-            ->with([
-                'actorUser:id,name',
-                'integrationClientActor:id,name',
-                'officeDepartment:id,code,name,short_name',
-            ])
-            ->orderBy('occurred_at')
-            ->orderBy('id')
-            ->get()
-            ->map(fn (CorrespondenceEvent $event): array => [
-                'id' => $event->id,
-                'event' => $event->event,
-                'previousState' => $event->previous_lifecycle_state?->value,
-                'newState' => $event->new_lifecycle_state?->value,
-                'actor' => $event->actorUser
-                    ? ['type' => 'human', 'name' => $event->actorUser->name]
-                    : ($event->integrationClientActor
-                        ? ['type' => 'integration', 'name' => $event->integrationClientActor->name]
-                        : null),
-                'office' => $this->office($event->officeDepartment),
-                'remarks' => $event->remarks,
-                'occurredAt' => $event->occurred_at?->toISOString(),
             ])
             ->all();
     }

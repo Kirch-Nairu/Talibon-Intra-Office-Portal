@@ -27,7 +27,7 @@ class CorrespondenceReceiveService
     ): CorrespondenceRecord {
         return DB::transaction(function () use ($context, $data, $correlationId): CorrespondenceRecord {
             $publicId = (string) Str::uuid();
-            $receivedAt = now()->utc();
+            $receivedAt = now();
             $externalReference = sprintf(
                 'TAL-EXT-%s-%s',
                 $receivedAt->format('Y'),
@@ -64,6 +64,7 @@ class CorrespondenceReceiveService
                     'credential_public_id' => $context->credential->public_id,
                 ],
                 correlationId: $correlationId,
+                occurredAt: $receivedAt,
             );
 
             $this->outbox->record(
