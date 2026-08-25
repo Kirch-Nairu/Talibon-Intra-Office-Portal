@@ -1,7 +1,7 @@
 import { Link } from '@inertiajs/react';
 import { ArrowLeft, Building2, CalendarClock, FileText, GitBranch, UserRound } from 'lucide-react';
 import CorrespondenceActionPanel, { type CorrespondenceCapabilities, type CorrespondenceRouteOption } from '../../components/correspondence/CorrespondenceActionPanel';
-import EvidenceList, { type EvidencePayload } from '../../components/documents/EvidenceList';
+import EvidenceList, { type EvidenceItem, type EvidencePayload } from '../../components/documents/EvidenceList';
 import AppLayout from '../../layouts/AppLayout';
 
 type Office = { code: string; name: string; shortName?: string | null };
@@ -14,14 +14,18 @@ type Workflow = {
     detailUrl?: string | null;
 };
 type TimelineEvent = {
-    id: number;
+    id: string;
+    source: 'correspondence' | 'workflow';
     event: string;
     previousState?: string | null;
     newState: string;
     actor?: { type: 'human' | 'integration'; name: string } | null;
     office?: Office | null;
+    fromOffice?: Office | null;
+    toOffice?: Office | null;
     remarks?: string | null;
     occurredAt?: string | null;
+    evidence: EvidenceItem[];
 };
 type Props = {
     correspondence: {
@@ -64,6 +68,8 @@ const humanize = (value?: string | null) => value
 const formatDate = (value?: string | null) => value
     ? new Date(value).toLocaleString()
     : 'Not yet completed';
+
+const officeLabel = (office?: Office | null) => office?.shortName || office?.name || 'Not recorded';
 
 const lifecycleTone: Record<string, string> = {
     received: 'bg-blue-50 text-blue-800',
@@ -154,7 +160,8 @@ export default function CorrespondenceShow({ correspondence, timeline, capabilit
                         </section>
 
                         <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
-                            <div className="flex items-center gap-2 text-sm font-bold text-slate-900"><CalendarClock size={17} /> Lifecycle timeline</div>
+                            <div className="flex items-center gap-2 text-sm font-bold text-slate-900"><CalendarClock size={17} /> Routing & lifecycle trace</div>
+                            <p className="mt-1 text-[10px] text-slate-500 sm:text-xs">Chronological correspondence and linked workflow movements.</p>
                             <div className="mt-5 space-y-0">
                                 {timeline.map((event, index) => (
                                     <div key={event.id} className="relative pl-7 pb-5 last:pb-0">
@@ -162,22 +169,30 @@ export default function CorrespondenceShow({ correspondence, timeline, capabilit
                                         <div className="absolute left-0 top-1.5 h-3.5 w-3.5 rounded-full border-2 border-white bg-blue-700 shadow-sm ring-1 ring-blue-200" />
                                         <div className="flex flex-col gap-1 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
                                             <div>
-                                                <div className="text-[12px] font-bold text-slate-900 sm:text-sm">{humanize(event.event)}</div>
+                                                <div className="text-[12px] font-bold text-slate-900 sm:text-sm">
+                                                    {humanize(event.event)}
+                                                    {event.source === 'workflow' && <span className="ml-2 text-[9px] font-semibold uppercase tracking-wide text-blue-600 sm:text-[10px]">Workflow</span>}
+                                                </div>
                                                 <div className="mt-0.5 text-[10px] text-slate-500 sm:text-xs">
                                                     {event.previousState ? `${humanize(event.previousState)} → ` : ''}{humanize(event.newState)}
                                                 </div>
                                             </div>
                                             <div className="shrink-0 text-[10px] text-slate-400 sm:text-xs">{formatDate(event.occurredAt)}</div>
                                         </div>
+                                        {(event.fromOffice || event.toOffice) && (
+                                            <div className="mt-2 rounded-lg border border-slate-100 bg-slate-50 px-3 py-2 text-[11px] text-slate-600 sm:text-xs">
+                                                <span className="font-semibold text-slate-700">Movement:</span> {officeLabel(event.fromOffice)} → {officeLabel(event.toOffice)}
+                                            </div>
+                                        )}
                                         <div className="mt-2 text-[11px] text-slate-600 sm:text-xs">
                                             <span className="font-semibold text-slate-700">{event.actor?.name || 'System event'}</span>
                                             {event.office && <span> · {event.office.shortName || event.office.name}</span>}
                                         </div>
                                         {event.remarks && <p className="mt-2 rounded-lg bg-slate-50 px-3 py-2 text-[11px] leading-5 text-slate-600 sm:text-xs">{event.remarks}</p>}
-                                        <EvidenceList items={evidence.events[String(event.id)] ?? []} compact />
+                                        <EvidenceList items={event.evidence ?? []} compact />
                                     </div>
                                 ))}
-                                {timeline.length === 0 && <div className="py-6 text-center text-xs text-slate-400">No lifecycle events recorded yet.</div>}
+                                {timeline.length === 0 && <div className="py-6 text-center text-xs text-slate-400">No routing or lifecycle events recorded yet.</div>}
                             </div>
                         </section>
                     </div>
