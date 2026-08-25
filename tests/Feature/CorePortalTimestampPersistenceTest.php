@@ -3,9 +3,9 @@
 namespace Tests\Feature;
 
 use App\Domain\Correspondence\CorrespondenceClassification;
+use App\Domain\Integration\IntegrationClientContext;
 use App\Domain\Integration\IntegrationScope;
 use App\Models\CorrespondenceEvent;
-use App\Models\CorrespondenceRecord;
 use App\Models\Department;
 use App\Models\Employee;
 use App\Models\IntegrationClientCredential;
@@ -138,7 +138,6 @@ class CorePortalTimestampPersistenceTest extends TestCase
 
             $epochs = array_map(fn (CarbonInterface $instant): int => $instant->getTimestamp(), array_values($expected));
             $this->assertSame($epochs, array_values(array_unique($epochs)));
-            $this->assertTrue($epochs === array_values($epochs) && $epochs === array_values($epochs));
             for ($index = 1; $index < count($epochs); $index++) {
                 $this->assertGreaterThan($epochs[$index - 1], $epochs[$index]);
             }
@@ -240,6 +239,7 @@ class CorePortalTimestampPersistenceTest extends TestCase
             );
             $record = $decision->record;
             $this->assertInstanceOf(IntegrationIdempotencyRecord::class, $record);
+            $this->assertNotNull($decision->processingToken);
             $this->assertDatabaseEpoch('integration_idempotency_records', $record->id, 'started_at', $startedAt);
 
             $completedAt = $this->freeze('10:12:00');
@@ -289,7 +289,7 @@ class CorePortalTimestampPersistenceTest extends TestCase
         return now()->copy();
     }
 
-    private function integrationContext(IntegrationScope $scope)
+    private function integrationContext(IntegrationScope $scope): IntegrationClientContext
     {
         $client = app(IntegrationClientService::class)->create('Timestamp correspondence '.Str::uuid());
         $issued = app(IntegrationCredentialService::class)->issue($client, [$scope->value]);
