@@ -241,3 +241,16 @@ Every implementation commit must update this file in the same commit. Never conv
 - Formal project state: `PRE-MOBILIZATION / WORKING PROTOTYPE PREPARATION`.
 - Current goal: Department Head prototype readiness for the Core Intra-Office Portal.
 - Production/UAT completion is not claimed.
+
+## 2026-08-25 — Baseline correction
+
+### `fix: correct dashboard due state baseline defect`
+
+- Defect: the current authority base reproducibly classified a transaction created with `due_at = now()->subHour()` as `due_soon` in the Dashboard recent-work PHP projection even though the Dashboard SQL overdue metrics used the intended overdue boundary.
+- Exact base reproduction: a diagnostic same-tree commit `f7d57b19fee1d2cf7e0c3d16e3e2172b05f50026` preserved base tree `dd36153e58dff77d9122c010a27f6504455afc08`. GitHub Actions run 251 on PostgreSQL 16 observed TypeScript PASS, production Vite build PASS, `migrate:fresh --seed` PASS, and Feature suite **203 passed / 1 failed (2205 assertions / 357.73s)**. The sole failure was `DashboardWorkspaceTest::recent work is authorized and uses existing detail urls and due states`, expected `overdue`, actual `due_soon`; route-list was skipped after the failure.
+- Root cause: application time is `Asia/Manila`, while the PostgreSQL session started in `Etc/UTC` and the pgsql Laravel connection had no explicit session timezone. Transaction accountability columns are PostgreSQL `timestamp with time zone` and the model casts them to datetimes. Laravel serializes bound model dates as wall-clock strings without an offset, so PostgreSQL interpreted those values under its UTC session timezone. SQL comparisons bound the same shifted wall-clock basis, but hydrated `timestamptz` values represented the shifted instant, causing PHP deadline comparisons to disagree with SQL by the Manila/UTC offset.
+- Correction: the pgsql connection now sets its session `timezone` from `DB_TIMEZONE`, defaulting to `Asia/Manila`, and `.env.example` documents the same setting. Dashboard overdue/due-soon business rules, Dashboard query code, `WorkflowTransaction` casts and the database schema are unchanged.
+- Regression coverage: new `PostgresTimezonePersistenceTest` freezes a Manila clock, requires PostgreSQL `current_setting('TIMEZONE')` to match the application timezone, persists an already-overdue transaction deadline, reloads it through Eloquent, and verifies the exact instant round-trips and remains overdue in PHP.
+- Schema/migration impact: **none**.
+- Verification at commit construction: current-base failure reproduction and root-cause evidence are observed as above. The corrected candidate's focused regression and full Feature/route-list gates are executed separately on the exact candidate after commit construction; no post-fix PASS is claimed in this entry before those runs complete.
+- Scope: baseline correction only. No Dashboard metric semantics, workflow rules, authorization, MFA, correspondence, HRIS, performance-polling or attachment behavior is changed.
