@@ -43,9 +43,11 @@ class Phase1IntegratedAcceptanceTest extends TestCase
         $this->seed();
         $engineering = User::query()->where('email', 'engineering@talibon.demo')->firstOrFail();
 
-        foreach (['/mayor-office', '/legislative-workspace', '/property', '/property/lifecycle', '/reports', '/audit', '/hris/admin', '/hris/admin/lifecycle', '/hris/admin/offboarding'] as $path) {
+        foreach (['/mayor-office', '/legislative-workspace', '/property', '/property/lifecycle', '/audit', '/hris/admin', '/hris/admin/lifecycle', '/hris/admin/offboarding'] as $path) {
             $this->actingAs($engineering)->get($path)->assertForbidden();
         }
+
+        $this->actingAs($engineering)->get('/reports')->assertOk();
     }
 
     public function test_phase_one_organization_seed_still_exposes_expected_routing_shape(): void

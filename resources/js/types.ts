@@ -55,6 +55,7 @@ export type SharedProps = {
     [key: string]: unknown;
     appName: string;
     auth: { user: AuthUser | null };
+    permissions: { reports: boolean };
     pendingMemo: PendingMemo | null;
     unreadMemoCount: number;
     unreadPlatformNotificationCount: number;
