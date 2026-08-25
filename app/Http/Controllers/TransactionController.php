@@ -2,12 +2,11 @@
 
 namespace App\Http\Controllers;
 
-use App\Domain\Workflow\WorkflowDefinition;
 use App\Domain\Workflow\WorkflowDefinitionResolver;
 use App\Http\Requests\TransactionIndexRequest;
 use App\Models\Department;
-use App\Models\Employee;
 use App\Models\WorkflowTransaction;
+use App\Services\TransactionLiveQuery;
 use App\Services\TransactionWorkflowService;
 use App\Services\WorkQueueQuery;
 use Illuminate\Http\RedirectResponse;
@@ -74,7 +73,7 @@ class TransactionController extends Controller
     public function show(
         Request $request,
         WorkflowTransaction $transaction,
-        WorkflowDefinitionResolver $definitions,
+        TransactionLiveQuery $live,
     ): Response {
         $this->authorize('view', $transaction);
 
@@ -83,16 +82,16 @@ class TransactionController extends Controller
             'currentDepartment:id,code,name,short_name',
             'creator:id,name,email',
             'assignedEmployee:id,employee_number,full_name,department_id,position_title',
-            'events.actor.employee.department',
+            'events.actor:id,name',
             'events.fromDepartment:id,code,name,short_name',
             'events.toDepartment:id,code,name,short_name',
         ]);
 
-        $user = $request->user();
-        $canTransition = $user->can('transition', $transaction);
-        $canMayorDecision = $user->can('mayorDecision', $transaction);
-        $canAssign = $user->can('assign', $transaction);
-        $definition = $definitions->resolve($transaction);
+        $mutable = $live->snapshot(
+            $request->user(),
+            $transaction,
+            includeEvents: false,
+        );
 
         return Inertia::render('Transactions/Show', [
             'transaction' => $transaction,
@@ -102,20 +101,9 @@ class TransactionController extends Controller
                 ->orderBy('sort_order')
                 ->orderBy('name')
                 ->get(['id', 'code', 'name', 'short_name', 'branch', 'office_type']),
-            'assignableEmployees' => $canAssign
-                ? Employee::query()
-                    ->where('department_id', $transaction->current_department_id)
-                    ->where('employment_status', 'active')
-                    ->orderBy('full_name')
-                    ->limit(100)
-                    ->get(['id', 'employee_number', 'full_name', 'position_title'])
-                : [],
-            'accountability' => $this->accountability($transaction, $definition),
-            'permissions' => [
-                'canTransition' => $canTransition,
-                'canMayorDecision' => $canMayorDecision,
-                'canAssign' => $canAssign,
-            ],
+            'assignableEmployees' => $mutable['assignableEmployees'],
+            'accountability' => $mutable['accountability'],
+            'permissions' => $mutable['permissions'],
         ]);
     }
 
@@ -160,30 +148,5 @@ class TransactionController extends Controller
         );
 
         return redirect()->route('transactions.show', $updated)->with('success', 'Transaction workflow updated.');
-    }
-
-    private function accountability(
-        WorkflowTransaction $transaction,
-        WorkflowDefinition $definition,
-    ): array {
-        $dueState = 'on_track';
-
-        if ($definition->isTerminal($transaction->status)) {
-            $dueState = 'completed';
-        } elseif ($transaction->due_at?->isPast()) {
-            $dueState = 'overdue';
-        } elseif ($transaction->due_at && $transaction->due_at->lessThanOrEqualTo(now()->addDay())) {
-            $dueState = 'due_soon';
-        }
-
-        return [
-            'dueState' => $dueState,
-            'timeInCurrentOffice' => $transaction->received_at
-                ? $transaction->received_at->diffForHumans(now(), true)
-                : 'Not recorded',
-            'receivedAt' => $transaction->received_at?->toIso8601String(),
-            'dueAt' => $transaction->due_at?->toIso8601String(),
-            'completedAt' => $transaction->completed_at?->toIso8601String(),
-        ];
     }
 }
