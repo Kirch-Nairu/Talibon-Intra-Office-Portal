@@ -36,7 +36,7 @@ class CorrespondenceRoutingService
         return DB::transaction(function () use ($actor, $correspondence, $data, $correlationId): CorrespondenceRecord {
             $locked = $this->lockClassifiedForRoute($actor, $correspondence);
             $workflow = $this->createLinkedWorkflow($actor, $locked, $data);
-            $routedAt = now()->utc();
+            $routedAt = now();
 
             $this->applyRoutedState($locked, $actor, $workflow, $routedAt);
             $this->recordRoutedBoundary($locked, $actor, $workflow, $data, $correlationId, $routedAt);
@@ -54,7 +54,7 @@ class CorrespondenceRoutingService
         return DB::transaction(function () use ($actor, $correspondence, $correlationId, $remarks): CorrespondenceRecord {
             $locked = $this->lockRoutedForAction($actor, $correspondence);
             $workflow = $this->lockActionableWorkflow($locked);
-            $actedAt = now()->utc();
+            $actedAt = now();
 
             $this->applyInActionState($locked, $actor, $actedAt);
             $this->recordInActionBoundary($locked, $actor, $workflow, $remarks, $correlationId, $actedAt);
@@ -146,6 +146,7 @@ class CorrespondenceRoutingService
             remarks: $data['remarks'] ?? null,
             metadata: $metadata,
             correlationId: $correlationId,
+            occurredAt: $routedAt,
         );
         $this->outbox->record('correspondence.routed', 'correspondence_record', $record->public_id, [
             'correspondence_public_id' => $record->public_id,
@@ -227,6 +228,7 @@ class CorrespondenceRoutingService
             remarks: $remarks,
             metadata: $metadata,
             correlationId: $correlationId,
+            occurredAt: $actedAt,
         );
         $this->outbox->record('correspondence.in_action', 'correspondence_record', $record->public_id, [
             'correspondence_public_id' => $record->public_id,
