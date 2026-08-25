@@ -78,6 +78,8 @@ final class CorrespondenceTraceQuery
                 'remarks' => $event->remarks,
                 'occurredAt' => $event->occurred_at?->toISOString(),
                 'evidence' => $eventEvidence,
+                '_sortSequence' => (int) $event->id,
+                '_sortRank' => $event->event === 'in_action' ? 2 : 0,
             ];
         }
 
@@ -101,16 +103,34 @@ final class CorrespondenceTraceQuery
                 'remarks' => $event->remarks,
                 'occurredAt' => $event->created_at?->toISOString(),
                 'evidence' => $workflowEvidence['events'][(string) $event->id] ?? [],
+                '_sortSequence' => (int) $event->id,
+                '_sortRank' => 1,
             ];
         }
 
         usort($timeline, function (array $left, array $right): int {
             $time = strcmp((string) ($left['occurredAt'] ?? ''), (string) ($right['occurredAt'] ?? ''));
+            if ($time !== 0) {
+                return $time;
+            }
 
-            return $time !== 0
-                ? $time
-                : strcmp((string) $left['id'], (string) $right['id']);
+            $rank = ((int) $left['_sortRank']) <=> ((int) $right['_sortRank']);
+            if ($rank !== 0) {
+                return $rank;
+            }
+
+            if ($left['source'] === $right['source']) {
+                return ((int) $left['_sortSequence']) <=> ((int) $right['_sortSequence']);
+            }
+
+            return strcmp((string) $left['source'], (string) $right['source']);
         });
+
+        $timeline = array_map(function (array $entry): array {
+            unset($entry['_sortSequence'], $entry['_sortRank']);
+
+            return $entry;
+        }, $timeline);
 
         return [
             'timeline' => $timeline,
