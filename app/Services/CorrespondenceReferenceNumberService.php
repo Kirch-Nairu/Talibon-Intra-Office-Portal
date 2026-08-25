@@ -14,7 +14,7 @@ class CorrespondenceReferenceNumberService
         }
 
         $year ??= (int) now()->format('Y');
-        $now = now()->utc();
+        $now = now();
 
         DB::table('correspondence_reference_counters')->insertOrIgnore([
             'year' => $year,

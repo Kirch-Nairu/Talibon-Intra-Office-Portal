@@ -41,7 +41,7 @@ class CorrespondenceLifecycleService
 
             $actor->loadMissing('employee');
             $departmentId = (int) $actor->employee->department_id;
-            $registeredAt = now()->utc();
+            $registeredAt = now();
             $reference = $this->references->next((int) $registeredAt->format('Y'));
 
             $locked->forceFill([
@@ -61,6 +61,7 @@ class CorrespondenceLifecycleService
                 officeDepartmentId: $departmentId,
                 metadata: ['municipal_reference_no' => $reference],
                 correlationId: $correlationId,
+                occurredAt: $registeredAt,
             );
 
             $this->outbox->record(
@@ -110,7 +111,7 @@ class CorrespondenceLifecycleService
 
             $actor->loadMissing('employee');
             $departmentId = (int) $actor->employee->department_id;
-            $classifiedAt = now()->utc();
+            $classifiedAt = now();
 
             $locked->forceFill([
                 'classification' => $classification,
@@ -129,6 +130,7 @@ class CorrespondenceLifecycleService
                 remarks: $remarks,
                 metadata: ['classification' => $classification->value],
                 correlationId: $correlationId,
+                occurredAt: $classifiedAt,
             );
 
             $this->outbox->record(
