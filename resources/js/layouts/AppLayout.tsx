@@ -45,6 +45,7 @@ export default function AppLayout({ title, children }: Props) {
     const user = auth.user;
     const { pendingMemo, unreadMemoCount, notifications } = feed;
     const navigation = pageProps.permissions.navigation;
+    const canViewReports = pageProps.permissions.reports && navigation.reports;
 
     useEffect(() => {
         setFeed({
@@ -123,7 +124,7 @@ export default function AppLayout({ title, children }: Props) {
         { label: 'My Work', href: '/transactions', icon: FileText, show: navigation.transactions },
         { label: 'Correspondence', href: '/correspondence', icon: Inbox, show: navigation.correspondence },
         { label: 'Records', href: '/records', icon: FileSearch, show: navigation.records },
-        { label: 'Reports', href: '/reports', icon: BarChart3, show: navigation.reports },
+        { label: 'Reports', href: '/reports', icon: BarChart3, show: canViewReports },
         { label: "Mayor's Office", href: '/mayor-office', icon: Building2, show: navigation.mayorOffice },
         { label: 'Memoranda', href: '/memoranda', icon: FileText, show: navigation.memoranda },
         { label: 'Departments', href: '/departments', icon: Building2, show: navigation.departments },
