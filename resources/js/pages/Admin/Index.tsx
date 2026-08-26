@@ -138,6 +138,13 @@ export default function AdminIndex({
         ['Unassigned', operations.summary.municipalUnassigned ?? 0],
         ['Completed this month', operations.summary.completedThisMonth ?? 0],
     ] as const;
+    const quickLinks = [
+        { label: 'System Administration', href: '/admin', icon: ShieldCheck },
+        { label: 'Dashboard', href: '/dashboard', icon: Gauge },
+        { label: 'Reports', href: '/reports', icon: FileBarChart },
+        { label: 'Departments', href: '/departments', icon: Building2 },
+        { label: 'Audit & Security', href: '/audit', icon: LockKeyhole },
+    ];
 
     return <AppLayout title="System Administration">
         <div className="mx-auto max-w-7xl space-y-5">
@@ -203,9 +210,7 @@ export default function AdminIndex({
             </Section>
 
             <Section title="Quick Access" icon={<UserRoundCog size={17} />} description="Current authorized administration and operational surfaces.">
-                <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">{[
-                    ['System Administration', '/admin', ShieldCheck], ['Dashboard', '/dashboard', Gauge], ['Reports', '/reports', FileBarChart], ['Departments', '/departments', Building2], ['Audit & Security', '/audit', LockKeyhole],
-                ].map(([name, href, Icon]) => <Link key={String(name)} href={String(href)} className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-4 text-sm font-semibold text-slate-800 transition hover:border-blue-200 hover:bg-blue-50"><Icon size={17} className="text-blue-700" />{name}</Link>)}</div>
+                <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">{quickLinks.map(({ label: linkLabel, href, icon: Icon }) => <Link key={linkLabel} href={href} className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-4 text-sm font-semibold text-slate-800 transition hover:border-blue-200 hover:bg-blue-50"><Icon size={17} className="text-blue-700" />{linkLabel}</Link>)}</div>
                 <div className="mt-3 rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-4 py-4"><div className="text-sm font-semibold text-slate-800">Register Employee Account</div><div className="mt-1 text-xs text-slate-500">Coming after identity rollout. No account mutation is available from this prototype.</div></div>
             </Section>
         </div>
