@@ -227,7 +227,7 @@ class MfaSecurityControlsTest extends TestCase
             ->assertRedirect(route('mfa.challenge'));
     }
 
-    public function test_sensitive_enrollment_response_disables_caching_and_encrypts_inertia_history(): void
+    public function test_http_enrollment_response_preserves_sensitive_props_and_cache_headers_without_history_encryption(): void
     {
         $user = $this->user('system_admin');
         $this->post('/login', ['email' => $user->email, 'password' => self::PASSWORD]);
@@ -240,12 +240,30 @@ class MfaSecurityControlsTest extends TestCase
                     ->has('secret')
                     ->has('provisioningUri')
                     ->missing('mfa_recovery_codes');
+                $this->assertArrayNotHasKey('encryptHistory', $page->toArray());
+            });
+        $this->assertSensitiveCacheHeaders($response);
+    }
+
+    public function test_https_enrollment_response_preserves_sensitive_props_and_cache_headers_with_history_encryption(): void
+    {
+        $user = $this->user('system_admin');
+        Auth::guard('web')->login($user);
+
+        $response = $this->get('https://localhost/security/mfa/enroll');
+
+        $response->assertOk()
+            ->assertInertia(function (Assert $page): void {
+                $page->component('Auth/MfaEnrollment')
+                    ->has('secret')
+                    ->has('provisioningUri')
+                    ->missing('mfa_recovery_codes');
                 $this->assertTrue($page->toArray()['encryptHistory'] ?? false);
             });
         $this->assertSensitiveCacheHeaders($response);
     }
 
-    public function test_recovery_codes_use_one_time_inertia_flash_and_sensitive_response_headers(): void
+    public function test_http_recovery_codes_use_one_time_flash_and_cache_headers_without_history_encryption(): void
     {
         $user = $this->configuredPrivilegedUser();
         $codes = ['ONETIME-ALPHA1', 'ONETIME-BRAVO2'];
@@ -264,12 +282,65 @@ class MfaSecurityControlsTest extends TestCase
                     ->missing('codes')
                     ->missing('mfaRecoveryCodes')
                     ->has('continueUrl');
-                $this->assertTrue($page->toArray()['encryptHistory'] ?? false);
+                $this->assertArrayNotHasKey('encryptHistory', $page->toArray());
             });
         $this->assertSensitiveCacheHeaders($response);
 
         $this->get('/security/mfa/recovery-codes')
             ->assertRedirect(route('mfa.settings'));
+    }
+
+    public function test_https_recovery_codes_use_one_time_flash_and_cache_headers_with_history_encryption(): void
+    {
+        $user = $this->configuredPrivilegedUser();
+        $codes = ['ONETIME-CHARLIE3', 'ONETIME-DELTA4'];
+        $sealed = app(MfaRecoveryCodeBroker::class)->seal($codes);
+        Auth::guard('web')->login($user);
+
+        $response = $this->withSession([
+            ...$this->assuredSession($user),
+            'mfa_recovery_codes_sealed' => $sealed,
+        ])->get('https://localhost/security/mfa/recovery-codes');
+
+        $response->assertOk()
+            ->assertInertia(function (Assert $page) use ($codes): void {
+                $page->component('Auth/MfaRecoveryCodes')
+                    ->hasFlash('mfaRecoveryCodes', $codes)
+                    ->missing('codes')
+                    ->missing('mfaRecoveryCodes')
+                    ->has('continueUrl');
+                $this->assertTrue($page->toArray()['encryptHistory'] ?? false);
+            });
+        $this->assertSensitiveCacheHeaders($response);
+
+        $this->get('https://localhost/security/mfa/recovery-codes')
+            ->assertRedirect(route('mfa.settings'));
+    }
+
+    public function test_https_sensitive_response_resets_history_encryption_for_an_ordinary_response(): void
+    {
+        $user = $this->user('system_admin');
+        Auth::guard('web')->login($user);
+
+        $this->get('https://localhost/security/mfa/enroll')
+            ->assertInertia(function (Assert $page): void {
+                $this->assertTrue($page->toArray()['encryptHistory'] ?? false);
+            });
+
+        $this->assertOrdinaryResponseDoesNotEncryptHistory(true);
+    }
+
+    public function test_http_sensitive_response_resets_history_encryption_for_an_ordinary_response(): void
+    {
+        $user = $this->user('system_admin');
+        Auth::guard('web')->login($user);
+
+        $this->get('/security/mfa/enroll')
+            ->assertInertia(function (Assert $page): void {
+                $this->assertArrayNotHasKey('encryptHistory', $page->toArray());
+            });
+
+        $this->assertOrdinaryResponseDoesNotEncryptHistory(false);
     }
 
     private function configuredPrivilegedUser(): User
@@ -318,14 +389,28 @@ class MfaSecurityControlsTest extends TestCase
 
     private function assertSensitiveCacheHeaders($response): void
     {
-        $cacheControl = (string) $response->headers->get('Cache-Control');
-        $this->assertStringContainsString('no-store', $cacheControl);
-        $this->assertStringContainsString('private', $cacheControl);
-        $this->assertStringContainsString('no-cache', $cacheControl);
-        $this->assertStringContainsString('max-age=0', $cacheControl);
-        $this->assertStringContainsString('must-revalidate', $cacheControl);
+        $cacheDirectives = array_map('trim', explode(',', (string) $response->headers->get('Cache-Control')));
+        sort($cacheDirectives);
+
+        $this->assertSame([
+            'max-age=0',
+            'must-revalidate',
+            'no-cache',
+            'no-store',
+            'private',
+        ], $cacheDirectives);
         $this->assertSame('no-cache', $response->headers->get('Pragma'));
         $this->assertSame('0', $response->headers->get('Expires'));
+    }
+
+    private function assertOrdinaryResponseDoesNotEncryptHistory(bool $secure): void
+    {
+        $this->get($secure ? 'https://localhost/' : '/')
+            ->assertOk()
+            ->assertInertia(function (Assert $page): void {
+                $page->component('Public/Home');
+                $this->assertArrayNotHasKey('encryptHistory', $page->toArray());
+            });
     }
 
     private function totp(): Google2FA

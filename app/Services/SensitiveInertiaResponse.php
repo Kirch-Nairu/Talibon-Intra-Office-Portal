@@ -13,7 +13,7 @@ final class SensitiveInertiaResponse
      */
     public function render(Request $request, string $component, array $props = []): Response
     {
-        Inertia::encryptHistory();
+        Inertia::encryptHistory($request->isSecure());
 
         try {
             $response = Inertia::render($component, $props)->toResponse($request);
