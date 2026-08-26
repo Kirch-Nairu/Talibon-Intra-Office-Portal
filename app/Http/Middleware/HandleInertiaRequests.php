@@ -14,6 +14,14 @@ class HandleInertiaRequests extends Middleware
 
     public function share(Request $request): array
     {
+        if ($request->route()?->named('public.*')) {
+            return [
+                ...parent::share($request),
+                'appName' => config('app.name'),
+                'authenticated' => $request->user() !== null,
+            ];
+        }
+
         $user = $request->user();
         $applicationAssured = $user
             ? app(AuthenticationAssurance::class)->isSatisfied($request, $user)
