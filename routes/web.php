@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\AdminDashboardController;
 use App\Http\Controllers\AuditController;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\Auth\MfaChallengeController;
@@ -69,6 +70,7 @@ Route::middleware(['auth', 'active', 'mfa.subject', 'mfa.assured'])->group(funct
 });
 
 Route::middleware(['auth', 'active', 'mfa.assured'])->group(function (): void {
+    Route::get('/admin', AdminDashboardController::class)->name('admin.index');
     Route::get('/dashboard', DashboardController::class)->name('dashboard');
     Route::get('/departments', DepartmentController::class)->name('departments.index');
     Route::get('/employees', EmployeeDirectoryController::class)->name('employees.index');
