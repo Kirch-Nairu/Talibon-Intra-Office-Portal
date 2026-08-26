@@ -17,11 +17,14 @@ class CurrentPortalNavigationTest extends TestCase
         $layout = file_get_contents(resource_path('js/layouts/AppLayout.tsx'));
         $this->assertIsString($layout);
 
-        foreach (['/dashboard', '/transactions', '/correspondence', '/records', '/mayor-office', '/memoranda', '/departments', '/audit'] as $href) {
+        foreach (['/admin', '/dashboard', '/transactions', '/correspondence', '/records', '/mayor-office', '/memoranda', '/departments', '/audit'] as $href) {
             $this->assertStringContainsString("href: '{$href}'", $layout);
         }
 
         $this->assertStringContainsString("href: '/reports'", $layout);
+        $this->assertStringContainsString('pageProps.permissions.navigation', $layout);
+        $this->assertStringNotContainsString("['system_admin', 'mayor_approver', 'mayor_staff']", $layout);
+        $this->assertStringNotContainsString("['system_admin', 'mayor_approver']", $layout);
 
         foreach (['/operations', '/legislation', '/hris', '/employees'] as $href) {
             $this->assertStringNotContainsString("href: '{$href}'", $layout);
@@ -45,6 +48,7 @@ class CurrentPortalNavigationTest extends TestCase
             $this->assertTrue(Route::has($routeName), "Expected parked route {$routeName} to remain registered.");
         }
 
+        $this->assertTrue(Route::has('admin.index'));
         $this->assertTrue(Route::has('correspondence.index'));
         $this->assertTrue(Route::has('records.index'));
     }
@@ -54,7 +58,7 @@ class CurrentPortalNavigationTest extends TestCase
         $this->assertTrue(Route::has('public.home'));
         $this->assertTrue(Route::has('public.activate-account'));
 
-        foreach (['dashboard', 'transactions.index', 'correspondence.index', 'records.index', 'reports.index'] as $routeName) {
+        foreach (['admin.index', 'dashboard', 'transactions.index', 'correspondence.index', 'records.index', 'reports.index'] as $routeName) {
             $route = Route::getRoutes()->getByName($routeName);
             $this->assertNotNull($route);
             $middleware = $route->gatherMiddleware();

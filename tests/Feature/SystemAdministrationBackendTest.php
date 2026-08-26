@@ -77,14 +77,26 @@ class SystemAdministrationBackendTest extends TestCase
                 ->where('registryFilters.status', 'active'));
     }
 
-    public function test_non_system_admin_is_forbidden_from_administration_workspace(): void
+    public function test_only_system_admin_can_enter_administration_workspace(): void
     {
         $this->seed();
-        $departmentHead = User::query()->where('email', 'engineering@talibon.demo')->firstOrFail();
+        $user = User::query()->where('email', 'employee@talibon.demo')->firstOrFail();
 
-        $this->withoutMiddleware(RequireMfaAssurance::class)
-            ->actingAs($departmentHead)
-            ->get('/admin')
-            ->assertForbidden();
+        foreach ([
+            'department_head',
+            'department_staff',
+            'employee',
+            'hr_officer',
+            'mayor_staff',
+            'mayor_approver',
+            'legislative_staff',
+        ] as $role) {
+            $user->forceFill(['role' => $role])->save();
+
+            $this->withoutMiddleware(RequireMfaAssurance::class)
+                ->actingAs($user)
+                ->get('/admin')
+                ->assertForbidden();
+        }
     }
 }
