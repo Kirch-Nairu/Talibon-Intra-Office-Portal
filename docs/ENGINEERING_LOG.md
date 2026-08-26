@@ -345,3 +345,17 @@ Every implementation commit must update this file in the same commit. Never conv
 - Schema/migration impact: **none**. Index impact: **none**. Existing schema and traceability foundations are reused.
 - Known gaps / next action: browser behavior and production-scale data volumes are not separately benchmarked; exact-head GitHub Actions remains to be observed after push. Create a draft PR from `KIRCH-CORE-PORTAL-REPORTS` to `KIRCH-CORE-INCOMING-TRACEABILITY`, do not merge automatically, and do not begin another feature unless exact-head CI is green.
 - Explicit exclusions: LGU Calendar **NOT STARTED**; Approved Travel Orders **NOT STARTED**; collaboration/chat/tasks, Daily Accomplishments, broad HRIS/payroll/DTR/attendance/leave, Procurement, Property/Legislative/Project Monitoring expansion, public frontend, RELEASE and ARCHIVE **NOT STARTED**.
+
+## 2026-08-26 — One Talibon public prototype authority
+
+### `docs: authorize One Talibon public prototype shell`
+
+- Starting base: exact Reports SHA `43a74196082cf71098cc75445c626dd8d0f7e604` (`feat: add Core Portal operational reports`).
+- Authority: narrowly authorizes the **One Talibon public prototype presentation shell integrated with the existing Core Intra-Office Portal**.
+- Authorized public scope: public One Talibon landing surface; static/config-backed prototype Transparency, project/dashboard/news/event/advisory presentation; Employee Login entry point; concept-only activation presentation; internet-safe login presentation.
+- Public data boundary: no internal Reports, workflow transactions, correspondence, employees, audit logs, private documents or protected Core Portal data may feed the prototype public presentation.
+- Explicit exclusions: no public service transaction engine, citizen account/self-registration, eBOSS/GIS/CBMS, tax/civil-registry integration, CMS/publication workflow, Google OAuth, real account activation, real account provisioning or account-lifecycle schema expansion.
+- Internal security: existing Laravel password authentication, active-account enforcement and privileged MFA remain authoritative and must not be weakened.
+- Schema/migration impact: **none**. Index impact: **none**.
+- Verification actually observed for this docs-only authority commit: required Reports branch/base SHA verified exactly before branch creation; source authority inspection only. No runtime/build/CI PASS is claimed.
+- Calendar remains **PARKED** for tonight. Approved Travel Orders remains **NOT STARTED**.

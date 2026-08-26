@@ -265,3 +265,33 @@ Only tests and verification actually observed may be recorded as PASS.
 The verified corrected + performance engineering base is `c1e847b59a6cbb470da79b504631c12bbc53f45d`. New Core Portal implementation work must branch from this verified lineage rather than treating `62179e417154e1292079f77154b423908b097ea3` as the effective engineering base.
 
 Production/UAT completion must not be claimed until the applicable implementation, regression, UAT and deployment gates are actually complete.
+
+## 12. One Talibon public prototype presentation amendment — 2026-08-26
+
+This amendment narrowly authorizes a **One Talibon public prototype presentation shell integrated with the existing Core Intra-Office Portal** for client-facing prototype deployment. It does not activate a broader public-government-system product scope.
+
+### Authorized now
+
+- public One Talibon landing surface;
+- static/config-backed prototype Transparency presentation;
+- static/config-backed public project, dashboard, news, event and advisory presentation;
+- Employee Login entry point into the existing authenticated Core Portal;
+- concept-only employee activation presentation with no lookup or mutation;
+- internet-safe prototype login presentation using the existing Laravel authentication and MFA boundaries.
+
+All non-factual public metrics/content must be clearly labeled as prototype/sample presentation data. Public presentation must not query internal Reports, workflow transactions, correspondence, employees, audit logs, private documents or other protected Core Portal data.
+
+### Not authorized by this amendment
+
+- public service transaction engines;
+- citizen accounts or public self-registration;
+- eBOSS, GIS or CBMS;
+- tax or civil-registry integrations;
+- public publication/CMS workflow;
+- Google OAuth or external identity linkage;
+- real employee account activation;
+- real user-administration/account provisioning;
+- account-lifecycle or identity schema expansion;
+- any broader parked module not already authorized separately.
+
+Calendar work remains parked for tonight and Approved Travel Orders remains not started under this presentation amendment. Existing internal Core Portal authorization, active-account enforcement and MFA boundaries must not be weakened.
