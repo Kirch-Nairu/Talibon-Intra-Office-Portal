@@ -1,75 +1,117 @@
-import { Head, useForm } from '@inertiajs/react';
-import { Building2, LockKeyhole, ShieldCheck, UserRoundCheck } from 'lucide-react';
+import { Head, Link, useForm } from '@inertiajs/react';
+import { ArrowLeft, Building2, CheckCircle2, LockKeyhole, ShieldCheck } from 'lucide-react';
 import type { FormEvent } from 'react';
 
-const demoAccounts = [
-    { label: 'System Administrator', office: "Mayor's Office", email: 'admin@talibon.demo', password: 'TalibonDemo2026!' },
-    { label: "Mayor's Office Approver", office: "Mayor's Office", email: 'mayor@talibon.demo', password: 'TalibonDemo2026!' },
-    { label: 'Engineering Department Head', office: 'Municipal Engineering Office', email: 'engineering@talibon.demo', password: 'TalibonDemo2026!' },
-    { label: 'Budget Department Head', office: 'Municipal Budget Office', email: 'budget@talibon.demo', password: 'TalibonDemo2026!' },
-    { label: 'HR Officer', office: 'Human Resource Management Office', email: 'hr@talibon.demo', password: 'TalibonDemo2026!' },
-    { label: 'Legislative Records Staff', office: 'Sangguniang Bayan / Legislative Office', email: 'legislative@talibon.demo', password: 'TalibonDemo2026!' },
-    { label: 'Employee Self-Service', office: 'Municipal Planning and Development Office', email: 'employee@talibon.demo', password: 'TalibonDemo2026!' },
-];
-
 export default function Login() {
-    const form = useForm({ email: 'engineering@talibon.demo', password: 'TalibonDemo2026!', remember: false });
+    const form = useForm({ email: '', password: '', remember: false });
 
     function submit(event: FormEvent) {
         event.preventDefault();
         form.post('/login');
     }
 
-    function useDemoAccount(email: string, password: string) {
-        form.setData({ email, password, remember: false });
-    }
-
     return (
         <>
-            <Head title="Sign in" />
-            <div className="min-h-screen bg-[#eef3f9] lg:grid lg:grid-cols-[0.9fr_1.1fr]">
-                <section className="hidden bg-[#0b2852] p-10 text-white lg:flex lg:flex-col lg:justify-between xl:p-12">
-                    <div className="flex items-center gap-3"><Building2 size={32} /><div><div className="text-xs uppercase tracking-[0.25em] text-blue-200">Municipality of Talibon</div><div className="text-2xl font-bold">Intra-Office Portal</div></div></div>
+            <Head title="Employee Portal" />
+            <div className="min-h-screen bg-slate-100 lg:grid lg:grid-cols-[0.9fr_1.1fr]">
+                <section className="hidden bg-[#08264d] p-10 text-white lg:flex lg:flex-col lg:justify-between xl:p-14">
+                    <Link href="/" className="inline-flex w-fit items-center gap-2 text-sm text-blue-100 transition hover:text-white">
+                        <ArrowLeft size={16} /> Back to One Talibon
+                    </Link>
+
                     <div className="max-w-xl">
-                        <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-blue-300/20 bg-white/5 px-4 py-2 text-sm text-blue-100"><ShieldCheck size={17} /> Municipal operations prototype</div>
-                        <h1 className="text-4xl font-bold leading-tight xl:text-5xl">One controlled workspace for municipal coordination.</h1>
-                        <p className="mt-5 text-base leading-7 text-blue-100 xl:text-lg xl:leading-8">Department-aware access, inter-office routing, Mayor's Office review, central records, HR workflows, and accountable actions from one shared platform.</p>
+                        <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-4 py-2 text-sm text-blue-100">
+                            <ShieldCheck size={17} /> Secure municipal employee access
+                        </div>
+                        <div className="flex items-center gap-3">
+                            <Building2 size={34} />
+                            <div>
+                                <div className="text-xs font-semibold uppercase tracking-[0.24em] text-blue-200">Municipality of Talibon</div>
+                                <div className="text-3xl font-black tracking-tight">ONE TALIBON</div>
+                            </div>
+                        </div>
+                        <h1 className="mt-8 text-4xl font-bold leading-tight xl:text-5xl">Employee Portal</h1>
+                        <p className="mt-5 text-base leading-7 text-blue-100 xl:text-lg">Secure access to the municipality's internal coordination, routing, records, and operational workspaces.</p>
                     </div>
-                    <div className="text-sm text-blue-200">Synthetic prototype data only · No real employee or citizen records</div>
+
+                    <div className="text-sm leading-6 text-blue-200">Employee operations remain separate from the public One Talibon information portal.</div>
                 </section>
 
-                <section className="px-4 py-5 sm:px-6 md:px-8 lg:flex lg:items-center lg:justify-center lg:p-8 xl:p-10">
-                    <div className="mx-auto w-full max-w-5xl">
-                        <div className="mb-5 lg:hidden"><div className="text-[10px] font-semibold uppercase tracking-[0.2em] text-blue-700 sm:text-xs">Municipality of Talibon</div><div className="mt-1 text-xl font-bold text-slate-950 sm:text-2xl">Intra-Office Portal</div></div>
+                <section className="flex min-h-screen items-center justify-center px-4 py-8 sm:px-6 lg:min-h-0 lg:p-10">
+                    <div className="w-full max-w-md">
+                        <Link href="/" className="mb-6 inline-flex items-center gap-2 text-sm font-medium text-slate-600 hover:text-blue-800 lg:hidden">
+                            <ArrowLeft size={16} /> One Talibon
+                        </Link>
 
-                        <div className="grid gap-4 xl:grid-cols-[0.85fr_1.15fr]">
-                            <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-lg shadow-slate-900/5 sm:p-6">
-                                <div className="mb-5"><div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-50 text-blue-800"><LockKeyhole size={19} /></div><h2 className="mt-4 text-xl font-bold text-slate-950 sm:text-2xl">Employee sign in</h2><p className="mt-1.5 text-[12px] leading-5 text-slate-500 sm:text-sm">Choose a demo identity or enter credentials manually.</p></div>
-                                <form onSubmit={submit} className="space-y-4">
-                                    <label className="block"><span className="mb-1.5 block text-[12px] font-medium text-slate-700 sm:text-sm">Email</span><input value={form.data.email} onChange={(e) => form.setData('email', e.target.value)} type="email" className="w-full rounded-xl border border-slate-300 px-3 py-2.5 text-[13px] outline-none transition focus:border-blue-600 focus:ring-4 focus:ring-blue-100 sm:px-4 sm:py-3 sm:text-sm" />{form.errors.email && <span className="mt-1 block text-[11px] text-red-600 sm:text-sm">{form.errors.email}</span>}</label>
-                                    <label className="block"><span className="mb-1.5 block text-[12px] font-medium text-slate-700 sm:text-sm">Password</span><input value={form.data.password} onChange={(e) => form.setData('password', e.target.value)} type="password" className="w-full rounded-xl border border-slate-300 px-3 py-2.5 text-[13px] outline-none transition focus:border-blue-600 focus:ring-4 focus:ring-blue-100 sm:px-4 sm:py-3 sm:text-sm" /></label>
-                                    <button disabled={form.processing} className="w-full rounded-xl bg-[#0b2852] px-4 py-2.5 text-[13px] font-semibold text-white transition hover:bg-[#10366c] disabled:opacity-60 sm:py-3 sm:text-sm">{form.processing ? 'Signing in…' : 'Sign in securely'}</button>
-                                </form>
+                        <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-xl shadow-slate-900/5 sm:p-8">
+                            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-blue-50 text-blue-900">
+                                <LockKeyhole size={22} />
+                            </div>
+                            <div className="mt-5 text-xs font-bold uppercase tracking-[0.18em] text-blue-700">One Talibon</div>
+                            <h2 className="mt-2 text-2xl font-bold text-slate-950">Employee Portal</h2>
+                            <p className="mt-2 text-sm leading-6 text-slate-500">Sign in using the credentials privately issued for this prototype environment.</p>
+
+                            <form onSubmit={submit} className="mt-7 space-y-4">
+                                <label className="block">
+                                    <span className="mb-1.5 block text-sm font-medium text-slate-700">Email</span>
+                                    <input
+                                        autoComplete="username"
+                                        autoFocus
+                                        value={form.data.email}
+                                        onChange={(event) => form.setData('email', event.target.value)}
+                                        type="email"
+                                        required
+                                        className="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm outline-none transition focus:border-blue-700 focus:ring-4 focus:ring-blue-100"
+                                    />
+                                    {form.errors.email && <span className="mt-1.5 block text-sm text-red-600">{form.errors.email}</span>}
+                                </label>
+
+                                <label className="block">
+                                    <span className="mb-1.5 block text-sm font-medium text-slate-700">Password</span>
+                                    <input
+                                        autoComplete="current-password"
+                                        value={form.data.password}
+                                        onChange={(event) => form.setData('password', event.target.value)}
+                                        type="password"
+                                        required
+                                        className="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm outline-none transition focus:border-blue-700 focus:ring-4 focus:ring-blue-100"
+                                    />
+                                    {form.errors.password && <span className="mt-1.5 block text-sm text-red-600">{form.errors.password}</span>}
+                                </label>
+
+                                <label className="flex items-center gap-2 text-sm text-slate-600">
+                                    <input
+                                        type="checkbox"
+                                        checked={form.data.remember}
+                                        onChange={(event) => form.setData('remember', event.target.checked)}
+                                        className="rounded border-slate-300 text-blue-800 focus:ring-blue-700"
+                                    />
+                                    Remember me on this device
+                                </label>
+
+                                <button disabled={form.processing} className="w-full rounded-xl bg-[#0b2852] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[#10396f] disabled:opacity-60">
+                                    {form.processing ? 'Signing in…' : 'Sign In'}
+                                </button>
+                            </form>
+
+                            <div className="my-6 flex items-center gap-3 text-xs uppercase tracking-wider text-slate-400">
+                                <span className="h-px flex-1 bg-slate-200" /> Future identity integration <span className="h-px flex-1 bg-slate-200" />
                             </div>
 
-                            <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-lg shadow-slate-900/5 sm:p-5">
-                                <div className="flex items-center gap-2"><UserRoundCheck size={18} className="text-blue-800" /><div><h3 className="text-sm font-bold text-slate-950">Demo identities</h3><p className="text-[10px] text-slate-500 sm:text-xs">Tap an account to load its credentials.</p></div></div>
-                                <div className="mt-3 grid gap-2 sm:grid-cols-2">
-                                    {demoAccounts.map((account) => (
-                                        <button
-                                            key={account.email}
-                                            type="button"
-                                            onClick={() => useDemoAccount(account.email, account.password)}
-                                            className={`rounded-xl border p-3 text-left transition hover:border-blue-300 hover:bg-blue-50/50 ${form.data.email === account.email ? 'border-blue-300 bg-blue-50' : 'border-slate-200 bg-slate-50/70'}`}
-                                        >
-                                            <div className="text-[11px] font-bold text-slate-950 sm:text-[12px]">{account.label}</div>
-                                            <div className="mt-0.5 truncate text-[9px] text-slate-500 sm:text-[10px]">{account.office}</div>
-                                            <div className="mt-2 break-all font-mono text-[9px] font-semibold text-blue-800 sm:text-[10px]">{account.email}</div>
-                                            <div className="mt-1 break-all font-mono text-[9px] text-slate-500 sm:text-[10px]">Password: {account.password}</div>
-                                        </button>
-                                    ))}
+                            <button type="button" disabled className="flex w-full cursor-not-allowed items-center justify-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-500">
+                                Continue with Google
+                            </button>
+                            <p className="mt-2 text-center text-xs leading-5 text-slate-500">Google account integration will be enabled after official LGU identity setup.</p>
+
+                            <div className="mt-6 rounded-2xl bg-blue-50 p-4">
+                                <div className="flex items-start gap-3">
+                                    <CheckCircle2 className="mt-0.5 shrink-0 text-blue-800" size={18} />
+                                    <div>
+                                        <div className="text-sm font-semibold text-slate-900">First time accessing the Portal?</div>
+                                        <p className="mt-1 text-xs leading-5 text-slate-600">Account activation is not enabled in this prototype.</p>
+                                        <Link href="/activate-account" className="mt-2 inline-block text-sm font-semibold text-blue-800 hover:underline">Activate Employee Account</Link>
+                                    </div>
                                 </div>
-                                <div className="mt-3 rounded-xl bg-amber-50 px-3 py-2 text-[9px] leading-4 text-amber-900 sm:text-[10px]">All identities and records on this screen are synthetic and exist only for the prototype demonstration.</div>
                             </div>
                         </div>
                     </div>

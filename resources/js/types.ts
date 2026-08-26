@@ -51,11 +51,24 @@ export type NotificationFeed = {
     notificationCount: number;
 };
 
+export type NavigationPermissions = {
+    systemAdministration: boolean;
+    dashboard: boolean;
+    transactions: boolean;
+    correspondence: boolean;
+    records: boolean;
+    reports: boolean;
+    mayorOffice: boolean;
+    memoranda: boolean;
+    departments: boolean;
+    audit: boolean;
+};
+
 export type SharedProps = {
     [key: string]: unknown;
     appName: string;
     auth: { user: AuthUser | null };
-    permissions: { reports: boolean };
+    permissions: { reports: boolean; navigation: NavigationPermissions };
     pendingMemo: PendingMemo | null;
     unreadMemoCount: number;
     unreadPlatformNotificationCount: number;

@@ -4,7 +4,7 @@ namespace App\Http\Middleware;
 
 use App\Services\AuthenticationAssurance;
 use App\Services\NotificationFeedQuery;
-use App\Services\Reports\CorePortalReportAccess;
+use App\Services\PortalNavigationAccess;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
 
@@ -14,6 +14,14 @@ class HandleInertiaRequests extends Middleware
 
     public function share(Request $request): array
     {
+        if ($request->route()?->named('public.*')) {
+            return [
+                ...parent::share($request),
+                'appName' => config('app.name'),
+                'authenticated' => $request->user() !== null,
+            ];
+        }
+
         $user = $request->user();
         $applicationAssured = $user
             ? app(AuthenticationAssurance::class)->isSatisfied($request, $user)
@@ -22,6 +30,10 @@ class HandleInertiaRequests extends Middleware
         if ($applicationAssured) {
             $user->loadMissing('employee.department');
         }
+
+        $navigation = $user && $applicationAssured
+            ? app(PortalNavigationAccess::class)->for($user)
+            : PortalNavigationAccess::none();
 
         $feed = null;
         $notificationFeed = function () use (
@@ -61,8 +73,8 @@ class HandleInertiaRequests extends Middleware
                 ] : null,
             ],
             'permissions' => [
-                'reports' => $applicationAssured
-                    && app(CorePortalReportAccess::class)->allows($user),
+                'reports' => $navigation['reports'],
+                'navigation' => $navigation,
             ],
             'pendingMemo' => fn () => $notificationFeed()['pendingMemo'],
             'unreadMemoCount' => fn () => $notificationFeed()['unreadMemoCount'],

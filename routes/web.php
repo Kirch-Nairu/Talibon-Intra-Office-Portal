@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\AdminDashboardController;
 use App\Http\Controllers\AuditController;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\Auth\MfaChallengeController;
@@ -34,13 +35,17 @@ use App\Http\Controllers\PayrollController;
 use App\Http\Controllers\PlatformNotificationController;
 use App\Http\Controllers\PropertyController;
 use App\Http\Controllers\PropertyLifecycleController;
+use App\Http\Controllers\PublicPortalController;
 use App\Http\Controllers\RecordsController;
 use App\Http\Controllers\ReportsController;
 use App\Http\Controllers\TransactionController;
 use App\Http\Controllers\TransactionLiveController;
 use Illuminate\Support\Facades\Route;
 
+Route::get('/', [PublicPortalController::class, 'home'])->name('public.home');
+
 Route::middleware('guest')->group(function (): void {
+    Route::get('/activate-account', [PublicPortalController::class, 'activation'])->name('public.activate-account');
     Route::get('/login', [AuthenticatedSessionController::class, 'create'])->name('login');
     Route::post('/login', [AuthenticatedSessionController::class, 'store'])->name('login.store');
 });
@@ -65,7 +70,7 @@ Route::middleware(['auth', 'active', 'mfa.subject', 'mfa.assured'])->group(funct
 });
 
 Route::middleware(['auth', 'active', 'mfa.assured'])->group(function (): void {
-    Route::get('/', fn () => redirect()->route('dashboard'));
+    Route::get('/admin', AdminDashboardController::class)->name('admin.index');
     Route::get('/dashboard', DashboardController::class)->name('dashboard');
     Route::get('/departments', DepartmentController::class)->name('departments.index');
     Route::get('/employees', EmployeeDirectoryController::class)->name('employees.index');

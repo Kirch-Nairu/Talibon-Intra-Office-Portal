@@ -345,3 +345,42 @@ Every implementation commit must update this file in the same commit. Never conv
 - Schema/migration impact: **none**. Index impact: **none**. Existing schema and traceability foundations are reused.
 - Known gaps / next action: browser behavior and production-scale data volumes are not separately benchmarked; exact-head GitHub Actions remains to be observed after push. Create a draft PR from `KIRCH-CORE-PORTAL-REPORTS` to `KIRCH-CORE-INCOMING-TRACEABILITY`, do not merge automatically, and do not begin another feature unless exact-head CI is green.
 - Explicit exclusions: LGU Calendar **NOT STARTED**; Approved Travel Orders **NOT STARTED**; collaboration/chat/tasks, Daily Accomplishments, broad HRIS/payroll/DTR/attendance/leave, Procurement, Property/Legislative/Project Monitoring expansion, public frontend, RELEASE and ARCHIVE **NOT STARTED**.
+
+## 2026-08-26 — One Talibon public prototype authority
+
+### `docs: authorize One Talibon public prototype shell`
+
+- Starting base: exact Reports SHA `43a74196082cf71098cc75445c626dd8d0f7e604` (`feat: add Core Portal operational reports`).
+- Authority: narrowly authorizes the **One Talibon public prototype presentation shell integrated with the existing Core Intra-Office Portal**.
+- Authorized public scope: public One Talibon landing surface; static/config-backed prototype Transparency, project/dashboard/news/event/advisory presentation; Employee Login entry point; concept-only activation presentation; internet-safe login presentation.
+- Public data boundary: no internal Reports, workflow transactions, correspondence, employees, audit logs, private documents or protected Core Portal data may feed the prototype public presentation.
+- Explicit exclusions: no public service transaction engine, citizen account/self-registration, eBOSS/GIS/CBMS, tax/civil-registry integration, CMS/publication workflow, Google OAuth, real account activation, real account provisioning or account-lifecycle schema expansion.
+- Internal security: existing Laravel password authentication, active-account enforcement and privileged MFA remain authoritative and must not be weakened.
+- Schema/migration impact: **none**. Index impact: **none**.
+- Verification actually observed for this docs-only authority commit: required Reports branch/base SHA verified exactly before branch creation; source authority inspection only. No runtime/build/CI PASS is claimed.
+- Calendar remains **PARKED** for tonight. Approved Travel Orders remains **NOT STARTED**.
+
+## 2026-08-26 — One Talibon public prototype reconstruction
+
+### `docs: record One Talibon public shell verification`
+
+- Recovery condition: the prior ephemeral implementation workspace was lost. Reconstruction was explicitly authorized from the approved feature contract; the reconstructed public shell is not claimed byte-identical to the lost candidate.
+- Starting authority SHA: `ab6768721816d559bddc5ee3baefac8e05d463ae` (`docs: authorize One Talibon public prototype shell`).
+- Durable safe point A: `6a348f728f3e8a32ea4364caf2c7e7a329ee735d` — `feat: add One Talibon public portal boundary` — public root/controller, public/internal Inertia data boundary, and config-backed public presentation.
+- Durable safe point B: `b6a973fa41304980e96a923565b6bce37d6cfe23` — `feat: add One Talibon public interface` — fresh `Public/Home`, reusable public header, safe Employee Login presentation, and read-only activation concept.
+- Durable safe point C: `74cae54a9e21b05f1da1ac63f5b941a528794e0f` — `fix: harden One Talibon prototype access` — environment/config credential hardening, focused public/auth/navigation coverage, and removal of the obsolete committed demo credential from the current documentation/tests.
+- Public contract implemented: `GET /` is public and renders `Public/Home`; the public Inertia boundary supplies only deliberately public-safe state such as `appName`, `authenticated`, and published/config-backed public content. No internal Reports, `WorkflowTransaction`, Correspondence, Employee, Audit, or private Document data powers the public page.
+- Public presentation: config/static content only; non-approved values are clearly identified as `PROTOTYPE SAMPLE DATA`; the interface is responsive and includes dark mode, municipal navigation, public service/transparency/project/dashboard/news/about/contact presentation, Employee Login for guests, and Open Employee Portal for authenticated users.
+- Login/identity boundary: login starts with blank email and password; no demo identity picker, displayed password, credential-injection action, or frontend demo secret remains. Google integration is concept-only and disabled. `GET /activate-account` is a read-only Activate Employee Account concept page; there is no activation POST and no public `/register` route.
+- Authentication preservation: the existing Laravel password-authentication backend remains authoritative, including `Auth::attempt`, active-account enforcement, login throttling, session regeneration, privileged MFA assurance, and authentication audit behavior.
+- Prototype credential security: production demo-password input is `PROTOTYPE_DEMO_PASSWORD`; production seeding rejects missing configuration, values under the implemented 16-character minimum, and the blocked historical fallback digest. No demo password is serialized to the frontend or present as an active credential in the current tree; historical Git history was intentionally not rewritten. Non-production seeding can generate a non-exported random seed password when no environment value is supplied.
+- Schema/migration impact: **none**. Index impact: **none**.
+- Raw-head CI evidence: Talibon Platform CI run **#266**, run ID `32951966180`, event `push`, head SHA exactly `74cae54a9e21b05f1da1ac63f5b941a528794e0f`, completed with conclusion **success**. Composer validation, TypeScript check, production frontend build, PostgreSQL migrate/seed, complete Feature suite, and route-list steps all completed successfully.
+- PR CI evidence requested for handoff: Talibon Platform CI run **#267**, run ID `32951971037`, event `pull_request`, PR #23 head SHA `74cae54a9e21b05f1da1ac63f5b941a528794e0f`, completed with conclusion **success**. GitHub checked out generated merge ref `2d3bc157f266a71c9d05d03040d647b2ac42d14a`, representing head `74cae54a9e21b05f1da1ac63f5b941a528794e0f` over base `43a74196082cf71098cc75445c626dd8d0f7e604`.
+- Exact run #267 observed gates: Composer validate PASS; TypeScript PASS; production Vite build PASS (**2175 modules / 536ms**); PostgreSQL `migrate:fresh --seed --force` PASS; complete Feature suite **252 passed / 2722 assertions / 533.09s**; `php artisan route:list` PASS (**112 routes**).
+- The #267 Feature suite explicitly passed `PublicPortalTest`, `PrototypeAuthenticationTest`, `CurrentPortalNavigationTest`, `PrivilegedMfaAuthenticationTest`, `MfaSecurityControlsTest`, `DashboardWorkspaceTest`, `WorkQueueTest`, `RecordsSearchTest`, Correspondence workspace/core/traceability regressions, `CoreDocumentAttachmentsTest`, `CorePortalReportsTest`, `PerformanceLiveEndpointsTest`, `PostgresTimezonePersistenceTest`, `CorePortalTimestampPersistenceTest`, `MunicipalWorkflowTest`, `TransactionAuthorizationNormalizationTest`, and `WorkflowDomainEventBoundaryTest`.
+- NOT OBSERVED / not claimed: manual browser QA, HTTPS deployment, DigitalOcean deployment, or production deployment.
+- Explicitly not implemented: Google OAuth, real account activation, real account provisioning, identity migration, public self-registration, and office-email migration.
+- Durability: Safe Points A/B/C were each advanced by normal fast-forward and their remote branch SHAs were verified before subsequent substantial work. No safe-point commit was amended, rebased away, reset behind, force-pushed, or otherwise history-rewritten.
+- Public-shell implementation is functionally green at Safe Point C. This documentation-only evidence append is a new forward safe point and must itself receive exact raw-head CI GREEN before System Administration begins.
+- Calendar remains **PARKED**. Approved Travel Orders remains **NOT STARTED**.
