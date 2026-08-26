@@ -8,6 +8,7 @@ use App\Models\User;
 use App\Models\WorkflowTransaction;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
 use Tests\TestCase;
 
 class M6ExecutivePrototypeTest extends TestCase
@@ -16,6 +17,8 @@ class M6ExecutivePrototypeTest extends TestCase
 
     public function test_seed_represents_350_portal_identities_with_seven_featured_demo_credentials(): void
     {
+        $demoPassword = Str::random(32);
+        config()->set('prototype.demo_password', $demoPassword);
         $this->seed();
 
         $this->assertSame(350, Employee::query()->where('employment_status', 'active')->count());
@@ -34,7 +37,7 @@ class M6ExecutivePrototypeTest extends TestCase
         ] as $email) {
             $user = User::query()->where('email', $email)->firstOrFail();
             $this->assertTrue($user->is_active);
-            $this->assertTrue(Hash::check('TalibonDemo2026!', $user->password));
+            $this->assertTrue(Hash::check($demoPassword, $user->password));
         }
     }
 

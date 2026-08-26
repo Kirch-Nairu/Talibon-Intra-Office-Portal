@@ -5,6 +5,8 @@ Deliver a presentation-ready municipal intra-office prototype that maps directly
 
 M6 is not a rewrite. It extends the existing Laravel + Inertia + React + PostgreSQL modular monolith.
 
+> Historical plan note: current implementation authority is defined by `SSOT_CURRENT_INTRA_OFFICE_PORTAL_SCOPE.md` and its later amendments. Where this historical M6 plan conflicts with current authority, the current authority controls.
+
 ## Demonstration goals
 The prototype must visibly demonstrate:
 
@@ -86,7 +88,10 @@ One shared operational item model for:
 - Production disaster recovery implementation
 
 ## Demo identities
-All demo identities use the password `TalibonDemo2026!`.
+
+The historical M6 prototype used shared demo credentials. The shared password is deliberately not retained in the current tree. Under the current One Talibon authority, any known prototype password must be supplied privately through `PROTOTYPE_DEMO_PASSWORD`; the Login UI starts blank and does not expose demo credentials.
+
+Featured synthetic identities:
 
 - admin@talibon.demo
 - mayor@talibon.demo
@@ -99,7 +104,7 @@ All demo identities use the password `TalibonDemo2026!`.
 ## Presentation definition of done
 - ~28 configured offices
 - ~350 synthetic employees
-- all 7 demo logins visible on login screen
+- representative demo identities available in the seeded dataset without exposing credentials on the Login screen
 - successful Engineering -> receiving office -> Mayor route
 - Mayor phone sees routed work without manual refresh
 - Mayor can approve and originating device sees updated state

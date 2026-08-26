@@ -8,14 +8,15 @@ use App\Models\User;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
+use RuntimeException;
 
 class WorkforceDemoSeeder extends Seeder
 {
-    private const DEMO_PASSWORD = 'TalibonDemo2026!';
     private const TARGET_EMPLOYEE_COUNT = 350;
 
     public function run(): void
     {
+        $demoPassword = $this->resolveDemoPassword();
         $departments = Department::query()->where('is_active', true)->get()->keyBy('code');
 
         $accounts = [
@@ -35,7 +36,7 @@ class WorkforceDemoSeeder extends Seeder
                     'name' => $account['name'],
                     'role' => $account['role'],
                     'is_active' => true,
-                    'password' => Hash::make(self::DEMO_PASSWORD),
+                    'password' => Hash::make($demoPassword),
                 ],
             );
 
@@ -117,5 +118,30 @@ class WorkforceDemoSeeder extends Seeder
                 ],
             );
         }
+    }
+
+    private function resolveDemoPassword(): string
+    {
+        $configured = config('prototype.demo_password');
+        $minimumLength = max(16, (int) config('prototype.minimum_demo_password_length', 16));
+        $blockedDigests = array_values(array_filter(
+            (array) config('prototype.blocked_demo_password_sha256', []),
+            fn (mixed $digest): bool => is_string($digest) && preg_match('/^[a-f0-9]{64}$/i', $digest) === 1,
+        ));
+
+        if (is_string($configured) && trim($configured) !== '') {
+            if (mb_strlen($configured) < $minimumLength
+                || in_array(hash('sha256', $configured), $blockedDigests, true)) {
+                throw new RuntimeException('PROTOTYPE_DEMO_PASSWORD must be configured with a private strong value before demo seeding.');
+            }
+
+            return $configured;
+        }
+
+        if (config('app.env') === 'production') {
+            throw new RuntimeException('PROTOTYPE_DEMO_PASSWORD must be configured with a private strong value before production demo seeding.');
+        }
+
+        return Str::random(max(32, $minimumLength));
     }
 }

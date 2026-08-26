@@ -49,6 +49,21 @@ class CurrentPortalNavigationTest extends TestCase
         $this->assertTrue(Route::has('records.index'));
     }
 
+    public function test_public_routes_are_separate_while_internal_routes_keep_security_middleware(): void
+    {
+        $this->assertTrue(Route::has('public.home'));
+        $this->assertTrue(Route::has('public.activate-account'));
+
+        foreach (['dashboard', 'transactions.index', 'correspondence.index', 'records.index', 'reports.index'] as $routeName) {
+            $route = Route::getRoutes()->getByName($routeName);
+            $this->assertNotNull($route);
+            $middleware = $route->gatherMiddleware();
+            $this->assertContains('auth', $middleware, "{$routeName} must remain authenticated.");
+            $this->assertContains('active', $middleware, "{$routeName} must preserve active-account enforcement.");
+            $this->assertContains('mfa.assured', $middleware, "{$routeName} must preserve MFA assurance.");
+        }
+    }
+
     public function test_dashboard_response_does_not_serialize_parked_module_rollups(): void
     {
         $this->seed();
