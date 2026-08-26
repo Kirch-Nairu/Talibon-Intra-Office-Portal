@@ -13,6 +13,7 @@ class SystemAdministrationNavigationBoundaryTest extends TestCase
         $this->assertIsString($layout);
         $this->assertStringContainsString("href: '/admin'", $layout);
         $this->assertStringContainsString('pageProps.permissions.navigation', $layout);
+        $this->assertStringContainsString('pageProps.permissions.reports && navigation.reports', $layout);
         $this->assertStringNotContainsString('includes(user?.role', $layout);
 
         foreach (['/operations', '/legislation', '/hris', '/employees'] as $href) {
