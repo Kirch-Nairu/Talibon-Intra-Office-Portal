@@ -6,14 +6,13 @@ use App\Models\Department;
 use App\Models\User;
 use App\Models\WorkflowTransaction;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Support\Str;
 
 final class DashboardTransactionQuery
 {
     public function __construct(
         private readonly TransactionVisibilityQuery $visibility,
-    ) {
-    }
+        private readonly DashboardWorkPresenter $presenter,
+    ) {}
 
     public function workspace(User $actor): array
     {
@@ -81,6 +80,11 @@ final class DashboardTransactionQuery
         ];
 
         $recentWork = (clone $base)
+            ->select([
+                'id', 'reference_no', 'transaction_type', 'title', 'priority', 'status',
+                'origin_department_id', 'current_department_id', 'assigned_employee_id',
+                'received_at', 'due_at', 'updated_at',
+            ])
             ->with([
                 'originDepartment:id,code,name,short_name',
                 'currentDepartment:id,code,name,short_name',
@@ -90,7 +94,7 @@ final class DashboardTransactionQuery
             ->orderByDesc('id')
             ->limit(5)
             ->get()
-            ->map(fn (WorkflowTransaction $transaction): array => $this->mapRecent(
+            ->map(fn (WorkflowTransaction $transaction): array => $this->presenter->present(
                 $transaction,
                 $terminal,
                 $now,
@@ -192,56 +196,13 @@ final class DashboardTransactionQuery
                 ];
             })
             ->filter()
-            ->sortByDesc(fn (array $office): int =>
-                ($office['overdue'] * 1000)
+            ->sortByDesc(fn (array $office): int => ($office['overdue'] * 1000)
                 + ($office['dueSoon'] * 100)
                 + ($office['unassigned'] * 10)
                 + $office['active']
             )
             ->values()
             ->all();
-    }
-
-    private function mapRecent(
-        WorkflowTransaction $transaction,
-        array $terminal,
-        $now,
-        $dueSoonEnd,
-    ): array {
-        $dueState = 'on_track';
-
-        if (in_array($transaction->status, $terminal, true)) {
-            $dueState = 'completed';
-        } elseif ($transaction->due_at?->lt($now)) {
-            $dueState = 'overdue';
-        } elseif ($transaction->due_at?->gte($now) && $transaction->due_at?->lte($dueSoonEnd)) {
-            $dueState = 'due_soon';
-        }
-
-        return [
-            'reference' => $transaction->reference_no,
-            'title' => $transaction->title,
-            'transactionType' => Str::headline($transaction->transaction_type),
-            'status' => $transaction->status,
-            'priority' => $transaction->priority,
-            'originOffice' => $this->office($transaction->originDepartment),
-            'currentOffice' => $this->office($transaction->currentDepartment),
-            'assignedEmployee' => $transaction->assignedEmployee ? [
-                'name' => $transaction->assignedEmployee->full_name,
-                'position' => $transaction->assignedEmployee->position_title,
-            ] : null,
-            'dueState' => $dueState,
-            'detailUrl' => route('transactions.show', $transaction, false),
-        ];
-    }
-
-    private function office(?Department $department): ?array
-    {
-        return $department ? [
-            'code' => $department->code,
-            'name' => $department->name,
-            'shortName' => $department->short_name,
-        ] : null;
     }
 
     /** @return array<int, string> */

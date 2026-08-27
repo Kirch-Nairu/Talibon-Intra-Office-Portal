@@ -9,8 +9,10 @@ use App\Models\Department;
 use App\Models\Employee;
 use App\Models\User;
 use App\Models\WorkflowTransaction;
+use App\Services\DashboardWorkspaceQuery;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Inertia\Testing\AssertableInertia as Assert;
 use Tests\TestCase;
@@ -34,7 +36,7 @@ class DashboardWorkspaceTest extends TestCase
         $this->get('/dashboard')->assertRedirect(route('mfa.enroll'));
     }
 
-    public function test_department_metrics_match_my_work_semantics_and_ignore_unrelated_transactions(): void
+    public function test_department_head_receives_separate_personal_and_office_dashboard_contracts(): void
     {
         $own = $this->department('OWN');
         $other = $this->department('OTHER');
@@ -83,19 +85,151 @@ class DashboardWorkspaceTest extends TestCase
             ->assertOk()
             ->assertInertia(fn (Assert $page) => $page
                 ->component('Dashboard')
-                ->where('workspace.departmentName', $own->name)
-                ->where('workspace.canSeeMunicipalOverview', false)
-                ->where('departmentMetrics.requiresMyAction.value', 1)
-                ->where('departmentMetrics.requiresMyAction.link', '/transactions?view=needs_my_action')
-                ->where('departmentMetrics.pendingInMyOffice.value', 3)
-                ->where('departmentMetrics.pendingInMyOffice.link', '/transactions?view=office_queue')
-                ->where('departmentMetrics.unassignedInMyOffice.value', 1)
-                ->where('departmentMetrics.overdue.value', 1)
-                ->where('departmentMetrics.waitingOnOtherOffices.value', 1)
-                ->where('departmentMetrics.dueSoon.value', 1)
-                ->where('departmentMetrics.completedThisMonth.value', 1)
-                ->missing('municipalOverview')
-                ->missing('departmentWorkload'));
+                ->where('experience.key', 'department_head')
+                ->where('experience.scopes.personal', true)
+                ->where('experience.scopes.office', true)
+                ->where('experience.scopes.municipal', false)
+                ->where('experience.capabilities.openOfficeWorkspace', true)
+                ->where('experience.department.name', $own->name)
+                ->where('metricGroups.0.key', 'personal')
+                ->where('metricGroups.0.metrics.0.label', 'Needs Action')
+                ->where('metricGroups.0.metrics.0.value', 1)
+                ->where('metricGroups.1.key', 'office')
+                ->where('officeOverview.metrics.active.value', 3)
+                ->where('officeOverview.metrics.incoming.value', 2)
+                ->where('officeOverview.metrics.outgoing.value', 1)
+                ->where('officeOverview.metrics.overdue.value', 0)
+                ->where('officeOverview.metrics.unassigned.value', 1)
+                ->where('officeOverview.metrics.recentlyCompleted.value', 1)
+                ->where('officeOverview.metrics.escalations.value', 0)
+                ->has('officeOverview.staffWorkload', 2)
+                ->has('officeOverview.oldestUnresolved', 3)
+                ->missing('executiveOverview')
+                ->missing('systemOverview'));
+    }
+
+    public function test_employee_dashboard_contains_personal_work_without_office_leadership_aggregates(): void
+    {
+        $own = $this->department('EMPLOYEE-OWN');
+        $other = $this->department('EMPLOYEE-OTHER');
+        $third = $this->department('EMPLOYEE-THIRD');
+        $actor = $this->human('department_staff', $own);
+        $head = $this->human('department_head', $own);
+        $otherHead = $this->human('department_head', $other);
+
+        $mine = $this->transaction('My assigned action', $other, $own, $head, $actor->employee, now()->addHours(6));
+        $outgoing = $this->transaction('My outgoing request', $own, $other, $actor, dueAt: now()->addDays(3));
+        $officeOnly = $this->transaction('Office-only unassigned work', $other, $own, $head, dueAt: now()->addDays(2));
+        $unrelated = $this->transaction('Unrelated other-office work', $other, $third, $otherHead);
+
+        $response = $this->actingAs($actor)->get('/dashboard')
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('experience.key', 'employee')
+                ->where('experience.scopes.personal', true)
+                ->where('experience.scopes.office', false)
+                ->where('experience.scopes.municipal', false)
+                ->where('experience.scopes.system', false)
+                ->where('experience.capabilities.openOfficeWorkspace', false)
+                ->has('metricGroups', 1)
+                ->where('metricGroups.0.key', 'personal')
+                ->where('metricGroups.0.metrics.0.value', 1)
+                ->where('metricGroups.0.metrics.2.value', 1)
+                ->where('metricGroups.0.metrics.5.value', 1)
+                ->has('recentWork', 2)
+                ->missing('officeOverview')
+                ->missing('executiveOverview')
+                ->missing('systemOverview')
+                ->missing('correspondenceAttention')
+                ->missing('departmentMetrics'));
+
+        $this->assertStringContainsString($mine->title, $response->getContent());
+        $this->assertStringContainsString($outgoing->title, $response->getContent());
+        $this->assertStringNotContainsString($officeOnly->title, $response->getContent());
+        $this->assertStringNotContainsString($unrelated->title, $response->getContent());
+    }
+
+    public function test_specialist_staff_remain_employee_profile_while_mayor_staff_requires_mayor_office_context(): void
+    {
+        $hr = $this->human('hr_officer', $this->department('HR', code: 'HRMO'));
+        $legislative = $this->human('legislative_staff', $this->department('LEG', code: 'SB'));
+        $mayorStaff = $this->human('mayor_staff', $this->department('MAYOR-STAFF', code: 'MAYOR'));
+        $misplacedMayorStaff = $this->human('mayor_staff', $this->department('MAYOR-OTHER'));
+
+        foreach ([$hr, $legislative, $misplacedMayorStaff] as $employeeProfile) {
+            $this->actingAs($employeeProfile)->get('/dashboard')
+                ->assertOk()
+                ->assertInertia(fn (Assert $page) => $page
+                    ->where('experience.key', 'employee')
+                    ->where('experience.scopes.office', false)
+                    ->where('experience.scopes.municipal', false));
+        }
+
+        $this->actingAs($mayorStaff)->get('/dashboard')
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('experience.key', 'executive_oversight')
+                ->where('experience.scopes.municipal', true)
+                ->where('experience.department.code', 'MAYOR'));
+    }
+
+    public function test_executive_aggregate_does_not_expose_other_office_restricted_correspondence(): void
+    {
+        $mayor = $this->department('EXEC-CORR-MAYOR', code: 'MAYOR');
+        $other = $this->department('EXEC-CORR-OTHER');
+        $actor = $this->human('mayor_approver', $mayor);
+        $restricted = $this->correspondence(
+            'Other office restricted executive aggregate sentinel',
+            $other,
+            CorrespondenceClassification::Restricted,
+            CorrespondenceLifecycleState::Classified,
+        );
+
+        $response = $this->actingAs($actor)->get('/dashboard')
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('experience.key', 'executive_oversight')
+                ->where('correspondenceOverview.status.2.count', 0)
+                ->has('correspondenceOverview.recentlyReceived', 0)
+                ->has('correspondenceOverview.recentlyRouted', 0));
+
+        $this->assertStringNotContainsString($restricted->subject, $response->getContent());
+        $this->assertStringNotContainsString($restricted->public_id, $response->getContent());
+    }
+
+    public function test_department_dashboard_query_count_is_constant_as_staff_workload_grows(): void
+    {
+        $office = $this->department('QUERY-COUNT');
+        $head = $this->human('department_head', $office);
+        $creator = $head;
+        $firstStaff = $this->human('department_staff', $office);
+        $this->transaction(
+            'Query workload baseline',
+            $office,
+            $office,
+            $creator,
+            $firstStaff->employee,
+            now()->addDays(2),
+        );
+
+        $baseline = $this->dashboardQueryCount($head->fresh());
+
+        foreach (range(1, 15) as $number) {
+            $staff = $this->human('department_staff', $office);
+            $this->transaction(
+                "Query workload {$number}",
+                $office,
+                $office,
+                $creator,
+                $staff->employee,
+                now()->addDays(2),
+            );
+        }
+
+        $expanded = $this->dashboardQueryCount($head->fresh());
+
+        $this->assertLessThanOrEqual($baseline + 1, $expanded);
+        $this->assertLessThanOrEqual(35, $expanded);
     }
 
     public function test_correspondence_status_attention_and_recent_lists_respect_existing_visibility(): void
@@ -182,23 +316,23 @@ class DashboardWorkspaceTest extends TestCase
         $response = $this->actingAs($staff)->get('/dashboard')
             ->assertOk()
             ->assertInertia(fn (Assert $page) => $page
-                ->where('correspondenceAttention.value', 2)
-                ->where('correspondenceAttention.link', '/correspondence?action_required=1')
-                ->where('correspondenceStatus.0.lifecycle', 'received')
-                ->where('correspondenceStatus.0.count', 1)
-                ->where('correspondenceStatus.1.lifecycle', 'registered')
-                ->where('correspondenceStatus.1.count', 1)
-                ->where('correspondenceStatus.2.lifecycle', 'classified')
-                ->where('correspondenceStatus.2.count', 0)
-                ->where('correspondenceStatus.3.lifecycle', 'routed')
-                ->where('correspondenceStatus.3.count', 1)
-                ->where('correspondenceStatus.4.lifecycle', 'in_action')
-                ->where('correspondenceStatus.4.count', 1)
-                ->has('correspondenceStatus', 5)
-                ->where('correspondenceStatus.0.link', '/correspondence?lifecycle=received')
-                ->where('recentlyReceivedCorrespondence.0.subject', $intake->subject)
-                ->where('recentlyRoutedCorrespondence.0.subject', $routed->subject)
-                ->where('recentlyRoutedCorrespondence.0.detailUrl', '/correspondence/'.$routed->public_id.'/workspace'));
+                ->where('correspondenceOverview.attention.value', 2)
+                ->where('correspondenceOverview.attention.link', '/correspondence?action_required=1')
+                ->where('correspondenceOverview.status.0.lifecycle', 'received')
+                ->where('correspondenceOverview.status.0.count', 1)
+                ->where('correspondenceOverview.status.1.lifecycle', 'registered')
+                ->where('correspondenceOverview.status.1.count', 1)
+                ->where('correspondenceOverview.status.2.lifecycle', 'classified')
+                ->where('correspondenceOverview.status.2.count', 0)
+                ->where('correspondenceOverview.status.3.lifecycle', 'routed')
+                ->where('correspondenceOverview.status.3.count', 1)
+                ->where('correspondenceOverview.status.4.lifecycle', 'in_action')
+                ->where('correspondenceOverview.status.4.count', 1)
+                ->has('correspondenceOverview.status', 5)
+                ->where('correspondenceOverview.status.0.link', '/correspondence?lifecycle=received')
+                ->where('correspondenceOverview.recentlyReceived.0.subject', $intake->subject)
+                ->where('correspondenceOverview.recentlyRouted.0.subject', $routed->subject)
+                ->where('correspondenceOverview.recentlyRouted.0.detailUrl', '/correspondence/'.$routed->public_id.'/workspace'));
 
         foreach ([$confidential, $restricted, $otherOffice] as $hidden) {
             $this->assertStringNotContainsString($hidden->subject, $response->getContent());
@@ -227,16 +361,18 @@ class DashboardWorkspaceTest extends TestCase
         $response = $this->actingAs($admin)->get('/dashboard')
             ->assertOk()
             ->assertInertia(fn (Assert $page) => $page
-                ->where('workspace.canSeeMunicipalOverview', true)
-                ->where('municipalOverview.activeMunicipalWork', 1)
-                ->where('municipalOverview.executiveQueue', 1)
-                ->where('correspondenceStatus.0.count', 0)
-                ->where('correspondenceStatus.1.count', 0)
-                ->where('correspondenceStatus.2.count', 0)
-                ->where('correspondenceStatus.3.count', 0)
-                ->where('correspondenceStatus.4.count', 0)
-                ->has('recentlyReceivedCorrespondence', 0)
-                ->has('recentlyRoutedCorrespondence', 0));
+                ->where('experience.key', 'system_administration')
+                ->where('experience.scopes.system', true)
+                ->where('experience.scopes.personal', false)
+                ->where('experience.capabilities.openSystemAdministration', true)
+                ->has('metricGroups.0.metrics', 6)
+                ->has('systemOverview.security.recentEvents', 0)
+                ->where('systemOverview.operations.summary.activeMunicipalWork', 1)
+                ->where('systemOverview.operations.summary.executiveQueue', 1)
+                ->has('recentWork', 0)
+                ->missing('correspondenceOverview')
+                ->missing('officeOverview')
+                ->missing('executiveOverview'));
 
         $this->assertStringNotContainsString($restricted->subject, $response->getContent());
     }
@@ -282,7 +418,7 @@ class DashboardWorkspaceTest extends TestCase
         $mayor = $this->department('EXEC-MAYOR', code: 'MAYOR');
         $budget = $this->department('EXEC-BUDGET');
         $engineering = $this->department('EXEC-ENG');
-        $admin = $this->human('system_admin', $adminOffice);
+        $admin = $this->human('mayor_approver', $mayor);
         $creator = $this->human('department_head', $budget);
         $engineer = $this->human('department_staff', $engineering);
 
@@ -314,22 +450,29 @@ class DashboardWorkspaceTest extends TestCase
         $this->actingAs($admin)->get('/dashboard')
             ->assertOk()
             ->assertInertia(fn (Assert $page) => $page
-                ->where('workspace.canSeeMunicipalOverview', true)
-                ->where('workspace.departmentCode', $adminOffice->code)
-                ->where('municipalOverview.activeMunicipalWork', 3)
-                ->where('municipalOverview.municipalOverdue', 1)
-                ->where('municipalOverview.municipalUnassigned', 2)
-                ->where('municipalOverview.dueSoon', 1)
-                ->where('municipalOverview.executiveQueue', 1)
-                ->where('municipalOverview.completedThisMonth', 1)
-                ->where('departmentWorkload.0.code', $engineering->code)
-                ->where('departmentWorkload.0.active', 2)
-                ->where('departmentWorkload.0.unassigned', 1)
-                ->where('departmentWorkload.0.overdue', 1)
-                ->where('departmentWorkload.1.code', 'MAYOR')
-                ->where('departmentWorkload.1.active', 1)
-                ->where('departmentWorkload.1.unassigned', 1)
-                ->where('departmentWorkload.1.dueSoon', 1));
+                ->where('experience.key', 'executive_oversight')
+                ->where('experience.scopes.municipal', true)
+                ->where('experience.scopes.system', false)
+                ->where('experience.department.code', 'MAYOR')
+                ->where('executiveOverview.summary.activeMunicipalWork', 3)
+                ->where('executiveOverview.summary.municipalOverdue', 1)
+                ->where('executiveOverview.summary.municipalUnassigned', 2)
+                ->where('executiveOverview.summary.dueSoon', 1)
+                ->where('executiveOverview.summary.executiveQueue', 1)
+                ->where('executiveOverview.summary.completedThisMonth', 1)
+                ->where('executiveOverview.departmentWorkload.0.code', $engineering->code)
+                ->where('executiveOverview.departmentWorkload.0.active', 2)
+                ->where('executiveOverview.departmentWorkload.0.unassigned', 1)
+                ->where('executiveOverview.departmentWorkload.0.overdue', 1)
+                ->where('executiveOverview.departmentWorkload.1.code', 'MAYOR')
+                ->where('executiveOverview.departmentWorkload.1.active', 1)
+                ->where('executiveOverview.departmentWorkload.1.unassigned', 1)
+                ->where('executiveOverview.departmentWorkload.1.dueSoon', 1)
+                ->where('executiveOverview.metrics.pendingExecutiveAction.value', 0)
+                ->has('executiveOverview.oldestUnresolved', 3)
+                ->has('executiveOverview.recentlyCompleted', 1)
+                ->missing('officeOverview')
+                ->missing('systemOverview'));
     }
 
     public function test_dashboard_deep_links_and_parked_scope_remain_current_only(): void
@@ -340,22 +483,27 @@ class DashboardWorkspaceTest extends TestCase
         $this->actingAs($actor)->get('/dashboard')
             ->assertOk()
             ->assertInertia(fn (Assert $page) => $page
-                ->where('departmentMetrics.requiresMyAction.link', '/transactions?view=needs_my_action')
-                ->where('departmentMetrics.pendingInMyOffice.link', '/transactions?view=office_queue')
-                ->where('departmentMetrics.overdue.link', '/transactions?view=overdue')
-                ->where('departmentMetrics.waitingOnOtherOffices.link', '/transactions?view=waiting_on_others')
-                ->where('departmentMetrics.unassignedInMyOffice.link', '/transactions?view=unassigned')
-                ->where('correspondenceAttention.link', '/correspondence?action_required=1'));
+                ->where('metricGroups.0.metrics.0.link', '/transactions?view=needs_my_action')
+                ->where('metricGroups.0.metrics.4.link', '/transactions?view=recently_updated')
+                ->where('officeOverview.metrics.active.link', '/transactions?view=office_queue')
+                ->where('officeOverview.metrics.overdue.link', '/transactions?view=overdue')
+                ->where('officeOverview.metrics.waitingExternally.link', '/transactions?view=waiting_on_others')
+                ->where('officeOverview.metrics.unassigned.link', '/transactions?view=unassigned')
+                ->where('correspondenceOverview.attention.link', '/correspondence?action_required=1'));
 
         $pageSource = file_get_contents(resource_path('js/pages/Dashboard.tsx'));
         $querySource = file_get_contents(app_path('Services/DashboardWorkspaceQuery.php'))
+            .file_get_contents(app_path('Services/DashboardExperienceResolver.php'))
             .file_get_contents(app_path('Services/DashboardTransactionQuery.php'))
-            .file_get_contents(app_path('Services/DashboardCorrespondenceQuery.php'));
+            .file_get_contents(app_path('Services/DashboardCorrespondenceQuery.php'))
+            .file_get_contents(app_path('Services/DashboardPersonalQuery.php'))
+            .file_get_contents(app_path('Services/DashboardOfficeQuery.php'))
+            .file_get_contents(app_path('Services/DashboardExecutiveQuery.php'));
 
         $this->assertIsString($pageSource);
-        $this->assertStringContainsString('href="/records"', $pageSource);
-        $this->assertStringContainsString('href="/correspondence"', $pageSource);
-        $this->assertStringContainsString('href="/transactions"', $pageSource);
+        $this->assertStringContainsString("'url' => '/records'", $querySource);
+        $this->assertStringContainsString("'url' => '/correspondence'", $querySource);
+        $this->assertStringContainsString("'url' => '/transactions?view=needs_my_action'", $querySource);
 
         foreach ([
             'Hris',
@@ -373,6 +521,19 @@ class DashboardWorkspaceTest extends TestCase
         foreach (['For Review', 'Incoming', 'High Priority', 'Approved Today'] as $oldMetric) {
             $this->assertStringNotContainsString($oldMetric, $pageSource);
         }
+    }
+
+    private function dashboardQueryCount(User $actor): int
+    {
+        DB::flushQueryLog();
+        DB::enableQueryLog();
+
+        app(DashboardWorkspaceQuery::class)->workspace($actor);
+        $count = count(DB::getQueryLog());
+
+        DB::disableQueryLog();
+
+        return $count;
     }
 
     private function department(string $suffix, ?string $code = null): Department

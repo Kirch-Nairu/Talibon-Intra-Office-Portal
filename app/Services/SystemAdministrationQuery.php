@@ -11,17 +11,40 @@ final class SystemAdministrationQuery
 {
     public function __construct(
         private readonly DashboardTransactionQuery $transactions,
-    ) {
-    }
+    ) {}
 
     /** @return array<string, mixed> */
     public function dashboard(User $actor): array
     {
+        $officeIdentities = $this->officeIdentities();
+
+        return [
+            ...$this->buildSummary($actor, $officeIdentities),
+            'officeIdentities' => $officeIdentities,
+        ];
+    }
+
+    /** @return array<string, mixed> */
+    public function summary(User $actor): array
+    {
+        return $this->buildSummary($actor, $this->officeIdentities());
+    }
+
+    /**
+     * @param  array<int, array<string, mixed>>  $officeIdentities
+     * @return array<string, mixed>
+     */
+    private function buildSummary(User $actor, array $officeIdentities): array
+    {
         $transactionWorkspace = $this->transactions->workspace($actor);
+        $officeIdentityCollection = collect($officeIdentities);
 
         return [
             'overview' => $this->overview(),
-            'officeIdentities' => $this->officeIdentities(),
+            'officeIdentityStatus' => [
+                'configured' => $officeIdentityCollection->whereNotNull('officialEmail')->count(),
+                'pending' => $officeIdentityCollection->whereNull('officialEmail')->count(),
+            ],
             'operations' => [
                 'summary' => $transactionWorkspace['municipalOverview'] ?? [],
                 'departmentWorkload' => $transactionWorkspace['departmentWorkload'] ?? [],

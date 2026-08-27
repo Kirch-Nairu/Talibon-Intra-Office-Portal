@@ -20,14 +20,14 @@ final class WorkQueueQuery
         'unassigned' => 'Unassigned',
         'overdue' => 'Overdue',
         'due_soon' => 'Due Soon',
+        'recently_updated' => 'Recently Updated',
         'waiting_on_others' => 'Waiting on Others',
         'recently_completed' => 'Recently Completed',
     ];
 
     public function __construct(
         private readonly TransactionVisibilityQuery $visibility,
-    ) {
-    }
+    ) {}
 
     /** @param array<string, mixed> $filters */
     public function workspace(User $actor, array $filters): array
@@ -139,6 +139,7 @@ final class WorkQueueQuery
             'unassigned' => $this->active($query, $terminal)->whereNull('assigned_employee_id'),
             'overdue' => $this->active($query, $terminal)->whereNotNull('due_at')->where('due_at', '<', now()),
             'due_soon' => $this->active($query, $terminal)->whereBetween('due_at', [now(), now()->addDay()]),
+            'recently_updated' => $this->active($query, $terminal)->where('updated_at', '>=', now()->subDays(7)),
             'waiting_on_others' => $this->active($query, $terminal)
                 ->when($departmentId, function (Builder $q) use ($departmentId): void {
                     $q->where('origin_department_id', $departmentId)

@@ -15,6 +15,7 @@ class TransactionIndexRequest extends FormRequest
         'unassigned',
         'overdue',
         'due_soon',
+        'recently_updated',
         'waiting_on_others',
         'recently_completed',
     ];

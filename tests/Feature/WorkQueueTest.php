@@ -45,7 +45,7 @@ class WorkQueueTest extends TestCase
                 ->where('filters.view', 'all')
                 ->where('records.total', 4)
                 ->has('records.data', 4)
-                ->has('views', 9)
+                ->has('views', 10)
                 ->where('views.0.key', 'all')
                 ->where('views.0.label', 'All')
                 ->where('views.0.count', 4)
@@ -55,8 +55,9 @@ class WorkQueueTest extends TestCase
                 ->where('views.4.key', 'unassigned')
                 ->where('views.5.key', 'overdue')
                 ->where('views.6.key', 'due_soon')
-                ->where('views.7.key', 'waiting_on_others')
-                ->where('views.8.key', 'recently_completed')
+                ->where('views.7.key', 'recently_updated')
+                ->where('views.8.key', 'waiting_on_others')
+                ->where('views.9.key', 'recently_completed')
                 ->where('workspace.canViewAll', false));
 
         $this->assertStringNotContainsString($hidden->title, $response->getContent());

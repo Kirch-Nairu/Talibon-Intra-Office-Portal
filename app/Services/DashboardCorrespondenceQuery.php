@@ -19,8 +19,7 @@ final class DashboardCorrespondenceQuery
 
     public function __construct(
         private readonly CorrespondenceAccessDecider $access,
-    ) {
-    }
+    ) {}
 
     public function workspace(User $actor): array
     {
