@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\CorrespondenceRecord;
 use App\Models\Department;
 use App\Models\Employee;
+use App\Models\TravelOrder;
 use App\Models\WorkflowTransaction;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection;
@@ -20,16 +21,19 @@ final class RecordsResultPresenter
             ->pluck('record_key')
             ->map(fn ($id): int => (int) $id)
             ->all();
+        $travelOrderKeys = $rows->where('record_type', 'travel_order')->pluck('record_key')->all();
 
         $correspondence = $this->correspondence($correspondenceKeys);
         $transactions = $this->transactions($transactionIds);
+        $travelOrders = $this->travelOrders($travelOrderKeys);
 
-        $paginator->setCollection($rows->map(function (object $row) use ($correspondence, $transactions): array {
-            if ($row->record_type === 'correspondence') {
-                return $this->mapCorrespondence($correspondence->get((string) $row->record_key));
-            }
-
-            return $this->mapTransaction($transactions->get((int) $row->record_key));
+        $paginator->setCollection($rows->map(function (object $row) use ($correspondence, $transactions, $travelOrders): array {
+            return match ($row->record_type) {
+                'correspondence' => $this->mapCorrespondence($correspondence->get((string) $row->record_key)),
+                'transaction' => $this->mapTransaction($transactions->get((int) $row->record_key)),
+                'travel_order' => $this->mapTravelOrder($travelOrders->get((string) $row->record_key)),
+                default => [],
+            };
         }));
 
         return $paginator;
@@ -70,6 +74,31 @@ final class RecordsResultPresenter
             ])
             ->get()
             ->keyBy('id');
+    }
+
+    /** @param array<int, string> $keys */
+    private function travelOrders(array $keys): Collection
+    {
+        if ($keys === []) {
+            return collect();
+        }
+
+        return TravelOrder::query()
+            ->whereIn('public_id', $keys)
+            ->select([
+                'id',
+                'public_id',
+                'reference_number',
+                'issuance_date',
+                'purpose',
+                'destination',
+                'department_id',
+                'status',
+                'updated_at',
+            ])
+            ->with('department:id,code,name,short_name')
+            ->get()
+            ->keyBy('public_id');
     }
 
     private function mapCorrespondence(?CorrespondenceRecord $record): array
@@ -121,6 +150,28 @@ final class RecordsResultPresenter
             'recordDate' => ($transaction->received_at ?? $transaction->created_at)?->toIso8601String(),
             'updatedAt' => $transaction->updated_at?->toIso8601String(),
             'detailUrl' => route('transactions.show', $transaction, false),
+        ];
+    }
+
+    private function mapTravelOrder(?TravelOrder $travelOrder): array
+    {
+        if (! $travelOrder) {
+            return [];
+        }
+
+        return [
+            'recordType' => 'travel_order',
+            'reference' => $travelOrder->reference_number,
+            'title' => $travelOrder->purpose,
+            'source' => 'Destination: '.$travelOrder->destination,
+            'originOffice' => null,
+            'currentOffice' => $this->office($travelOrder->department),
+            'assignedEmployee' => null,
+            'state' => $travelOrder->status->value,
+            'classification' => null,
+            'recordDate' => $travelOrder->issuance_date?->toIso8601String(),
+            'updatedAt' => $travelOrder->updated_at?->toIso8601String(),
+            'detailUrl' => route('travel-orders.show', $travelOrder, false),
         ];
     }
 

@@ -16,7 +16,7 @@ type Employee = {
 };
 
 type RecordRow = {
-    recordType: 'correspondence' | 'transaction';
+    recordType: 'correspondence' | 'transaction' | 'travel_order';
     reference?: string | null;
     title: string;
     source: string;
@@ -77,6 +77,18 @@ const formatDate = (value?: string | null) => {
         : date.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
 };
 
+const recordTypeLabel = (recordType: RecordRow['recordType']) => {
+    if (recordType === 'correspondence') return 'Correspondence';
+    if (recordType === 'travel_order') return 'Travel Order';
+    return 'Transaction';
+};
+
+const recordTypeClass = (recordType: RecordRow['recordType']) => {
+    if (recordType === 'correspondence') return 'bg-blue-50 text-blue-800';
+    if (recordType === 'travel_order') return 'bg-emerald-50 text-emerald-800';
+    return 'bg-violet-50 text-violet-800';
+};
+
 export default function Index({ records, filters, filterOptions }: Props) {
     const [search, setSearch] = useState(filters.search);
     const [recordType, setRecordType] = useState(filters.record_type || 'all');
@@ -135,7 +147,7 @@ export default function Index({ records, filters, filterOptions }: Props) {
                     <div className="text-[10px] font-bold uppercase tracking-[0.18em] text-blue-700 sm:text-xs">Authorized records registry</div>
                     <h1 className="mt-1.5 text-2xl font-bold text-slate-950 sm:text-3xl">Records</h1>
                     <p className="mt-1.5 text-[11px] leading-5 text-slate-500 sm:text-sm">
-                        Search and track authorized municipal correspondence and inter-office transactions.
+                        Search authorized correspondence, inter-office transactions, and approved Travel Orders.
                     </p>
                 </header>
 
@@ -145,7 +157,7 @@ export default function Index({ records, filters, filterOptions }: Props) {
                         <input
                             value={search}
                             onChange={(event) => setSearch(event.target.value)}
-                            placeholder="Search reference, subject, office, sender, assignee…"
+                            placeholder="Search reference, record, office, destination, sender, employee…"
                             className="w-full rounded-xl border border-slate-300 py-3 pl-10 pr-3 text-[12px] outline-none transition focus:border-blue-700 focus:ring-2 focus:ring-blue-100 sm:text-sm"
                         />
                     </label>
@@ -182,7 +194,7 @@ export default function Index({ records, filters, filterOptions }: Props) {
                         </label>
 
                         <label>
-                            <span className="mb-1 block text-[9px] font-bold uppercase tracking-wide text-slate-400 sm:text-[10px]">Current Office</span>
+                            <span className="mb-1 block text-[9px] font-bold uppercase tracking-wide text-slate-400 sm:text-[10px]">Current / Responsible Office</span>
                             <select
                                 value={officeId}
                                 onChange={(event) => setOfficeId(event.target.value)}
@@ -260,8 +272,8 @@ export default function Index({ records, filters, filterOptions }: Props) {
                                 className="grid gap-3 px-4 py-4 transition hover:bg-blue-50/40 sm:px-5 lg:grid-cols-[110px_145px_minmax(220px,1.5fr)_170px_170px_130px_34px] lg:items-center"
                             >
                                 <div>
-                                    <span className={`rounded-full px-2 py-1 text-[8px] font-bold uppercase sm:text-[9px] ${record.recordType === 'correspondence' ? 'bg-blue-50 text-blue-800' : 'bg-violet-50 text-violet-800'}`}>
-                                        {record.recordType === 'correspondence' ? 'Correspondence' : 'Transaction'}
+                                    <span className={`rounded-full px-2 py-1 text-[8px] font-bold uppercase sm:text-[9px] ${recordTypeClass(record.recordType)}`}>
+                                        {recordTypeLabel(record.recordType)}
                                     </span>
                                 </div>
 
@@ -297,7 +309,9 @@ export default function Index({ records, filters, filterOptions }: Props) {
                                 <div className="text-[10px] text-slate-600 sm:text-xs">
                                     <div className="flex items-center gap-1.5">
                                         <UserRound size={12} className="text-slate-400" />
-                                        {record.assignedEmployee?.name || 'Unassigned'}
+                                        {record.recordType === 'travel_order'
+                                            ? 'Issued personnel on detail'
+                                            : (record.assignedEmployee?.name || 'Unassigned')}
                                     </div>
                                     {record.assignedEmployee?.position && <div className="mt-1 text-[9px] text-slate-400">{record.assignedEmployee.position}</div>}
                                 </div>

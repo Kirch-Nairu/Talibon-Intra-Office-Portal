@@ -11,6 +11,7 @@ final class RecordsIndexRequest extends FormRequest
         'all',
         'correspondence',
         'transaction',
+        'travel_order',
     ];
 
     public function authorize(): bool

@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\CorrespondenceRecord;
 use App\Models\Department;
+use App\Models\TravelOrder;
 use App\Models\User;
 use App\Models\WorkflowTransaction;
 use Illuminate\Database\Eloquent\Builder;
@@ -16,6 +17,7 @@ final class RecordsSearchQuery
     public function __construct(
         private readonly CorrespondenceAccessDecider $correspondenceAccess,
         private readonly TransactionVisibilityQuery $transactionVisibility,
+        private readonly TravelOrderAccess $travelOrderAccess,
         private readonly RecordsResultPresenter $presenter,
     ) {
     }
@@ -28,14 +30,17 @@ final class RecordsSearchQuery
 
         $correspondenceBase = $this->authorizedCorrespondence($actor);
         $transactionBase = $this->transactionVisibility->scope($actor);
+        $travelOrderBase = $this->travelOrderAccess->scopeVisibleTo(TravelOrder::query(), $actor);
 
         $correspondence = clone $correspondenceBase;
         $transactions = clone $transactionBase;
+        $travelOrders = clone $travelOrderBase;
         $this->applyCorrespondenceFilters($correspondence, $filters);
         $this->applyTransactionFilters($transactions, $filters);
+        $this->applyTravelOrderFilters($travelOrders, $filters);
 
         return [
-            'records' => $this->paginate($recordType, $correspondence, $transactions),
+            'records' => $this->paginate($recordType, $correspondence, $transactions, $travelOrders),
             'filters' => [
                 'search' => (string) ($filters['search'] ?? ''),
                 'record_type' => $recordType,
@@ -49,9 +54,20 @@ final class RecordsSearchQuery
                     ['value' => 'all', 'label' => 'All Records'],
                     ['value' => 'correspondence', 'label' => 'Correspondence'],
                     ['value' => 'transaction', 'label' => 'Inter-Office Transactions'],
+                    ['value' => 'travel_order', 'label' => 'Approved Travel Orders'],
                 ],
-                'states' => $this->stateOptions($recordType, $correspondenceBase, $transactionBase),
-                'offices' => $this->officeOptions($recordType, $correspondenceBase, $transactionBase),
+                'states' => $this->stateOptions(
+                    $recordType,
+                    $correspondenceBase,
+                    $transactionBase,
+                    $travelOrderBase,
+                ),
+                'offices' => $this->officeOptions(
+                    $recordType,
+                    $correspondenceBase,
+                    $transactionBase,
+                    $travelOrderBase,
+                ),
             ],
         ];
     }
@@ -143,6 +159,42 @@ final class RecordsSearchQuery
         $this->applyTransactionDateBounds($query, $filters);
     }
 
+    /** @param array<string, mixed> $filters */
+    private function applyTravelOrderFilters(Builder $query, array $filters): void
+    {
+        $search = Str::lower(trim((string) ($filters['search'] ?? '')));
+        if ($search !== '') {
+            $like = '%'.$search.'%';
+            $query->where(function (Builder $match) use ($like): void {
+                foreach (['reference_number', 'purpose', 'destination'] as $column) {
+                    $match->orWhereRaw("LOWER(COALESCE({$column}, '')) LIKE ?", [$like]);
+                }
+
+                $match->orWhereHas('department', fn (Builder $department) => $this->matchOffice($department, $like))
+                    ->orWhereHas('issuedTo', function (Builder $employee) use ($like): void {
+                        $employee->whereRaw("LOWER(COALESCE(full_name, '')) LIKE ?", [$like])
+                            ->orWhereRaw("LOWER(COALESCE(employee_number, '')) LIKE ?", [$like]);
+                    });
+            });
+        }
+
+        if (! empty($filters['state'])) {
+            $query->where('status', (string) $filters['state']);
+        }
+
+        if (! empty($filters['office_id'])) {
+            $query->where('department_id', (int) $filters['office_id']);
+        }
+
+        if (! empty($filters['date_from'])) {
+            $query->whereDate('travel_end_date', '>=', (string) $filters['date_from']);
+        }
+
+        if (! empty($filters['date_to'])) {
+            $query->whereDate('travel_start_date', '<=', (string) $filters['date_to']);
+        }
+    }
+
     private function matchOffice(Builder $query, string $like): Builder
     {
         return $query->where(function (Builder $office) use ($like): void {
@@ -200,18 +252,25 @@ final class RecordsSearchQuery
         string $recordType,
         Builder $correspondence,
         Builder $transactions,
+        Builder $travelOrders,
     ): LengthAwarePaginator {
         $sources = [];
 
-        if ($recordType !== 'transaction') {
+        if ($this->includesSource($recordType, 'correspondence')) {
             $sources[] = $correspondence->selectRaw(
                 "'correspondence' AS record_type, CAST(public_id AS TEXT) AS record_key, received_at AS record_date, id AS sort_id",
             );
         }
 
-        if ($recordType !== 'correspondence') {
+        if ($this->includesSource($recordType, 'transaction')) {
             $sources[] = $transactions->selectRaw(
                 "'transaction' AS record_type, CAST(id AS TEXT) AS record_key, COALESCE(received_at, created_at) AS record_date, id AS sort_id",
+            );
+        }
+
+        if ($this->includesSource($recordType, 'travel_order')) {
+            $sources[] = $travelOrders->selectRaw(
+                "'travel_order' AS record_type, CAST(public_id AS TEXT) AS record_key, issuance_date AS record_date, id AS sort_id",
             );
         }
 
@@ -234,22 +293,20 @@ final class RecordsSearchQuery
         string $recordType,
         Builder $correspondence,
         Builder $transactions,
+        Builder $travelOrders,
     ): array {
         $values = collect();
 
-        if ($recordType !== 'transaction') {
-            $correspondenceStates = (clone $correspondence)
-                ->distinct()
-                ->pluck('lifecycle_state')
-                ->map(fn ($value): string => $value instanceof \BackedEnum
-                    ? (string) $value->value
-                    : (string) $value);
-
-            $values = $values->merge($correspondenceStates);
+        if ($this->includesSource($recordType, 'correspondence')) {
+            $values = $values->merge($this->stateValues($correspondence, 'lifecycle_state'));
         }
 
-        if ($recordType !== 'correspondence') {
-            $values = $values->merge((clone $transactions)->distinct()->pluck('status'));
+        if ($this->includesSource($recordType, 'transaction')) {
+            $values = $values->merge($this->stateValues($transactions, 'status'));
+        }
+
+        if ($this->includesSource($recordType, 'travel_order')) {
+            $values = $values->merge($this->stateValues($travelOrders, 'status'));
         }
 
         return $values
@@ -268,10 +325,11 @@ final class RecordsSearchQuery
         string $recordType,
         Builder $correspondence,
         Builder $transactions,
+        Builder $travelOrders,
     ): array {
         $ids = collect();
 
-        if ($recordType !== 'transaction') {
+        if ($this->includesSource($recordType, 'correspondence')) {
             $workflowIds = (clone $correspondence)
                 ->whereNotNull('workflow_transaction_id')
                 ->select('workflow_transaction_id');
@@ -292,8 +350,12 @@ final class RecordsSearchQuery
                 );
         }
 
-        if ($recordType !== 'correspondence') {
+        if ($this->includesSource($recordType, 'transaction')) {
             $ids = $ids->merge((clone $transactions)->distinct()->pluck('current_department_id'));
+        }
+
+        if ($this->includesSource($recordType, 'travel_order')) {
+            $ids = $ids->merge((clone $travelOrders)->distinct()->pluck('department_id'));
         }
 
         return Department::query()
@@ -310,5 +372,20 @@ final class RecordsSearchQuery
                 'shortName' => $department->short_name,
             ])
             ->all();
+    }
+
+    private function stateValues(Builder $query, string $column)
+    {
+        return (clone $query)
+            ->distinct()
+            ->pluck($column)
+            ->map(fn ($value): string => $value instanceof \BackedEnum
+                ? (string) $value->value
+                : (string) $value);
+    }
+
+    private function includesSource(string $recordType, string $source): bool
+    {
+        return $recordType === 'all' || $recordType === $source;
     }
 }
