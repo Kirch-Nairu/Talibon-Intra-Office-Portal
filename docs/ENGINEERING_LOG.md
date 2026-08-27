@@ -467,3 +467,98 @@ Every implementation commit must update this file in the same commit. Never conv
 - Parked / untouched after this wave: Notifications refinement **PARKED**; Calendar **PARKED**; Approved Travel Orders **NOT STARTED / PARKED**; Google OAuth **NOT IMPLEMENTED**; real account activation/provisioning **NOT IMPLEMENTED**; identity migration **NOT IMPLEMENTED**; office-email migration **NOT IMPLEMENTED**; Department Head collaboration/chat **NOT IMPLEMENTED**; broad HRIS/payroll/DTR/attendance/leave expansion **PARKED**; Project Monitoring **PARKED**; Procurement **PARKED**; Property expansion **PARKED**; broad Legislative expansion **PARKED**; GIS **PARKED**; CBMS **PARKED**; eBOSS **PARKED**; RELEASE **excluded/parked**; ARCHIVE/version management **excluded/parked**; OCR **excluded**; PKI **excluded**; retention/disposition **excluded/parked**; production deployment **unchanged by this wave**.
 - Auxiliary branch hygiene: `__tmp_never_use__` is not part of feature lineage and was never used as a base. A disposable `__nope` connector-probe file was accidentally created there and then deleted with a new forward commit; no reset or force push was used and the feature branch was unaffected. The auxiliary branch currently points to `67b445dbbee0d401c4c51b8d486a4c70f8c1b34f` with tree `3f67e37b5d832ad0d7b00100b560568812b70f77`, identical to Safe Point C's tree, so it contains no unique surviving implementation content. Optional branch deletion remains future repository hygiene only.
 - Final implementation state before this documentation commit: feature HEAD `b27cb451abb9072b5962311df1db475afc03bf32` is durable and exact-head GREEN. No merge, PR modification, production deployment, or additional feature work is authorized by this entry.
+
+## Approved Travel Orders — Post-Approval Registry Wave
+
+This append records the completed Approved Travel Orders wave. Earlier entries that describe Approved Travel Orders as not started or parked remain intact as point-in-time historical statements and are superseded only by this later implementation evidence.
+
+### Starting Authority
+
+- Starting prior-wave authority: `3c3bb8c0728a4cfa9e73ff3a0d382b86c6a47688`.
+- The wave is intentionally limited to a post-approval Travel Order registry and associated internal record/evidence surfaces. It does not introduce a Travel Request approval workflow.
+
+### Safe Point A — Domain
+
+- Commit: `c3dbaaa6d5188b452704c59d85ab6e952776a4e3`.
+- Parent: `3c3bb8c0728a4cfa9e73ff3a0d382b86c6a47688`.
+- Message: `feat: add approved Travel Order domain`.
+- Architecture: narrow post-approval aggregate, separate from `WorkflowTransaction`; status enum at `app/Domain/TravelOrders/TravelOrderStatus.php`; states are `approved`, `completed`, and `cancelled`; allowed transitions are `approved -> completed` and `approved -> cancelled`; completed/cancelled are terminal.
+- Existing private evidence infrastructure is reused. System Admin does not automatically gain municipality-wide Travel Order content, and mutation authority remains the existing `mayor_approver` in the active `MAYOR` office.
+- Exact-head CI: Talibon Platform CI run **#292**, run ID `33068055564`, **SUCCESS** — **289 passed / 3608 assertions / 548.36s / 113 routes**. `TravelOrderDomainTest`: **6/6 PASS**.
+
+### Safe Point B — Internal Workspace
+
+- Commit: `07060d9402fe25dcafd046b9d6e8389bf650bc23`.
+- Parent: `c3dbaaa6d5188b452704c59d85ab6e952776a4e3`.
+- Message: `feat: add approved Travel Order workspace`.
+- Scope: internal approved Travel Order registry; 25-row server pagination; authorization-first queries; bounded search/filtering; safe Employee identity projection; private evidence links; recording of already-approved orders only; and only `approved -> completed|cancelled` post-approval mutation.
+- Internal Travel Order routes remain behind existing authentication, active-account, and MFA-assurance middleware. No public/API Travel Order surface was introduced, and React is not authoritative for role authorization.
+- Exact-head CI: run **#293**, run ID `33077283793`, **SUCCESS** — **300 passed / 3742 assertions / 542.48s / 118 routes**. `TravelOrderDomainTest`: **6/6 PASS**; `TravelOrderWorkspaceTest`: **11/11 PASS**.
+
+### Safe Point C — Records Federation
+
+- Commit: `86146c984596e77fe9860490a7af2eab27624809`.
+- Parent: `07060d9402fe25dcafd046b9d6e8389bf650bc23`.
+- Message: `feat: federate approved Travel Orders into Records`.
+- Changed exactly five files: `app/Http/Requests/RecordsIndexRequest.php`, `app/Services/RecordsSearchQuery.php`, `app/Services/RecordsResultPresenter.php`, `resources/js/pages/Records/Index.tsx`, and `tests/Feature/TravelOrderRecordsFederationTest.php`.
+- Architecture: Travel Order became an additive third Records source. Visibility originates from `TravelOrderAccess::scopeVisibleTo()` before search/filter narrowing. Existing 25-row Records pagination is retained; result hydration exposes safe metadata only and does not add Employee private fields. System Admin, HR, and Legislative authority are not expanded by Records federation.
+- Exact-head CI: run **#294**, run ID `33086633732`, **SUCCESS** — **309 passed / 4011 assertions / 530.34s / 118 routes**. `TravelOrderDomainTest`: **6/6 PASS**; `TravelOrderWorkspaceTest`: **11/11 PASS**; `TravelOrderRecordsFederationTest`: **9/9 PASS**.
+
+### Safe Point D — Representative Regression
+
+- Original D commit: `bb74b2edf2a64723e125051cb57fe25123072aa1`.
+- Parent: `86146c984596e77fe9860490a7af2eab27624809`.
+- Message: `test: enforce Travel Order representative role boundaries`.
+- Changed exactly `tests/Feature/TravelOrderRepresentativeRoleTest.php`; no production file changed. Representative actors cover System Admin, Mayor Approver, Department Head, Employee, Department Staff, HR Officer, Legislative Staff, and Mayor Staff.
+- Exact-head CI run **#295**, run ID `33092483214`, concluded **FAILURE**. Composer validation, TypeScript, production build, and PostgreSQL migrate/seed passed before the Feature failure. Feature result: **316 passed / 1 failed / 4407 assertions / 406.92s**. Route verification was skipped because Feature failed.
+- Failure classification: PostgreSQL `SQLSTATE[22001]` occurred because a synthetic Department fixture code exceeded the existing `varchar(32)` contract. This was a **test-fixture defect**. **NO production authorization defect was observed.** Run #295 is intentionally preserved as failed evidence and is not represented as a pass.
+
+### D Forward Fix
+
+- Forward-fix commit: `d77baa6bdbb9b829d6eefd557d0727abd8c890ee`.
+- Parent: `bb74b2edf2a64723e125051cb57fe25123072aa1`.
+- Message: `test: bound Travel Order representative fixture codes`.
+- Changed exactly `tests/Feature/TravelOrderRepresentativeRoleTest.php`, with **1 addition / 1 deletion**. Corrected fixture: `'code' => $code ?? 'TOR-'.Str::upper(Str::random(12))`. Maximum generated code length is 16, preserving the existing `varchar(32)` schema contract; no production schema or authorization change was made. Corrected file blob: `0cb44772390e29f9058b76ffa5201b5cce1dbfd7`.
+- Exact-head CI run **#296**, run ID `33096875615`, **SUCCESS** — **317 passed / 4436 assertions / 445.59s / 118 routes**. `TravelOrderDomainTest`: **6/6 PASS**; `TravelOrderWorkspaceTest`: **11/11 PASS**; `TravelOrderRecordsFederationTest`: **9/9 PASS**; `TravelOrderRepresentativeRoleTest`: **8/8 PASS**. This is the first GREEN representative-role D head.
+
+### Forward-Only Hygiene Incident
+
+- After the GREEN forward fix, a connector-side placeholder mistake was published as commit `c4d2db98ed8e9d1572090a411320c8c28303469a`, parent `d77baa6bdbb9b829d6eefd557d0727abd8c890ee`, message `TEMP`.
+- That commit added exactly `docs/APPROVED_TRAVEL_ORDERS_ENGINEERING_EVIDENCE.md` containing the single line `TEMP`. It changed no production code or behavior.
+- Because the commit was already published, it was not rewritten away. A new forward cleanup commit `b8cda72da17b9364759781766679739ef7672509`, parent `c4d2db98ed8e9d1572090a411320c8c28303469a`, message `chore: remove accidental Travel Orders evidence placeholder`, removed exactly that placeholder file.
+- Cleanup tree `194f7b8a934232ead5cbfd738a4f9ac234dc0ef8` is exactly the same tree as the GREEN forward-fix commit `d77baa6bdbb9b829d6eefd557d0727abd8c890ee`. No production behavior changed at any point in the placeholder/cleanup sequence.
+
+### Final Pre-Documentation Checkpoint
+
+- Final pre-documentation commit: `b8cda72da17b9364759781766679739ef7672509`.
+- Exact-head Talibon Platform CI run **#297**, run ID `33098265749`, event `push`, exact head `b8cda72da17b9364759781766679739ef7672509`, concluded **SUCCESS**.
+- Composer validation PASS; TypeScript PASS; production Vite build PASS; PostgreSQL `migrate:fresh --seed --force` PASS; complete Feature suite PASS; route verification PASS.
+- Exact totals: **317 passed / 4436 assertions / 581.05s / 118 routes**. The raw run includes GREEN `TravelOrderDomainTest` **6/6**, `TravelOrderWorkspaceTest` **11/11**, `TravelOrderRecordsFederationTest` **9/9**, and `TravelOrderRepresentativeRoleTest` **8/8**, alongside Records, representative-role experience, private-document, correspondence, MFA, public-boundary, Dashboard, Work Queue, and System Administration regressions.
+
+### Authorization / Privacy Invariants
+
+- System Admin: no automatic municipality-wide Travel Order content, no automatic Travel Order Records expansion, no Travel Order mutation, and no protected-evidence bypass.
+- Mayor Approver: explicit municipal read under the current access contract; mutation only with existing `mayor_approver` plus active `MAYOR`-office authority; may record an already-approved Travel Order and may transition only `approved -> completed|cancelled`.
+- Mayor Staff: municipal read, no mutation.
+- Department Head: office-bounded/responsible-or-issued-personnel scope; no municipality-wide escalation and no mutation.
+- Ordinary Employee and Department Staff: self-bounded; no office-wide Travel Order access and no mutation.
+- HR Officer: HR authority does not imply Travel Order municipal authority. Legislative Staff: legislative authority does not imply Travel Order authority.
+- Records remains authorization-first: `TravelOrderAccess::scopeVisibleTo()` is applied before search/filter narrowing. Search, status, office, inclusive-date, employee-name, and employee-number filters cannot widen the authorized scope; hidden records do not leak through totals, pagination, or filter options.
+- Evidence reuses the existing private document/`DocumentAttachmentService` architecture: private storage, canonical MIME/content validation, SHA-256 metadata, `DocumentLink`, protected downloads, and parent reauthorization. No public filesystem URL/path or unauthorized evidence metadata is exposed.
+
+### Scope Boundary
+
+- Implemented: approved Travel Order record; official/reference number; issuance date; purpose; destination; responsible office; inclusive travel dates; issued-to Employees; `approved`/`completed`/`cancelled` state; append-only Travel Order events/evidence; internal workspace; Records federation; representative role/security regression.
+- Explicitly not implemented: Travel Request workflow; draft/review/approval workflow; booking; ticketing; reimbursement; liquidation; payroll linkage; leave linkage; or Calendar expansion.
+
+### Requirements Evidence
+
+- `MASTER-_MPDC_DASHBOARD.pdf` was used only as requirements/reference evidence for historical Travel Order register structure.
+- No real MPDC Travel Orders, real personnel records, real employee contact data, government IDs, or operational MPDC records were copied into the repository, tests, or demo fixtures. Travel Order test fixtures are synthetic.
+
+### Git / CI Discipline
+
+- `KIRCH-PROTOTYPE-CI-CORE-APPROVED-TRAVEL-ORDERS` was used only because current push-CI filters do not directly match `KIRCH-CORE-*`. It contained no unique implementation, was never feature lineage, mirrored only already-published exact feature SHAs, moved by normal fast-forward only, and was never force-pushed.
+- Safe Points A/B/C, original D, its forward fix, and the published placeholder/cleanup history remain visible. No published safe point was amended, rebased, squashed, reset behind, force-pushed, or rewritten.
+- Final pre-documentation authority is `b8cda72da17b9364759781766679739ef7672509`, exact-head GREEN at CI #297. This documentation append is a new forward docs-only safe point and must itself receive raw exact-SHA CI GREEN before this wave is called complete.
+- No merge or production deployment is authorized by this entry. Calendar refinement, notification refinement, Project Monitoring, Procurement, Property expansion, broad Legislative expansion, GIS, CBMS, eBOSS, broad HRIS/payroll/DTR/attendance/leave expansion, Google OAuth, activation/provisioning, collaboration/chat, RELEASE, ARCHIVE/versioning, OCR, PKI, retention/disposition, reimbursement, liquidation, booking/ticketing, and Travel Request workflow remain untouched/parked.
