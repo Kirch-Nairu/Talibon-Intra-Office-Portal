@@ -1,0 +1,116 @@
+name: Talibon Demo Readiness Browser QA
+
+on:
+  push:
+    branches:
+      - KIRCH-PROTOTYPE-DEMO-READINESS-QA
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  browser-qa:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: talibon_portal
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d talibon_portal"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    steps:
+      - name: Checkout exact branch head
+        uses: actions/checkout@v4
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: mbstring, pdo_pgsql, fileinfo, zip
+          coverage: none
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Prepare isolated QA environment
+        shell: bash
+        run: |
+          cp .env.example .env
+          sed -i 's/^APP_ENV=.*/APP_ENV=testing/' .env
+          sed -i 's/^APP_DEBUG=.*/APP_DEBUG=false/' .env
+          sed -i 's#^APP_URL=.*#APP_URL=http://127.0.0.1:8000#' .env
+          sed -i 's/^DB_HOST=.*/DB_HOST=127.0.0.1/' .env
+          sed -i 's/^DB_DATABASE=.*/DB_DATABASE=talibon_portal/' .env
+          sed -i 's/^DB_USERNAME=.*/DB_USERNAME=postgres/' .env
+          sed -i 's/^DB_PASSWORD=.*/DB_PASSWORD=postgres/' .env
+          DEMO_PASSWORD="$(openssl rand -hex 24)"
+          echo "::add-mask::$DEMO_PASSWORD"
+          sed -i "s/^PROTOTYPE_DEMO_PASSWORD=.*/PROTOTYPE_DEMO_PASSWORD=$DEMO_PASSWORD/" .env
+          echo "QA_DEMO_PASSWORD=$DEMO_PASSWORD" >> "$GITHUB_ENV"
+          echo "QA_BASE_URL=http://127.0.0.1:8000" >> "$GITHUB_ENV"
+
+      - name: Install PHP dependencies
+        run: composer install --no-interaction --prefer-dist --no-progress
+
+      - name: Generate application key
+        run: php artisan key:generate --force
+
+      - name: Install frontend dependencies
+        run: npm install
+
+      - name: TypeScript
+        run: npm run types:check
+
+      - name: Production frontend build
+        run: npm run build
+
+      - name: PostgreSQL fresh migrate and synthetic seed
+        run: php artisan migrate:fresh --seed --force
+
+      - name: Install transient Playwright browser
+        shell: bash
+        run: |
+          npm install --no-save --package-lock=false playwright@1.55.0
+          npx playwright install --with-deps chromium
+
+      - name: Start isolated Laravel runtime
+        shell: bash
+        run: |
+          mkdir -p storage/logs storage/app/qa
+          nohup php artisan serve --host=127.0.0.1 --port=8000 > storage/logs/demo-readiness-server.log 2>&1 &
+          echo $! > /tmp/talibon-demo-readiness-server.pid
+          for attempt in $(seq 1 40); do
+            if curl --fail --silent --show-error http://127.0.0.1:8000/ >/dev/null; then
+              exit 0
+            fi
+            sleep 1
+          done
+          cat storage/logs/demo-readiness-server.log
+          exit 1
+
+      - name: Seven-account browser runtime matrix
+        run: node tests/Browser/demo-readiness.mjs
+
+      - name: Upload sanitized QA evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: demo-readiness-browser-qa-${{ github.sha }}
+          path: |
+            storage/app/qa/demo-readiness-report.json
+            storage/logs/demo-readiness-server.log
+          if-no-files-found: warn
+          retention-days: 7
