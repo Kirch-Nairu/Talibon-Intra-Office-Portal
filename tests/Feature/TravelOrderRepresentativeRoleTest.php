@@ -399,7 +399,7 @@ class TravelOrderRepresentativeRoleTest extends TestCase
     private function department(string $suffix, ?string $code = null, string $branch = 'executive'): Department
     {
         return Department::query()->create([
-            'code' => $code ?? 'TO-ROLE-'.Str::upper(Str::random(5)).'-'.$suffix,
+            'code' => $code ?? 'TOR-'.Str::upper(Str::random(12)),
             'name' => 'Synthetic Travel Role '.$suffix,
             'short_name' => 'STR-'.$suffix,
             'branch' => $branch,
