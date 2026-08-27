@@ -6,7 +6,9 @@ use App\Models\Department;
 use App\Models\Employee;
 use App\Models\User;
 use App\Models\WorkflowTransaction;
+use App\Services\WorkQueueQuery;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Inertia\Testing\AssertableInertia as Assert;
 use Tests\TestCase;
@@ -15,7 +17,7 @@ class WorkQueueTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_all_is_default_and_returns_the_authorized_base_set_without_cross_office_leakage(): void
+    public function test_department_head_default_is_personal_active_work_with_separate_office_scope(): void
     {
         $office = $this->department('ALL-OWN');
         $other = $this->department('ALL-OTHER');
@@ -43,28 +45,36 @@ class WorkQueueTest extends TestCase
             ->assertInertia(fn (Assert $page) => $page
                 ->component('Transactions/Index')
                 ->where('filters.view', 'all')
-                ->where('records.total', 4)
-                ->has('records.data', 4)
-                ->has('views', 10)
-                ->where('views.0.key', 'all')
-                ->where('views.0.label', 'All')
-                ->where('views.0.count', 4)
-                ->where('views.1.key', 'needs_my_action')
-                ->where('views.2.key', 'assigned_to_me')
-                ->where('views.3.key', 'office_queue')
-                ->where('views.4.key', 'unassigned')
-                ->where('views.5.key', 'overdue')
-                ->where('views.6.key', 'due_soon')
-                ->where('views.7.key', 'recently_updated')
-                ->where('views.8.key', 'waiting_on_others')
-                ->where('views.9.key', 'recently_completed')
-                ->where('workspace.canViewAll', false));
+                ->where('records.total', 3)
+                ->has('records.data', 3)
+                ->where('experience.profile', 'department_head')
+                ->where('experience.hasOfficeScope', true)
+                ->where('experience.department.id', $office->id)
+                ->has('scopeGroups', 2)
+                ->where('scopeGroups.0.key', 'personal')
+                ->has('scopeGroups.0.views', 8)
+                ->where('scopeGroups.0.views.0.key', 'all')
+                ->where('scopeGroups.0.views.0.label', 'My Work')
+                ->where('scopeGroups.0.views.0.count', 3)
+                ->where('scopeGroups.0.views.1.key', 'needs_my_action')
+                ->where('scopeGroups.0.views.2.key', 'assigned_to_me')
+                ->where('scopeGroups.0.views.3.key', 'due_soon')
+                ->where('scopeGroups.0.views.4.key', 'overdue')
+                ->where('scopeGroups.0.views.5.key', 'recently_updated')
+                ->where('scopeGroups.0.views.6.key', 'waiting_on_others')
+                ->where('scopeGroups.0.views.7.key', 'recently_completed')
+                ->where('scopeGroups.1.key', 'office')
+                ->has('scopeGroups.1.views', 4)
+                ->where('scopeGroups.1.views.0.key', 'office_queue')
+                ->where('scopeGroups.1.views.1.key', 'unassigned')
+                ->where('scopeGroups.1.views.2.key', 'staff_workload')
+                ->where('scopeGroups.1.views.3.key', 'escalations'));
 
         $this->assertStringNotContainsString($hidden->title, $response->getContent());
         $this->assertStringNotContainsString((string) $hidden->reference_no, $response->getContent());
     }
 
-    public function test_needs_my_action_is_active_current_assignment_only_and_assigned_to_me_keeps_terminal_assignment(): void
+    public function test_needs_action_and_assigned_to_me_are_active_while_completed_has_its_own_category(): void
     {
         $office = $this->department('ASSIGN');
         $other = $this->department('ASSIGN-OTHER');
@@ -91,20 +101,25 @@ class WorkQueueTest extends TestCase
                 ->where('filters.view', 'needs_my_action')
                 ->where('records.total', 1)
                 ->where('records.data.0.id', $mine->id)
-                ->where('records.data.0.requiresAction', true));
+                ->where('records.data.0.requiresAction', true)
+                ->where('records.data.0.expectedAction', 'Open and take the next workflow action'));
 
         $this->actingAs($actor)->get('/transactions?view=assigned_to_me')
             ->assertOk()
             ->assertInertia(fn (Assert $page) => $page
-                ->where('records.total', 2)
-                ->where('views.2.count', 2));
+                ->where('records.total', 1)
+                ->where('scopeGroups.0.views.2.count', 1));
 
         $this->actingAs($actor)->get('/transactions?view=assigned_to_me&status=approved')
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page->where('records.total', 0));
+
+        $this->actingAs($actor)->get('/transactions?view=recently_completed')
             ->assertOk()
             ->assertInertia(fn (Assert $page) => $page
                 ->where('records.total', 1)
                 ->where('records.data.0.id', $terminalMine->id)
-                ->where('records.data.0.requiresAction', false));
+                ->where('records.data.0.expectedAction', 'No further workflow action'));
     }
 
     public function test_unassigned_and_office_queue_remain_active_projections(): void
@@ -133,7 +148,118 @@ class WorkQueueTest extends TestCase
                 ->where('records.total', 2)
                 ->has('records.data', 2)
                 ->where('records.data.1.id', $assigned->id)
-                ->where('views.3.count', 2));
+                ->where('scopeGroups.1.views.0.count', 2));
+    }
+
+    public function test_employee_receives_only_personal_categories_and_cannot_select_office_head_views(): void
+    {
+        $office = $this->department('STAFF-OWN');
+        $other = $this->department('STAFF-OTHER');
+        $actor = $this->human('department_staff', $office);
+        $head = $this->human('department_head', $office);
+
+        $mine = $this->transaction('Staff assigned work', $other, $office, $head, $actor->employee, now()->addHours(6));
+        $outgoing = $this->transaction('Staff initiated outgoing work', $office, $other, $actor, dueAt: now()->addDays(3));
+        $officeOnly = $this->transaction('Office-only unassigned work', $other, $office, $head, dueAt: now()->subDay());
+
+        $response = $this->actingAs($actor)->get('/transactions')
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('experience.profile', 'employee')
+                ->where('experience.hasOfficeScope', false)
+                ->has('scopeGroups', 1)
+                ->has('scopeGroups.0.views', 8)
+                ->where('records.total', 2)
+                ->has('records.data', 2));
+
+        $this->assertStringContainsString($mine->title, $response->getContent());
+        $this->assertStringContainsString($outgoing->title, $response->getContent());
+        $this->assertStringNotContainsString($officeOnly->title, $response->getContent());
+
+        $this->actingAs($actor)->get('/transactions?view=overdue')
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page->where('records.total', 0));
+
+        foreach (['office_queue', 'unassigned', 'staff_workload', 'escalations'] as $officeView) {
+            $this->actingAs($actor)->get('/transactions?view='.$officeView)->assertForbidden();
+        }
+    }
+
+    public function test_department_head_staff_workload_and_escalations_are_bounded_office_projections(): void
+    {
+        $office = $this->department('LEAD-OWN');
+        $other = $this->department('LEAD-OTHER');
+        $head = $this->human('department_head', $office);
+        $first = $this->human('department_staff', $office);
+        $second = $this->human('department_staff', $office);
+        $otherHead = $this->human('department_head', $other);
+
+        $overdue = $this->transaction('Assigned overdue escalation', $other, $office, $head, $first->employee, now()->subDay());
+        $urgent = $this->transaction('Assigned urgent escalation', $other, $office, $head, $second->employee, now()->addDays(3), priority: 'urgent');
+        $unassigned = $this->transaction('Unassigned overdue escalation', $other, $office, $head, dueAt: now()->subHours(2));
+        $hidden = $this->transaction('Other office escalation', $other, $other, $otherHead, dueAt: now()->subDay(), priority: 'urgent');
+
+        $workloadResponse = $this->actingAs($head)->get('/transactions?view=staff_workload')
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('filters.view', 'staff_workload')
+                ->where('records.total', 0)
+                ->has('staffWorkload', 2)
+                ->where('staffWorkload.0.employee', $first->employee->full_name)
+                ->where('staffWorkload.0.active', 1)
+                ->where('staffWorkload.0.overdue', 1)
+                ->where('staffWorkload.0.requiresAction', 1)
+                ->missing('staffWorkload.0.employeeNumber')
+                ->missing('staffWorkload.0.workEmail'));
+
+        $this->assertStringNotContainsString($hidden->title, $workloadResponse->getContent());
+
+        $this->actingAs($head)->get('/transactions?view=staff_workload&priority=urgent')
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('filters.priority', 'urgent')
+                ->has('staffWorkload', 1)
+                ->where('staffWorkload.0.employee', $second->employee->full_name));
+
+        $escalationResponse = $this->actingAs($head)->get('/transactions?view=escalations')
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('records.total', 3)
+                ->where('scopeGroups.1.views.3.count', 3));
+
+        foreach ([$overdue, $urgent, $unassigned] as $visible) {
+            $this->assertStringContainsString($visible->title, $escalationResponse->getContent());
+        }
+        $this->assertStringContainsString('Assign an office owner', $escalationResponse->getContent());
+        $this->assertStringNotContainsString($hidden->title, $escalationResponse->getContent());
+    }
+
+    public function test_recently_updated_is_active_personal_work_and_items_include_expected_action_and_update_time(): void
+    {
+        $office = $this->department('UPDATED');
+        $actor = $this->human('department_staff', $office);
+
+        $recent = $this->transaction('Recently updated assigned work', $office, $office, $actor, $actor->employee, now()->addDays(2), status: 'for_review');
+        $old = $this->transaction('Old assigned work', $office, $office, $actor, $actor->employee, now()->addDays(2));
+        $old->forceFill(['updated_at' => now()->subDays(10)])->saveQuietly();
+        $terminal = $this->transaction('Recently touched completed work', $office, $office, $actor, $actor->employee, now()->subDay(), status: 'approved', completedAt: now()->subDay());
+        $terminal->touch();
+
+        $response = $this->actingAs($actor)->get('/transactions?view=recently_updated')
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('records.total', 1)
+                ->where('records.data.0.id', $recent->id)
+                ->where('records.data.0.expectedAction', 'Review and take the next workflow action')
+                ->where('records.data.0.requiresAction', true)
+                ->where('records.data.0.originOffice.id', $office->id)
+                ->where('records.data.0.currentOffice.id', $office->id)
+                ->where('records.data.0.assignedEmployee.name', $actor->employee->full_name)
+                ->where('records.data.0.updatedAt', $recent->fresh()->updated_at->toIso8601String())
+                ->where('records.data.0.dueAt', $recent->due_at->toIso8601String()));
+
+        $this->assertStringNotContainsString($old->title, $response->getContent());
+        $this->assertStringNotContainsString($terminal->title, $response->getContent());
     }
 
     public function test_overdue_due_soon_waiting_and_recently_completed_use_correct_existing_fields(): void
@@ -317,7 +443,7 @@ class WorkQueueTest extends TestCase
                 ->where('records.data.0.id', $urgent->id));
     }
 
-    public function test_view_all_capability_allows_authorized_municipality_wide_priority_filtering(): void
+    public function test_system_admin_my_work_does_not_become_a_municipality_wide_document_reader(): void
     {
         $adminOffice = $this->department('GLOBAL-ADMIN');
         $other = $this->department('GLOBAL-OTHER');
@@ -339,10 +465,13 @@ class WorkQueueTest extends TestCase
         $this->actingAs($admin)->get('/transactions?view=all&priority=urgent&office_id='.$target->id)
             ->assertOk()
             ->assertInertia(fn (Assert $page) => $page
-                ->where('workspace.canViewAll', true)
-                ->where('records.total', 1)
-                ->where('records.data.0.id', $municipal->id)
-                ->has('filterOptions.offices', 3));
+                ->where('experience.profile', 'system_administration')
+                ->where('experience.hasOfficeScope', false)
+                ->has('scopeGroups', 1)
+                ->where('records.total', 0)
+                ->has('filterOptions.offices', 1));
+
+        $this->assertDatabaseHas('transactions', ['id' => $municipal->id]);
     }
 
     public function test_queue_paginates_server_side_after_authorization_and_all_projection(): void
@@ -367,6 +496,26 @@ class WorkQueueTest extends TestCase
                 ->where('records.current_page', 2)
                 ->where('records.last_page', 2)
                 ->has('records.data', 1));
+    }
+
+    public function test_office_work_queue_query_count_does_not_grow_per_staff_row(): void
+    {
+        $office = $this->department('QUERY');
+        $head = $this->human('department_head', $office);
+        $first = $this->human('department_staff', $office);
+        $this->transaction('Queue query baseline', $office, $office, $head, $first->employee, now()->addDays(2));
+
+        $baseline = $this->queueQueryCount($head->fresh());
+
+        foreach (range(1, 15) as $number) {
+            $staff = $this->human('department_staff', $office);
+            $this->transaction("Queue query {$number}", $office, $office, $head, $staff->employee, now()->addDays(2));
+        }
+
+        $expanded = $this->queueQueryCount($head->fresh());
+
+        $this->assertSame($baseline, $expanded);
+        $this->assertLessThanOrEqual(30, $expanded);
     }
 
     public function test_existing_transaction_detail_and_transition_actions_remain_unchanged(): void
@@ -411,6 +560,19 @@ class WorkQueueTest extends TestCase
                 ->where('filters.view', $view)
                 ->where('records.total', 1)
                 ->where('records.data.0.id', $expected->id));
+    }
+
+    private function queueQueryCount(User $actor): int
+    {
+        DB::flushQueryLog();
+        DB::enableQueryLog();
+
+        app(WorkQueueQuery::class)->workspace($actor, ['view' => 'office_queue']);
+        $count = count(DB::getQueryLog());
+
+        DB::disableQueryLog();
+
+        return $count;
     }
 
     private function department(string $suffix): Department

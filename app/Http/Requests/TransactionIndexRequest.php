@@ -18,6 +18,8 @@ class TransactionIndexRequest extends FormRequest
         'recently_updated',
         'waiting_on_others',
         'recently_completed',
+        'staff_workload',
+        'escalations',
     ];
 
     public function authorize(): bool

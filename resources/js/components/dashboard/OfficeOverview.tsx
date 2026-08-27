@@ -23,7 +23,7 @@ export default function OfficeOverview({ overview }: { overview: OfficeOverviewD
                     </div>
                     <div className="divide-y divide-slate-100">
                         {overview.staffWorkload.map((row) => (
-                            <div key={row.employee} className="grid gap-2 px-4 py-3 sm:grid-cols-[1fr_90px_90px_100px] sm:items-center sm:px-5">
+                            <div key={`${row.employee}-${row.position || ''}`} className="grid gap-2 px-4 py-3 sm:grid-cols-[1fr_90px_90px_100px] sm:items-center sm:px-5">
                                 <div><div className="text-[11px] font-semibold text-slate-800 sm:text-xs">{row.employee}</div><div className="mt-0.5 text-[9px] text-slate-400">{row.position || 'Position not recorded'}</div></div>
                                 <div className="text-[10px] text-slate-600 sm:text-xs"><span className="font-bold text-slate-950">{row.active}</span> active</div>
                                 <div className="text-[10px] text-slate-600 sm:text-xs"><span className={row.overdue > 0 ? 'font-bold text-rose-700' : 'font-bold text-slate-950'}>{row.overdue}</span> overdue</div>

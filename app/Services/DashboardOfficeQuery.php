@@ -29,16 +29,16 @@ final class DashboardOfficeQuery
             'metrics' => [
                 'active' => $this->metric('Active Office Work', $summary->active, '/transactions?view=office_queue'),
                 'incoming' => $this->metric('Incoming', $summary->incoming, '/transactions?view=office_queue'),
-                'outgoing' => $this->metric('Outgoing', $summary->outgoing, '/transactions?view=waiting_on_others'),
+                'outgoing' => $this->metric('Outgoing', $summary->outgoing, '/transactions?view=office_queue'),
                 'inProgress' => $this->metric('In Progress', $summary->in_progress, '/transactions?view=office_queue'),
-                'waitingExternally' => $this->metric('Waiting Externally', $summary->waiting_externally, '/transactions?view=waiting_on_others'),
-                'overdue' => $this->metric('Office Overdue', $summary->overdue, '/transactions?view=overdue'),
+                'waitingExternally' => $this->metric('Waiting Externally', $summary->waiting_externally, '/transactions?view=office_queue'),
+                'overdue' => $this->metric('Office Overdue', $summary->overdue, '/transactions?view=escalations'),
                 'unassigned' => $this->metric('Unassigned', $summary->unassigned, '/transactions?view=unassigned'),
-                'recentlyCompleted' => $this->metric('Recently Completed', $summary->recently_completed, '/transactions?view=recently_completed'),
-                'escalations' => $this->metric('Escalations', $summary->escalations, '/transactions?view=overdue'),
+                'recentlyCompleted' => $this->metric('Recently Completed', $summary->recently_completed, '/reports?report=completed-work&office_id='.$departmentId),
+                'escalations' => $this->metric('Escalations', $summary->escalations, '/transactions?view=escalations'),
             ],
             'statusOverview' => $this->statusOverview($authorized, $departmentId, $terminal),
-            'staffWorkload' => $this->staffWorkload($authorized, $departmentId, $terminal, $now),
+            'staffWorkload' => $this->staffWorkloadFor($actor, clone $authorized),
             'oldestUnresolved' => $this->oldestUnresolved(
                 $authorized,
                 $departmentId,
@@ -88,13 +88,15 @@ final class DashboardOfficeQuery
             ->all();
     }
 
-    /** @param array<int, string> $terminal */
-    private function staffWorkload(
-        Builder $authorized,
-        int $departmentId,
-        array $terminal,
-        $now,
-    ): array {
+    /** @return array<int, array<string, mixed>> */
+    public function staffWorkloadFor(User $actor, ?Builder $authorized = null): array
+    {
+        $actor->loadMissing('employee.department');
+        $departmentId = (int) $actor->employee->department_id;
+        $terminal = $this->terminalStatuses();
+        $now = now();
+        $authorized ??= $this->visibility->scope($actor);
+
         $rows = (clone $authorized)
             ->where('current_department_id', $departmentId)
             ->whereNotIn('status', $terminal)

@@ -2,7 +2,6 @@
 
 namespace App\Services;
 
-use App\Http\Requests\TransactionIndexRequest;
 use App\Models\Department;
 use App\Models\User;
 use App\Models\WorkflowTransaction;
@@ -12,36 +11,30 @@ use Illuminate\Support\Str;
 
 final class WorkQueueQuery
 {
-    private const VIEW_LABELS = [
-        'all' => 'All',
-        'needs_my_action' => 'Needs My Action',
-        'assigned_to_me' => 'Assigned to Me',
-        'office_queue' => 'Office Queue',
-        'unassigned' => 'Unassigned',
-        'overdue' => 'Overdue',
-        'due_soon' => 'Due Soon',
-        'recently_updated' => 'Recently Updated',
-        'waiting_on_others' => 'Waiting on Others',
-        'recently_completed' => 'Recently Completed',
-    ];
-
     public function __construct(
         private readonly TransactionVisibilityQuery $visibility,
+        private readonly WorkQueueExperienceResolver $experiences,
+        private readonly WorkQueueItemPresenter $presenter,
+        private readonly DashboardOfficeQuery $officeDashboard,
     ) {}
 
     /** @param array<string, mixed> $filters */
     public function workspace(User $actor, array $filters): array
     {
         $actor->loadMissing('employee.department');
+        $experience = $this->experiences->resolve($actor);
         $view = (string) ($filters['view'] ?? 'all');
+        abort_unless(in_array($view, $experience['allowedViews'], true), 403);
 
         $authorized = $this->visibility->scope($actor);
         $filtered = $this->applyCommonFilters(clone $authorized, $filters);
-        $views = $this->viewOptions($filtered, $actor);
-        $records = $this->records($filtered, $actor, $view);
+        $personal = $this->personalScope(clone $authorized, $actor);
+        $optionsBase = $experience['profile'] === 'department_head' ? $authorized : $personal;
 
         return [
-            'records' => $records,
+            'records' => $view === 'staff_workload'
+                ? $this->emptyRecords()
+                : $this->records($filtered, $actor, $view),
             'filters' => [
                 'view' => $view,
                 'search' => (string) ($filters['search'] ?? ''),
@@ -49,17 +42,20 @@ final class WorkQueueQuery
                 'priority' => (string) ($filters['priority'] ?? ''),
                 'office_id' => isset($filters['office_id']) ? (int) $filters['office_id'] : null,
             ],
-            'views' => $views,
+            'scopeGroups' => $this->scopeGroups($filtered, $actor, $experience['scopeGroups']),
             'filterOptions' => [
-                'statuses' => $this->statusOptions($authorized),
+                'statuses' => $this->statusOptions($optionsBase),
                 'priorities' => ['normal', 'high', 'urgent'],
-                'offices' => $this->officeOptions($authorized, $actor),
+                'offices' => $this->officeOptions($optionsBase, $actor),
             ],
-            'workspace' => [
-                'departmentName' => $actor->employee?->department?->name,
-                'departmentCode' => $actor->employee?->department?->code,
-                'canViewAll' => $this->visibility->canViewAll($actor),
+            'experience' => [
+                'profile' => $experience['profile'],
+                'department' => $experience['department'],
+                'hasOfficeScope' => $experience['profile'] === 'department_head',
             ],
+            'staffWorkload' => $view === 'staff_workload'
+                ? $this->officeDashboard->staffWorkloadFor($actor, clone $filtered)
+                : [],
         ];
     }
 
@@ -73,7 +69,7 @@ final class WorkQueueQuery
                 $match->whereRaw('LOWER(reference_no) LIKE ?', [$like])
                     ->orWhereRaw('LOWER(title) LIKE ?', [$like])
                     ->orWhereRaw('LOWER(transaction_type) LIKE ?', [$like])
-                    ->orWhereRaw('LOWER(COALESCE(description, \'\')) LIKE ?', [$like])
+                    ->orWhereRaw("LOWER(COALESCE(description, '')) LIKE ?", [$like])
                     ->orWhereHas('originDepartment', fn (Builder $office) => $office->whereRaw('LOWER(name) LIKE ?', [$like]))
                     ->orWhereHas('currentDepartment', fn (Builder $office) => $office->whereRaw('LOWER(name) LIKE ?', [$like]))
                     ->orWhereHas('assignedEmployee', fn (Builder $employee) => $employee->whereRaw('LOWER(full_name) LIKE ?', [$like]));
@@ -95,21 +91,42 @@ final class WorkQueueQuery
         return $query;
     }
 
-    /** @return array<int, array{key:string,label:string,count:int}> */
-    private function viewOptions(Builder $filtered, User $actor): array
+    private function personalScope(Builder $query, User $actor): Builder
     {
-        return collect(TransactionIndexRequest::VIEWS)
-            ->map(fn (string $view): array => [
-                'key' => $view,
-                'label' => self::VIEW_LABELS[$view],
-                'count' => $this->applyView(clone $filtered, $actor, $view)->count(),
-            ])
-            ->all();
+        $employeeId = $actor->employee?->id;
+
+        return $query->where(function (Builder $personal) use ($actor, $employeeId): void {
+            $personal->where('created_by_user_id', $actor->id)
+                ->when($employeeId, fn (Builder $item) => $item->orWhere('assigned_employee_id', $employeeId));
+        });
+    }
+
+    /**
+     * @param  array<int, array<string, mixed>>  $groups
+     * @return array<int, array<string, mixed>>
+     */
+    private function scopeGroups(Builder $filtered, User $actor, array $groups): array
+    {
+        return collect($groups)->map(function (array $group) use ($filtered, $actor): array {
+            $group['views'] = collect($group['views'])->map(function (array $view) use ($filtered, $actor): array {
+                $view['count'] = $this->applyView(clone $filtered, $actor, $view['key'])->count();
+
+                return $view;
+            })->all();
+
+            return $group;
+        })->all();
     }
 
     private function records(Builder $filtered, User $actor, string $view): LengthAwarePaginator
     {
         $query = $this->applyView(clone $filtered, $actor, $view)
+            ->select([
+                'id', 'reference_no', 'transaction_type', 'title', 'priority',
+                'origin_department_id', 'current_department_id',
+                'assigned_employee_id', 'status', 'received_at', 'due_at', 'completed_at',
+                'updated_at',
+            ])
             ->with([
                 'originDepartment:id,code,name,short_name',
                 'currentDepartment:id,code,name,short_name',
@@ -120,7 +137,7 @@ final class WorkQueueQuery
 
         return $query->paginate(25)
             ->withQueryString()
-            ->through(fn (WorkflowTransaction $transaction): array => $this->serialize($transaction, $actor));
+            ->through(fn (WorkflowTransaction $transaction): array => $this->presenter->present($transaction, $actor));
     }
 
     private function applyView(Builder $query, User $actor, string $view): Builder
@@ -129,39 +146,47 @@ final class WorkQueueQuery
         $departmentId = $actor->employee?->department_id;
         $employeeId = $actor->employee?->id;
 
-        return match ($view) {
-            'all' => $query,
-            'needs_my_action' => $this->needsMyAction($query, $terminal, $employeeId),
-            'assigned_to_me' => $query
-                ->when($employeeId, fn (Builder $q) => $q->where('assigned_employee_id', $employeeId), fn (Builder $q) => $q->whereRaw('1 = 0')),
-            'office_queue' => $this->active($query, $terminal)
-                ->when($departmentId, fn (Builder $q) => $q->where('current_department_id', $departmentId), fn (Builder $q) => $q->whereRaw('1 = 0')),
-            'unassigned' => $this->active($query, $terminal)->whereNull('assigned_employee_id'),
-            'overdue' => $this->active($query, $terminal)->whereNotNull('due_at')->where('due_at', '<', now()),
-            'due_soon' => $this->active($query, $terminal)->whereBetween('due_at', [now(), now()->addDay()]),
-            'recently_updated' => $this->active($query, $terminal)->where('updated_at', '>=', now()->subDays(7)),
-            'waiting_on_others' => $this->active($query, $terminal)
-                ->when($departmentId, function (Builder $q) use ($departmentId): void {
-                    $q->where('origin_department_id', $departmentId)
-                        ->where('current_department_id', '!=', $departmentId);
-                }, fn (Builder $q) => $q->whereRaw('1 = 0')),
-            'recently_completed' => $this->recentlyCompleted($query, $terminal),
-            default => $query,
-        };
-    }
+        if (in_array($view, [
+            'all', 'needs_my_action', 'assigned_to_me', 'due_soon', 'overdue',
+            'recently_updated', 'waiting_on_others', 'recently_completed',
+        ], true)) {
+            $query = $this->personalScope($query, $actor);
+        }
 
-    /** @param array<int, string> $terminal */
-    private function needsMyAction(
-        Builder $query,
-        array $terminal,
-        ?int $employeeId,
-    ): Builder {
-        return $this->active($query, $terminal)
-            ->when(
-                $employeeId,
-                fn (Builder $q) => $q->where('assigned_employee_id', $employeeId),
-                fn (Builder $q) => $q->whereRaw('1 = 0'),
-            );
+        return match ($view) {
+            'all' => $this->active($query, $terminal),
+            'needs_my_action', 'assigned_to_me' => $this->active($query, $terminal)
+                ->where('assigned_employee_id', $employeeId),
+            'due_soon' => $this->active($query, $terminal)
+                ->where('assigned_employee_id', $employeeId)
+                ->whereBetween('due_at', [now(), now()->addDay()]),
+            'overdue' => $this->active($query, $terminal)
+                ->where('assigned_employee_id', $employeeId)
+                ->whereNotNull('due_at')
+                ->where('due_at', '<', now()),
+            'recently_updated' => $this->active($query, $terminal)
+                ->where('updated_at', '>=', now()->subDays(7)),
+            'waiting_on_others' => $this->active($query, $terminal)
+                ->where('created_by_user_id', $actor->id)
+                ->where('origin_department_id', $departmentId)
+                ->where('current_department_id', '!=', $departmentId),
+            'recently_completed' => $this->recentlyCompleted($query, $terminal),
+            'office_queue' => $this->active($query, $terminal),
+            'staff_workload' => $this->active($query, $terminal)
+                ->where('current_department_id', $departmentId),
+            'unassigned' => $this->active($query, $terminal)
+                ->where('current_department_id', $departmentId)
+                ->whereNull('assigned_employee_id'),
+            'escalations' => $this->active($query, $terminal)
+                ->where('current_department_id', $departmentId)
+                ->where(function (Builder $attention): void {
+                    $attention->where('priority', 'urgent')
+                        ->orWhere(fn (Builder $overdue) => $overdue
+                            ->whereNotNull('due_at')
+                            ->where('due_at', '<', now()));
+                }),
+            default => $query->whereRaw('1 = 0'),
+        };
     }
 
     /** @param array<int, string> $terminal */
@@ -173,17 +198,21 @@ final class WorkQueueQuery
     /** @param array<int, string> $terminal */
     private function recentlyCompleted(Builder $query, array $terminal): Builder
     {
-        $cutoff = now()->subDays(30);
-
         return $query->whereIn('status', $terminal)
             ->whereNotNull('completed_at')
-            ->where('completed_at', '>=', $cutoff);
+            ->where('completed_at', '>=', now()->subDays(30));
     }
 
     private function orderForQueue(Builder $query, string $view): void
     {
         if ($view === 'recently_completed') {
             $query->orderByDesc('completed_at')->orderByDesc('id');
+
+            return;
+        }
+
+        if ($view === 'recently_updated') {
+            $query->orderByDesc('updated_at')->orderByDesc('id');
 
             return;
         }
@@ -195,70 +224,18 @@ final class WorkQueueQuery
             ->orderByDesc('updated_at');
     }
 
-    /** @return array<string, mixed> */
-    private function serialize(WorkflowTransaction $transaction, User $actor): array
+    private function emptyRecords(): LengthAwarePaginator
     {
-        $terminal = $this->terminalStatuses();
-        $active = ! in_array($transaction->status, $terminal, true);
-        $employeeId = $actor->employee?->id;
-        $dueState = 'on_track';
-
-        if (! $active) {
-            $dueState = 'completed';
-        } elseif ($transaction->due_at?->isPast()) {
-            $dueState = 'overdue';
-        } elseif ($transaction->due_at?->lessThanOrEqualTo(now()->addDay())) {
-            $dueState = 'due_soon';
-        }
-
-        $requiresAction = $active
-            && $employeeId
-            && (int) $transaction->assigned_employee_id === (int) $employeeId;
-
-        return [
-            'id' => $transaction->id,
-            'reference' => $transaction->reference_no,
-            'title' => $transaction->title,
-            'transactionType' => $transaction->transaction_type,
-            'priority' => $transaction->priority,
-            'status' => $transaction->status,
-            'originOffice' => $this->office($transaction->originDepartment),
-            'currentOffice' => $this->office($transaction->currentDepartment),
-            'assignedEmployee' => $transaction->assignedEmployee ? [
-                'name' => $transaction->assignedEmployee->full_name,
-                'position' => $transaction->assignedEmployee->position_title,
-            ] : null,
-            'receivedAt' => $transaction->received_at?->toIso8601String(),
-            'dueAt' => $transaction->due_at?->toIso8601String(),
-            'completedAt' => $transaction->completed_at?->toIso8601String(),
-            'ageInOffice' => $transaction->received_at
-                ? $transaction->received_at->diffForHumans(now(), true)
-                : null,
-            'dueState' => $dueState,
-            'requiresAction' => $requiresAction,
-        ];
-    }
-
-    /** @return array{id:int,code:string,name:string,shortName:?string}|null */
-    private function office(?Department $department): ?array
-    {
-        if (! $department) {
-            return null;
-        }
-
-        return [
-            'id' => (int) $department->id,
-            'code' => $department->code,
-            'name' => $department->name,
-            'shortName' => $department->short_name,
-        ];
+        return new LengthAwarePaginator([], 0, 25, 1, [
+            'path' => request()->url(),
+            'query' => request()->query(),
+        ]);
     }
 
     /** @return array<int, string> */
-    private function statusOptions(Builder $authorized): array
+    private function statusOptions(Builder $base): array
     {
-        return (clone $authorized)
-            ->whereNotNull('status')
+        return (clone $base)->whereNotNull('status')
             ->distinct()
             ->orderBy('status')
             ->pluck('status')
@@ -267,22 +244,16 @@ final class WorkQueueQuery
     }
 
     /** @return array<int, array{id:int,code:string,name:string,shortName:?string}> */
-    private function officeOptions(Builder $authorized, User $actor): array
+    private function officeOptions(Builder $base, User $actor): array
     {
-        if ($this->visibility->canViewAll($actor)) {
-            $query = Department::query()->where('is_active', true);
-        } else {
-            $ids = (clone $authorized)->distinct()->pluck('current_department_id')->filter()->all();
-            if ($actor->employee?->department_id) {
-                $ids[] = $actor->employee->department_id;
-            }
-
-            $query = Department::query()
-                ->where('is_active', true)
-                ->whereIn('id', array_values(array_unique($ids)));
+        $ids = (clone $base)->distinct()->pluck('current_department_id')->filter()->all();
+        if ($actor->employee?->department_id) {
+            $ids[] = $actor->employee->department_id;
         }
 
-        return $query
+        return Department::query()
+            ->where('is_active', true)
+            ->whereIn('id', array_values(array_unique($ids)))
             ->orderBy('branch')
             ->orderBy('sort_order')
             ->orderBy('name')
@@ -300,9 +271,7 @@ final class WorkQueueQuery
     private function terminalStatuses(): array
     {
         return array_values(config('workflow.default.terminal_statuses', [
-            'approved',
-            'disapproved',
-            'closed',
+            'approved', 'disapproved', 'closed',
         ]));
     }
 }

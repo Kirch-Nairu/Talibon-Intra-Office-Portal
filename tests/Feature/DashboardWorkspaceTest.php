@@ -486,8 +486,8 @@ class DashboardWorkspaceTest extends TestCase
                 ->where('metricGroups.0.metrics.0.link', '/transactions?view=needs_my_action')
                 ->where('metricGroups.0.metrics.4.link', '/transactions?view=recently_updated')
                 ->where('officeOverview.metrics.active.link', '/transactions?view=office_queue')
-                ->where('officeOverview.metrics.overdue.link', '/transactions?view=overdue')
-                ->where('officeOverview.metrics.waitingExternally.link', '/transactions?view=waiting_on_others')
+                ->where('officeOverview.metrics.overdue.link', '/transactions?view=escalations')
+                ->where('officeOverview.metrics.waitingExternally.link', '/transactions?view=office_queue')
                 ->where('officeOverview.metrics.unassigned.link', '/transactions?view=unassigned')
                 ->where('correspondenceOverview.attention.link', '/correspondence?action_required=1'));
 
