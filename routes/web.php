@@ -40,6 +40,7 @@ use App\Http\Controllers\RecordsController;
 use App\Http\Controllers\ReportsController;
 use App\Http\Controllers\TransactionController;
 use App\Http\Controllers\TransactionLiveController;
+use App\Http\Controllers\TravelOrderController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', [PublicPortalController::class, 'home'])->name('public.home');
@@ -81,6 +82,11 @@ Route::middleware(['auth', 'active', 'mfa.assured'])->group(function (): void {
     Route::get('/correspondence', CorrespondenceWorkspaceController::class)->name('correspondence.index');
     Route::get('/records', RecordsController::class)->name('records.index');
     Route::get('/documents/{document}/download', [DocumentController::class, 'download'])->name('documents.download');
+    Route::get('/travel-orders', [TravelOrderController::class, 'index'])->name('travel-orders.index');
+    Route::get('/travel-orders/create', [TravelOrderController::class, 'create'])->name('travel-orders.create');
+    Route::post('/travel-orders', [TravelOrderController::class, 'store'])->name('travel-orders.store');
+    Route::get('/travel-orders/{travelOrder}', [TravelOrderController::class, 'show'])->name('travel-orders.show');
+    Route::post('/travel-orders/{travelOrder}/status', [TravelOrderController::class, 'updateStatus'])->name('travel-orders.status');
     Route::get('/correspondence/{correspondence}/workspace', [CorrespondenceWorkspaceController::class, 'show'])->name('correspondence.workspace.show');
     Route::post('/correspondence/{correspondence}/workspace/register', [CorrespondenceWorkspaceActionController::class, 'register'])->name('correspondence.workspace.register');
     Route::post('/correspondence/{correspondence}/workspace/classify', [CorrespondenceWorkspaceActionController::class, 'classify'])->name('correspondence.workspace.classify');

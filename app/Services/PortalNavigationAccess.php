@@ -10,6 +10,7 @@ final class PortalNavigationAccess
     public function __construct(
         private readonly CorePortalReportAccess $reports,
         private readonly SystemAdministrationAccess $systemAdministration,
+        private readonly TravelOrderAccess $travelOrders,
     ) {
     }
 
@@ -33,6 +34,7 @@ final class PortalNavigationAccess
             'transactions' => $hasOperationalIdentity,
             'correspondence' => $hasOperationalIdentity,
             'records' => $hasOperationalIdentity,
+            'travelOrders' => $this->travelOrders->canAccessIndex($user),
             'reports' => $this->reports->allows($user),
             'mayorOffice' => $mayorOffice,
             'memoranda' => $hasOperationalIdentity,
@@ -50,6 +52,7 @@ final class PortalNavigationAccess
             'transactions' => false,
             'correspondence' => false,
             'records' => false,
+            'travelOrders' => false,
             'reports' => false,
             'mayorOffice' => false,
             'memoranda' => false,

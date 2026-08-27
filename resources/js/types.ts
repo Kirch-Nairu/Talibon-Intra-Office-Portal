@@ -57,6 +57,7 @@ export type NavigationPermissions = {
     transactions: boolean;
     correspondence: boolean;
     records: boolean;
+    travelOrders: boolean;
     reports: boolean;
     mayorOffice: boolean;
     memoranda: boolean;

@@ -1,5 +1,5 @@
 import { Head, Link, router, usePage } from '@inertiajs/react';
-import { BarChart3, Bell, Building2, FileSearch, FileText, Inbox, LayoutDashboard, LogOut, Menu, Settings, ShieldCheck, X } from 'lucide-react';
+import { BarChart3, Bell, Building2, FileSearch, FileText, Inbox, LayoutDashboard, LogOut, Menu, Plane, Settings, ShieldCheck, X } from 'lucide-react';
 import { PropsWithChildren, useEffect, useRef, useState } from 'react';
 import { useVisiblePolling } from '../hooks/useVisiblePolling';
 import type { LiveNotification, NotificationFeed, SharedProps } from '../types';
@@ -124,6 +124,7 @@ export default function AppLayout({ title, children }: Props) {
         { label: 'My Work', href: '/transactions', icon: FileText, show: navigation.transactions },
         { label: 'Correspondence', href: '/correspondence', icon: Inbox, show: navigation.correspondence },
         { label: 'Records', href: '/records', icon: FileSearch, show: navigation.records },
+        { label: 'Approved Travel Orders', href: '/travel-orders', icon: Plane, show: navigation.travelOrders },
         { label: 'Reports', href: '/reports', icon: BarChart3, show: canViewReports },
         { label: "Mayor's Office", href: '/mayor-office', icon: Building2, show: navigation.mayorOffice },
         { label: 'Memoranda', href: '/memoranda', icon: FileText, show: navigation.memoranda },
