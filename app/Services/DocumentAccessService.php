@@ -7,14 +7,18 @@ use App\Models\CorrespondenceRecord;
 use App\Models\Document;
 use App\Models\DocumentLink;
 use App\Models\TransactionEvent;
+use App\Models\TravelOrder;
+use App\Models\TravelOrderEvent;
 use App\Models\User;
 use App\Models\WorkflowTransaction;
 use Illuminate\Database\Eloquent\Relations\Relation;
 
 final class DocumentAccessService
 {
-    public function __construct(private readonly CorrespondenceAccessDecider $correspondenceAccess)
-    {
+    public function __construct(
+        private readonly CorrespondenceAccessDecider $correspondenceAccess,
+        private readonly TravelOrderAccess $travelOrderAccess,
+    ) {
     }
 
     public function canDownload(User $actor, Document $document): bool
@@ -53,6 +57,32 @@ final class DocumentAccessService
         }
 
         if ($hasCorrespondenceParent) {
+            return false;
+        }
+
+        $hasTravelOrderParent = false;
+        foreach ($links as $link) {
+            $type = Relation::getMorphedModel($link->linkable_type) ?? $link->linkable_type;
+
+            if ($type === TravelOrder::class) {
+                $hasTravelOrderParent = true;
+                $travelOrder = TravelOrder::query()->find($link->linkable_id);
+                if ($travelOrder && $this->travelOrderAccess->canView($actor, $travelOrder)) {
+                    return true;
+                }
+            }
+
+            if ($type === TravelOrderEvent::class) {
+                $hasTravelOrderParent = true;
+                $event = TravelOrderEvent::query()->with('travelOrder')->find($link->linkable_id);
+                if ($event?->travelOrder
+                    && $this->travelOrderAccess->canView($actor, $event->travelOrder)) {
+                    return true;
+                }
+            }
+        }
+
+        if ($hasTravelOrderParent) {
             return false;
         }
 

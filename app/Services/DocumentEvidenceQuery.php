@@ -6,6 +6,8 @@ use App\Models\CorrespondenceEvent;
 use App\Models\CorrespondenceRecord;
 use App\Models\DocumentLink;
 use App\Models\TransactionEvent;
+use App\Models\TravelOrder;
+use App\Models\TravelOrderEvent;
 use App\Models\WorkflowTransaction;
 use Illuminate\Database\Eloquent\Model;
 
@@ -27,6 +29,16 @@ final class DocumentEvidenceQuery
         $eventIds = $record->events()->pluck('id')->map(fn ($id): int => (int) $id)->all();
 
         return $this->forParentAndEvents($record, (new CorrespondenceEvent())->getMorphClass(), $eventIds);
+    }
+
+    /** @return array{record:array<int,array<string,mixed>>,events:array<string,array<int,array<string,mixed>>>} */
+    public function forTravelOrder(TravelOrder $travelOrder): array
+    {
+        $eventIds = $travelOrder->relationLoaded('events')
+            ? $travelOrder->events->pluck('id')->map(fn ($id): int => (int) $id)->all()
+            : $travelOrder->events()->pluck('id')->map(fn ($id): int => (int) $id)->all();
+
+        return $this->forParentAndEvents($travelOrder, (new TravelOrderEvent())->getMorphClass(), $eventIds);
     }
 
     /**
