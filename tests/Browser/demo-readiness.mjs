@@ -48,9 +48,9 @@ function clearActivePage(page) {
   }
 }
 function record(name, ok, details = '', severity = null) {
-  const row = { name, ok: Boolean(ok), details: clean(details), severity };
+  const row = { name: clean(name), ok: Boolean(ok), details: clean(details), severity };
   report.checks.push(row);
-  if (!row.ok) throw new Error(`${name}: ${row.details}`);
+  if (!row.ok) throw new Error(`${row.name}: ${row.details}`);
 }
 const pathOf = (page) => new URL(page.url()).pathname;
 const date = (days = 0) => new Date(Date.now() + days * 86400000).toISOString().slice(0, 10);
@@ -193,11 +193,16 @@ async function logout(page) {
     await Promise.all([waitForPath(page, '/login'), button.first().click()]);
   }
 }
-async function records(page, query, visible, role) {
+async function records(page, query, visible, role, expectedMarker = query) {
   await page.goto(`${BASE}/records?record_type=travel_order&search=${encodeURIComponent(query)}`, { waitUntil: 'domcontentloaded' });
   currentUrl = page.url();
   const body = await text(page);
-  record(`${role}: Records ${visible ? 'shows' : 'hides'} ${query}`, visible ? body.includes(query) : !body.includes(query), visible ? 'authorized result missing' : 'hidden Travel Order leaked', visible ? 'P1' : 'P0');
+  record(
+    `${role}: Records ${visible ? 'shows' : 'hides'} result for ${query}`,
+    visible ? body.includes(expectedMarker) : !body.includes(expectedMarker),
+    visible ? `authorized result marker missing: ${expectedMarker}` : `hidden Travel Order marker leaked: ${expectedMarker}`,
+    visible ? 'P1' : 'P0',
+  );
 }
 
 const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9Y9ZPp8AAAAASUVORK5CYII=', 'base64');
@@ -317,7 +322,7 @@ async function main() {
       await terminate(page, paths.budget, 'cancelled');
       await records(page, orders.eng.ref, true, 'mayor_approver');
       await records(page, orders.mpdo.destination, true, 'mayor_approver');
-      await records(page, orders.budget.employee, true, 'mayor_approver');
+      await records(page, orders.budget.employee, true, 'mayor_approver', orders.budget.ref);
       await responsive(page, '/travel-orders', 'mayor_approver', 'Travel Order registry');
       cleanRun(); report.accounts.push({ email: 'mayor@talibon.demo', role: 'mayor_approver', result: 'executive/read/mutation/terminal behavior verified' });
       await logout(page); clearActivePage(page); await ctx.close();
