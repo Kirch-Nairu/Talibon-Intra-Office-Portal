@@ -11,6 +11,7 @@ const report = {
   completed: false,
   checks: [],
   accounts: [],
+  diagnostics: [],
   notes: [
     'Ephemeral GitHub Actions runtime; PostgreSQL is fresh-seeded synthetic prototype data.',
     'Demo password is generated and masked at runtime and is never written to this report.',
@@ -33,6 +34,43 @@ function clean(value) {
   for (const secret of sensitiveValues) output = output.replaceAll(secret, '[MASKED]');
   return output;
 }
+function sanitize(value) {
+  if (typeof value === 'string') return clean(value);
+  if (Array.isArray(value)) return value.map(sanitize);
+  if (value && typeof value === 'object') {
+    return Object.fromEntries(Object.entries(value).map(([key, item]) => [key, sanitize(item)]));
+  }
+  return value;
+}
+const reportJson = () => JSON.stringify(sanitize(report), null, 2);
+function safePath(value) {
+  try {
+    return new URL(value, BASE).pathname;
+  } catch {
+    return '[unavailable]';
+  }
+}
+function safeUrl(value) {
+  try {
+    const url = new URL(value, BASE);
+    return `${url.origin}${url.pathname}`;
+  } catch {
+    return '[unavailable]';
+  }
+}
+function diagnostic(type, details, page = activePage) {
+  const url = page?.url?.() || currentUrl;
+  const path = safePath(url);
+  const onSensitiveMfaPath = path.startsWith('/security/mfa/');
+  report.diagnostics.push({
+    at: new Date().toISOString(),
+    stage: clean(currentStage),
+    path: clean(path),
+    type: clean(type),
+    details: onSensitiveMfaPath ? '[redacted on sensitive MFA route]' : clean(details),
+  });
+  if (report.diagnostics.length > 100) report.diagnostics.shift();
+}
 function checkpoint(stage, page = activePage) {
   currentStage = stage;
   if (page) currentUrl = page.url();
@@ -50,7 +88,10 @@ function clearActivePage(page) {
 function record(name, ok, details = '', severity = null) {
   const row = { name: clean(name), ok: Boolean(ok), details: clean(details), severity };
   report.checks.push(row);
-  if (!row.ok) throw new Error(`${row.name}: ${row.details}`);
+  if (!row.ok) {
+    diagnostic('check-failure', `${row.name}: ${row.details}`);
+    throw new Error(`${row.name}: ${row.details}`);
+  }
 }
 const pathOf = (page) => new URL(page.url()).pathname;
 const date = (days = 0) => new Date(Date.now() + days * 86400000).toISOString().slice(0, 10);
@@ -113,8 +154,21 @@ async function waitForBodyText(page, value, timeout = 10000) {
 }
 function monitor(page, role) {
   const errors = [];
-  page.on('pageerror', (e) => errors.push(`pageerror ${e.message}`));
-  page.on('response', (r) => { if (r.status() >= 500) errors.push(`${r.status()} ${r.url()}`); });
+  page.on('pageerror', (error) => {
+    const message = `pageerror ${error.message}`;
+    errors.push(message);
+    diagnostic('pageerror', message, page);
+  });
+  page.on('console', (message) => {
+    if (message.type() === 'error') diagnostic('console.error', message.text(), page);
+  });
+  page.on('response', (response) => {
+    if (response.status() >= 500) {
+      const message = `${response.status()} ${safePath(response.url())}`;
+      errors.push(message);
+      diagnostic('server-5xx', message, page);
+    }
+  });
   return () => record(`${role}: no page errors or 5xx`, errors.length === 0, errors.join(' | '), 'P1');
 }
 async function go(page, route, { status = 200, has, lacks = [], label = route, role = 'platform' } = {}) {
@@ -469,21 +523,22 @@ async function main() {
   }
 
   await fs.mkdir('storage/app/qa', { recursive: true });
-  await fs.writeFile('storage/app/qa/demo-readiness-report.json', JSON.stringify(report, null, 2));
+  await fs.writeFile('storage/app/qa/demo-readiness-report.json', reportJson());
   console.log(`DEMO_READINESS_QA_PASS checks=${report.checks.length} accounts=${report.accounts.length}`);
 }
 
 main().catch(async (error) => {
   const failure = {
     stage: currentStage,
-    currentUrl: clean(currentUrl),
+    currentUrl: clean(safeUrl(currentUrl)),
+    currentPath: clean(safePath(currentUrl)),
     error: clean(error?.message || error),
   };
   report.failure = failure;
   report.checks.push({ name: 'browser QA aborted', ok: false, details: failure.error, severity: 'P1' });
   try {
     await fs.mkdir('storage/app/qa', { recursive: true });
-    await fs.writeFile('storage/app/qa/demo-readiness-report.json', JSON.stringify(report, null, 2));
+    await fs.writeFile('storage/app/qa/demo-readiness-report.json', reportJson());
   } catch {}
   console.error(`DEMO_READINESS_QA_FAIL stage=${clean(currentStage)} url=${clean(currentUrl)} error=${failure.error}`);
   process.exitCode = 1;
