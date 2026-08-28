@@ -3,14 +3,13 @@ import AppLayout from '../../layouts/AppLayout';
 
 type Metric = { label: string; value: number; link: string };
 type WorkItem = {
-    id: number;
     reference: string;
     title: string;
-    workflowType: string;
+    transactionType: string;
     priority: string;
     status: string;
-    currentOffice?: string | null;
-    assignedEmployee?: string | null;
+    currentOffice?: { code: string; name: string; shortName?: string | null } | null;
+    assignedEmployee?: { name: string; position?: string | null } | null;
     dueAt?: string | null;
     dueState?: string | null;
     detailUrl: string;
@@ -119,7 +118,7 @@ export default function Workspace({ department, metrics, statusOverview, staffWo
             <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
                 <div className="text-xs font-bold uppercase tracking-[0.16em] text-blue-700">Oldest unresolved</div>
                 <div className="mt-4 grid gap-3 lg:grid-cols-2">
-                    {oldestUnresolved.map((item) => <a key={item.id} href={item.detailUrl} className="rounded-2xl border border-slate-200 p-4 hover:border-blue-300"><div className="text-xs font-bold text-blue-700">{item.reference}</div><div className="mt-1 text-sm font-semibold text-slate-950">{item.title}</div><div className="mt-2 flex flex-wrap gap-2 text-xs text-slate-500"><span>{pretty(item.status)}</span><span>·</span><span>{pretty(item.priority)}</span>{item.assignedEmployee && <><span>·</span><span>{item.assignedEmployee}</span></>}</div></a>)}
+                    {oldestUnresolved.map((item) => <a key={item.detailUrl} href={item.detailUrl} className="rounded-2xl border border-slate-200 p-4 hover:border-blue-300"><div className="text-xs font-bold text-blue-700">{item.reference}</div><div className="mt-1 text-sm font-semibold text-slate-950">{item.title}</div><div className="mt-2 flex flex-wrap gap-2 text-xs text-slate-500"><span>{pretty(item.status)}</span><span>·</span><span>{pretty(item.priority)}</span>{item.assignedEmployee && <><span>·</span><span>{item.assignedEmployee.name}</span></>}</div></a>)}
                     {oldestUnresolved.length === 0 && <div className="rounded-2xl bg-slate-50 p-6 text-sm text-slate-500">No unresolved office work in the bounded view.</div>}
                 </div>
             </section>
