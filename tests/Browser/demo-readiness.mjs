@@ -458,7 +458,7 @@ async function main() {
       await go(page, '/transactions?view=office_queue', { has: 'Office Work', role: 'engineering department_head' });
       await go(page, '/transactions?view=staff_workload', { has: 'Staff Workload', role: 'engineering department_head' });
       await go(page, '/transactions?view=escalations', { has: 'Escalations', role: 'engineering department_head' });
-      await go(page, '/departments', { has: 'Own-office operational workspace', role: 'engineering department_head' });
+      await go(page, '/departments', { has: 'OWN-OFFICE OPERATIONAL WORKSPACE', role: 'engineering department_head' });
       await go(page, paths.eng, { has: orders.eng.ref, role: 'engineering department_head', label: 'own-office Travel Order' });
       await deny(page, paths.mpdo, 'engineering department_head', 'cross-office Travel Order');
       await deny(page, '/travel-orders/create', 'engineering department_head');
@@ -473,7 +473,7 @@ async function main() {
       const ctx = await browser.newContext({ viewport: { width: 1280, height: 800 } });
       const page = await ctx.newPage(); setActivePage(page, 'budget workspace'); const cleanRun = monitor(page, 'budget department_head');
       await loginAndEnroll(page, 'budget@talibon.demo');
-      await go(page, '/departments', { has: 'Own-office operational workspace', role: 'budget department_head' });
+      await go(page, '/departments', { has: 'OWN-OFFICE OPERATIONAL WORKSPACE', role: 'budget department_head' });
       await go(page, paths.budget, { has: orders.budget.ref, role: 'budget department_head' });
       await deny(page, paths.eng, 'budget department_head', 'cross-office Travel Order');
       await records(page, orders.budget.ref, true, 'budget department_head');
