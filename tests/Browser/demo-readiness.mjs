@@ -99,6 +99,18 @@ function totp(secret) {
 async function text(page) {
   return (await page.locator('body').innerText()).replace(/\s+/g, ' ').trim();
 }
+async function waitForBodyText(page, value, timeout = 10000) {
+  try {
+    await page.waitForFunction(
+      (expected) => document.body?.innerText.includes(expected),
+      value,
+      { timeout },
+    );
+    return true;
+  } catch {
+    return false;
+  }
+}
 function monitor(page, role) {
   const errors = [];
   page.on('pageerror', (e) => errors.push(`pageerror ${e.message}`));
@@ -107,12 +119,14 @@ function monitor(page, role) {
 }
 async function go(page, route, { status = 200, has, lacks = [], label = route, role = 'platform' } = {}) {
   const response = await page.goto(`${BASE}${route}`, { waitUntil: 'domcontentloaded' });
-  await page.waitForTimeout(150);
   currentUrl = page.url();
   record(`${role}: ${label} status`, response?.status() === status, `expected=${status} actual=${response?.status()} final=${page.url()}`, response?.status() >= 500 ? 'P1' : 'P0');
   if (status === 200) {
+    if (has) {
+      const present = await waitForBodyText(page, has);
+      record(`${role}: ${label} presentation`, present, `missing ${has}`, 'P2');
+    }
     const body = await text(page);
-    if (has) record(`${role}: ${label} presentation`, body.includes(has), `missing ${has}`, 'P2');
     for (const value of lacks) record(`${role}: ${label} excludes ${value}`, !body.includes(value), `unexpected ${value}`, 'P0');
   }
 }
@@ -196,10 +210,12 @@ async function logout(page) {
 async function records(page, query, visible, role, expectedMarker = query) {
   await page.goto(`${BASE}/records?record_type=travel_order&search=${encodeURIComponent(query)}`, { waitUntil: 'domcontentloaded' });
   currentUrl = page.url();
+  await waitForBodyText(page, 'Records Registry');
   const body = await text(page);
+  const markerVisible = visible ? await waitForBodyText(page, expectedMarker) : body.includes(expectedMarker);
   record(
     `${role}: Records ${visible ? 'shows' : 'hides'} result for ${query}`,
-    visible ? body.includes(expectedMarker) : !body.includes(expectedMarker),
+    visible ? markerVisible : !markerVisible,
     visible ? `authorized result marker missing: ${expectedMarker}` : `hidden Travel Order marker leaked: ${expectedMarker}`,
     visible ? 'P1' : 'P0',
   );
@@ -224,7 +240,16 @@ async function createOrder(page, order) {
     page.getByRole('button', { name: 'Record approved order' }).click(),
   ]);
   currentUrl = page.url();
-  record(`mayor_approver: created ${order.ref}`, (await text(page)).includes(order.ref), 'new Travel Order did not render', 'P1');
+  record(`mayor_approver: created ${order.ref}`, await waitForBodyText(page, order.ref), 'new Travel Order did not render', 'P1');
+  if (order.evidence) {
+    const evidenceName = 'synthetic-qa-evidence.png';
+    record('mayor_approver: private evidence metadata visible', await waitForBodyText(page, evidenceName), 'uploaded evidence metadata did not render', 'P1');
+    const href = await page.getByRole('link', { name: /Download/i }).first().getAttribute('href');
+    record('mayor_approver: private evidence uses protected download route', Boolean(href?.startsWith('/documents/') && href.endsWith('/download')), `href=${href}`, 'P0');
+    const download = href ? await page.request.get(`${BASE}${href}`) : null;
+    record('mayor_approver: private evidence authorized download succeeds', download?.status() === 200, `status=${download?.status()}`, 'P1');
+    order.evidenceUrl = href;
+  }
   return pathOf(page);
 }
 async function terminate(page, route, status) {
@@ -339,6 +364,7 @@ async function main() {
       for (const order of Object.values(orders)) record(`system_admin: registry hides ${order.ref}`, !body.includes(order.ref), 'Travel Order content leaked', 'P0');
       await records(page, orders.eng.ref, false, 'system_admin');
       await deny(page, paths.eng, 'system_admin', 'Travel Order detail');
+      if (orders.eng.evidenceUrl) await deny(page, orders.eng.evidenceUrl, 'system_admin', 'private Travel Order evidence');
       cleanRun(); await logout(page); clearActivePage(page); await ctx.close();
     }
 
