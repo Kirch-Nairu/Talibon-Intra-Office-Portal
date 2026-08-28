@@ -149,6 +149,23 @@ async function waitForBodyText(page, value, timeout = 10000) {
     );
     return true;
   } catch {
+    const state = await page.evaluate(() => {
+      const root = document.getElementById('app');
+      let inertiaComponent = null;
+      try {
+        inertiaComponent = root?.dataset?.page ? JSON.parse(root.dataset.page).component ?? null : null;
+      } catch {}
+      return {
+        readyState: document.readyState,
+        title: document.title,
+        bodyTextLength: document.body?.innerText?.length ?? 0,
+        appPresent: Boolean(root),
+        appChildElementCount: root?.childElementCount ?? null,
+        appTextLength: root?.innerText?.length ?? null,
+        inertiaComponent,
+      };
+    }).catch((error) => ({ evaluationError: String(error?.message || error) }));
+    diagnostic('presentation-timeout', JSON.stringify({ expected: value, ...state }), page);
     return false;
   }
 }
@@ -168,6 +185,17 @@ function monitor(page, role) {
       errors.push(message);
       diagnostic('server-5xx', message, page);
     }
+    const resourceType = response.request().resourceType();
+    if (response.status() >= 400 && ['script', 'stylesheet'].includes(resourceType)) {
+      diagnostic('asset-http-error', `${response.status()} ${resourceType} ${safePath(response.url())}`, page);
+    }
+  });
+  page.on('requestfailed', (request) => {
+    diagnostic(
+      'requestfailed',
+      `${request.resourceType()} ${safePath(request.url())} ${request.failure()?.errorText || 'request failed'}`,
+      page,
+    );
   });
   return () => record(`${role}: no page errors or 5xx`, errors.length === 0, errors.join(' | '), 'P1');
 }
