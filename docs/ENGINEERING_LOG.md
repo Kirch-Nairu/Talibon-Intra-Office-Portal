@@ -604,3 +604,12 @@ This append records the completed Approved Travel Orders wave. Earlier entries t
 - Verification actually observed before commit: new/frozen branch remote refs both verified at exact authority SHA before edits; PHP syntax PASS for changed middleware and both navigation/shared-prop tests; an isolated changed-set TypeScript syntax/type-shape check against local module stubs PASS. A dependency-backed repository checkout could not be established because the execution container cannot resolve/connect to GitHub, so `composer validate`, repository `npm run types:check`, Vite production build, PHPUnit/Feature execution, and broader suite are **NOT OBSERVED pre-commit** and no PASS is inferred.
 - CI workflow boundary: the existing Talibon Platform CI push filter covers `KIRCH-PROTOTYPE-**` and `KIRCH-PHASE1-**`, not `KIRCH-POSTFREEZE-**`; Demo Readiness Browser QA pushes only from `KIRCH-PROTOTYPE-DEMO-READINESS-QA` though its workflow supports manual dispatch. F1 does not alter CI workflow files merely to force execution.
 - Stop condition: **do not advance to F2 until this exact F1 head has reusable exact-head verification evidence and no reproduced authorization/navigation regression remains.**
+
+## 2026-09-01 — F1 test-contract reconciliation
+
+### `test: align admin navigation contracts with grouped shell`
+
+- Talibon Platform CI #312, run ID `33506288758`, executed exact F1 head `eec810eee522358763c6fd670315ac5d1b4cb86a` and failed only because `SystemAdministrationNavigationBoundaryTest` and `SystemAdministrationNavigationContractTest` still required the `/admin` destination literal to remain physically inside `AppLayout.tsx`.
+- Production navigation behavior remained intact: F1 intentionally moved destination definitions into `portalNavigation.ts`, where `/admin` remains represented and filtered by the existing server capability contract; shared navigation consumption and Reports dual fail-closed gating remain in `AppLayout.tsx`.
+- Corrective scope is tests plus this append-only evidence entry only. The two historical tests now inspect the active `AppLayout.tsx` + `portalNavigation.ts` presentation contract without deleting `/admin`, parked-route, server-permission, Reports-gating, or no-role-authorization assertions.
+- Application, authentication, routes, permissions, workflow, schema, seed, and production navigation behavior: **unchanged**.
