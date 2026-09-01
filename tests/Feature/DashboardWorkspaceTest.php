@@ -433,7 +433,7 @@ class DashboardWorkspaceTest extends TestCase
             $engineer->employee,
             now()->subDays(2),
             status: 'approved',
-            completedAt: now()->subDay(),
+            completedAt: now()->startOfMonth(),
         );
         $legacy = $this->transaction(
             'Legacy terminal no completion',
