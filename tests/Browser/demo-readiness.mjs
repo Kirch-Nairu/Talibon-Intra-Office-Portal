@@ -285,6 +285,7 @@ async function loginAndEnroll(page, email, expectedPath = '/dashboard') {
 async function logout(page) {
   await page.goto(`${BASE}/dashboard`, { waitUntil: 'domcontentloaded' }).catch(() => null);
   const button = page.getByRole('button', { name: /Sign out/i });
+  await button.first().waitFor({ state: 'visible' });
   if (await button.count()) {
     await Promise.all([waitForPath(page, '/login'), button.first().click()]);
   }
