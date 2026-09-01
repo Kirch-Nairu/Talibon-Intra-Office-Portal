@@ -15,19 +15,48 @@ class CurrentPortalNavigationTest extends TestCase
     public function test_prototype_navigation_keeps_current_scope_links_and_hides_parked_modules(): void
     {
         $layout = file_get_contents(resource_path('js/layouts/AppLayout.tsx'));
+        $navigation = file_get_contents(resource_path('js/navigation/portalNavigation.ts'));
         $this->assertIsString($layout);
+        $this->assertIsString($navigation);
+        $activeNavigation = $layout."\n".$navigation;
 
-        foreach (['/admin', '/dashboard', '/transactions', '/correspondence', '/records', '/mayor-office', '/memoranda', '/departments', '/audit'] as $href) {
-            $this->assertStringContainsString("href: '{$href}'", $layout);
+        foreach (['/admin', '/dashboard', '/transactions', '/correspondence', '/records', '/travel-orders', '/reports', '/mayor-office', '/memoranda', '/departments', '/audit'] as $href) {
+            $this->assertStringContainsString("href: '{$href}'", $activeNavigation);
         }
 
-        $this->assertStringContainsString("href: '/reports'", $layout);
         $this->assertStringContainsString('pageProps.permissions.navigation', $layout);
-        $this->assertStringNotContainsString("['system_admin', 'mayor_approver', 'mayor_staff']", $layout);
-        $this->assertStringNotContainsString("['system_admin', 'mayor_approver']", $layout);
+        $this->assertStringContainsString('pageProps.permissions.reports && navigation.reports', $layout);
+        $this->assertStringContainsString('permissions[item.permission]', $navigation);
+        $this->assertStringContainsString('requiresReports', $navigation);
+        $this->assertStringContainsString('workspaceExperience', $layout);
+        $this->assertStringNotContainsString('role', strtolower($navigation));
 
         foreach (['/operations', '/legislation', '/hris', '/employees'] as $href) {
-            $this->assertStringNotContainsString("href: '{$href}'", $layout);
+            $this->assertStringNotContainsString("href: '{$href}'", $activeNavigation);
+        }
+    }
+
+    public function test_grouped_navigation_preserves_task_oriented_labels_without_inventing_routes(): void
+    {
+        $navigation = file_get_contents(resource_path('js/navigation/portalNavigation.ts'));
+        $this->assertIsString($navigation);
+
+        foreach ([
+            'Office Overview',
+            'Executive Overview',
+            'System Overview',
+            'Inbox & Routing',
+            'Travel Orders',
+            'Municipal Offices',
+            'Accounts & Access',
+            'For Decision',
+            'Audit & Security',
+        ] as $label) {
+            $this->assertStringContainsString($label, $navigation);
+        }
+
+        foreach (['/admin/accounts', '/admin/offices', '/admin/mfa', '/department/current', '/executive/decisions'] as $href) {
+            $this->assertStringNotContainsString($href, $navigation);
         }
     }
 

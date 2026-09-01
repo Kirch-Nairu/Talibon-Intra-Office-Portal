@@ -2,8 +2,11 @@ import '../css/app.css';
 import { createInertiaApp, type ResolvedComponent } from '@inertiajs/react';
 import { resolvePageComponent } from 'laravel-vite-plugin/inertia-helpers';
 import { createRoot } from 'react-dom/client';
+import { initializeAppearance } from './theme/appearance';
 
 const appName = import.meta.env.VITE_APP_NAME || 'Talibon Intra-Office Portal';
+
+initializeAppearance();
 
 createInertiaApp({
     title: (title) => (title ? `${title} | ${appName}` : appName),

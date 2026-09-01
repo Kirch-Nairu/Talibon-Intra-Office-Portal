@@ -65,9 +65,16 @@ export type NavigationPermissions = {
     audit: boolean;
 };
 
+export type WorkspaceExperience =
+    | 'employee'
+    | 'department_head'
+    | 'executive_oversight'
+    | 'system_administration';
+
 export type SharedProps = {
     [key: string]: unknown;
     appName: string;
+    workspaceExperience: WorkspaceExperience | null;
     auth: { user: AuthUser | null };
     permissions: { reports: boolean; navigation: NavigationPermissions };
     pendingMemo: PendingMemo | null;

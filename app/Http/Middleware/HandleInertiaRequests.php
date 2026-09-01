@@ -3,6 +3,7 @@
 namespace App\Http\Middleware;
 
 use App\Services\AuthenticationAssurance;
+use App\Services\DashboardExperienceResolver;
 use App\Services\NotificationFeedQuery;
 use App\Services\PortalNavigationAccess;
 use Illuminate\Http\Request;
@@ -35,6 +36,14 @@ class HandleInertiaRequests extends Middleware
             ? app(PortalNavigationAccess::class)->for($user)
             : PortalNavigationAccess::none();
 
+        $workspaceExperience = null;
+        if ($user
+            && $applicationAssured
+            && $user->employee
+            && $user->employee->department?->is_active === true) {
+            $workspaceExperience = app(DashboardExperienceResolver::class)->resolve($user)['key'];
+        }
+
         $feed = null;
         $notificationFeed = function () use (
             &$feed,
@@ -51,6 +60,7 @@ class HandleInertiaRequests extends Middleware
         return [
             ...parent::share($request),
             'appName' => config('app.name'),
+            'workspaceExperience' => $workspaceExperience,
             'auth' => [
                 'user' => $user ? [
                     'id' => $user->id,
