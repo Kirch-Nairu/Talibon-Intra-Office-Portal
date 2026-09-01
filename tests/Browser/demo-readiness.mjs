@@ -487,7 +487,7 @@ async function main() {
       const page = await ctx.newPage(); setActivePage(page, 'HR workspace'); const cleanRun = monitor(page, 'hr_officer');
       await loginAndEnroll(page, 'hr@talibon.demo');
       await go(page, '/hris', { role: 'hr_officer', label: 'existing HR surface' });
-      await go(page, '/hris/health-access', { role: 'hr_officer', label: 'Health access boundary' });
+      await go(page, '/hris/health-access', { status: 403, role: 'hr_officer', label: 'Health access grant-management boundary' });
       await deny(page, '/admin', 'hr_officer');
       await deny(page, paths.eng, 'hr_officer', 'municipal Travel Order detail');
       await deny(page, '/travel-orders/create', 'hr_officer');
