@@ -444,13 +444,14 @@ async function verifyThemeSurface(page, role, mode) {
   const nav = page.locator('nav[aria-label="Primary navigation"]:visible').first();
   const control = page.locator('[role="group"][aria-label="Appearance"]:visible').first();
   const notifications = page.getByRole('button', { name: 'Open notifications' });
+  const shellHeader = page.locator('main > header').filter({ has: page.getByRole('button', { name: 'Open notifications', exact: true }) });
   const metrics = await page.evaluate(() => ({
     viewport: window.innerWidth,
     root: document.documentElement.scrollWidth,
     body: document.body?.scrollWidth || 0,
   }));
   f1(`${role}: ${mode} shell main renders`, await page.locator('main').isVisible(), mode);
-  f1(`${role}: ${mode} header renders`, await page.locator('header').isVisible(), mode);
+  f1(`${role}: ${mode} header renders`, await shellHeader.isVisible(), mode);
   f1(`${role}: ${mode} navigation renders`, await nav.isVisible(), mode);
   f1(`${role}: ${mode} Appearance control remains usable`, await control.isVisible(), mode);
   f1(`${role}: ${mode} notifications control remains present`, await notifications.isVisible(), mode);
