@@ -306,12 +306,15 @@ async function responsive(page, route, role, label) {
   await page.setViewportSize({ width: 1280, height: 800 });
 }
 
-async function readInitialPortalContract(page) {
-  return page.evaluate(() => {
-    const root = document.getElementById('app');
-    if (!root?.dataset?.page) return null;
+async function readInitialPortalContract(page, response) {
+  if (!response) return null;
+  const html = await response.text();
+  return page.evaluate((markup) => {
+    const documentFromResponse = new DOMParser().parseFromString(markup, 'text/html');
+    const bootstrap = documentFromResponse.querySelector('script[type="application/json"][data-page="app"]');
+    if (!bootstrap?.textContent) return null;
     try {
-      const initial = JSON.parse(root.dataset.page);
+      const initial = JSON.parse(bootstrap.textContent);
       return {
         workspaceExperience: initial?.props?.workspaceExperience ?? null,
         navigation: initial?.props?.permissions?.navigation ?? null,
@@ -320,7 +323,7 @@ async function readInitialPortalContract(page) {
     } catch {
       return null;
     }
-  });
+  }, html);
 }
 
 async function primaryNavSnapshot(page) {
@@ -354,7 +357,8 @@ async function verifyWorkspacePresentation(page, role, experience) {
   currentUrl = page.url();
   f1(`${role}: authenticated dashboard hard-load succeeds`, response?.status() === 200, `status=${response?.status()}`);
 
-  const contract = await readInitialPortalContract(page);
+  const contract = await readInitialPortalContract(page, response);
+  f1(`${role}: initial Inertia v3 bootstrap contract is readable`, Boolean(contract), 'script[type="application/json"][data-page="app"] missing or unreadable');
   f1(`${role}: initial Inertia workspaceExperience is ${experience}`, contract?.workspaceExperience === experience, `actual=${contract?.workspaceExperience}`);
   f1(`${role}: initial Inertia navigation capability payload is present`, Boolean(contract?.navigation), 'permissions.navigation missing');
 

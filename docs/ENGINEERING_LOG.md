@@ -625,3 +625,17 @@ This append records the completed Approved Travel Orders wave. Earlier entries t
 - This forward correction is QA/documentation only. It adds F1-prefixed Browser assertions while retaining the historical 174 checks, adds sanitized synthetic shell/navigation screenshots under `storage/app/qa`, and broadens only the Browser artifact upload path to include those bounded QA files.
 - Product application behavior, authentication, MFA, permissions, routes, workflow, schema, seed, server authorization, navigation capability semantics, and F1 production presentation code: **unchanged**.
 - Exact-head Platform and Browser verification for the new QA-only commit remain **PENDING** until that new SHA is published and executed; F1 is not designated GREEN by this entry alone and F2 remains blocked.
+
+## 2026-09-02 — F1 Browser #14 harness extraction correction
+
+### `test: read F1 Inertia v3 bootstrap contract`
+
+- Talibon Demo Readiness Browser QA run **#14**, run ID `33587870679`, event `workflow_dispatch`, executed exact SHA `701bbe00b1db9dd7e1bc234c75b29e6dcb011ac2` and concluded **FAILURE** at the first F1 workspace bootstrap-contract extraction after the authenticated System Admin dashboard hard-load itself returned HTTP 200.
+- Before the abort, the run reached **41 historical checks with 0 historical failures** and **2 F1 checks with 1 F1 failure**. Representative-account completion was **0 / 7** and sanitized presentation screenshots were **0 / 7** because the run terminated before those acceptance stages.
+- Browser #14 evidence upload itself was **GREEN**: artifact ID `9830741035`, digest `sha256:4e477437ae7881547f0168677802eeedcb91804fe8f9e7b8b377c565f7477b9b`; artifact sanitization review was also **GREEN**.
+- Classification: **C — Browser harness defect**. No production application, authentication, permission, navigation, route, workflow, schema, seed, or authorization defect was reproduced by Browser #14.
+- Root cause: the F1 Browser helper still attempted to read the removed Inertia v2 bootstrap representation from `#app[data-page]` while this repository uses `@inertiajs/react` v3, whose hard-load bootstrap page object is emitted in `script[type="application/json"][data-page="app"]`. The helper therefore returned `null`, and the later optional access surfaced `workspaceExperience` as `undefined`.
+- QA-only correction: `verifyWorkspacePresentation()` retains the `Response` from the existing hard-load `page.goto('/dashboard')` and passes it to `readInitialPortalContract(page, response)`. The helper calls `response.text()`, parses that exact HTML with `DOMParser`, selects exactly `script[type="application/json"][data-page="app"]`, parses its JSON page object, and returns only `workspaceExperience`, `permissions.navigation`, and `permissions.reports` for presentation verification.
+- The harness now records a separate `F1: <role>: initial Inertia v3 bootstrap contract is readable` assertion before validating workspace semantics. It does not use the live `#app` dataset, does not use `history.state` as the primary source, and does not issue a second Inertia request merely to recover the contract.
+- The historical **174-check** matrix and all existing F1 navigation, active-state, nested-active-state, mobile-drawer, Light/Dark/System, persistence, theme-surface, screenshot, and security/privacy checks remain unchanged.
+- F1 remains **NOT GREEN** until the new exact SHA receives Platform GREEN and a fresh Browser workflow_dispatch satisfying the full acceptance contract. F2 remains blocked.
