@@ -368,9 +368,18 @@ async function darkHeaderContrast(page, target) {
   await page.goto(`${BASE}${target.route}`, { waitUntil: 'domcontentloaded' });
   const heading = page.getByRole('heading', { level: 1, name: target.title, exact: true });
   const metrics = await heading.evaluate((h1) => {
-    const parseRgb = (value) => {
-      const match = value.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/i);
-      return match ? [Number(match[1]), Number(match[2]), Number(match[3])] : null;
+    const toRgb = (value) => {
+      if (!value || !CSS.supports('color', value)) return null;
+      const canvas = document.createElement('canvas');
+      canvas.width = 1;
+      canvas.height = 1;
+      const context = canvas.getContext('2d', { willReadFrequently: true });
+      if (!context) return null;
+      context.clearRect(0, 0, 1, 1);
+      context.fillStyle = value;
+      context.fillRect(0, 0, 1, 1);
+      const [red, green, blue, alpha] = context.getImageData(0, 0, 1, 1).data;
+      return alpha === 255 ? [red, green, blue] : null;
     };
     const luminance = (rgb) => {
       const channels = rgb.map((value) => {
@@ -390,15 +399,19 @@ async function darkHeaderContrast(page, target) {
     const header = h1.closest('header');
     const eyebrow = h1.previousElementSibling;
     const description = h1.nextElementSibling;
-    const bg = header ? parseRgb(getComputedStyle(header).backgroundColor) : null;
-    const title = parseRgb(getComputedStyle(h1).color);
-    const eye = eyebrow ? parseRgb(getComputedStyle(eyebrow).color) : null;
-    const desc = description ? parseRgb(getComputedStyle(description).color) : null;
+    const background = header ? getComputedStyle(header).backgroundColor : null;
+    const titleColor = getComputedStyle(h1).color;
+    const eyebrowColor = eyebrow ? getComputedStyle(eyebrow).color : null;
+    const descriptionColor = description ? getComputedStyle(description).color : null;
+    const bg = toRgb(background);
+    const title = toRgb(titleColor);
+    const eye = toRgb(eyebrowColor);
+    const desc = toRgb(descriptionColor);
     return {
-      background: header ? getComputedStyle(header).backgroundColor : null,
-      titleColor: getComputedStyle(h1).color,
-      eyebrowColor: eyebrow ? getComputedStyle(eyebrow).color : null,
-      descriptionColor: description ? getComputedStyle(description).color : null,
+      background,
+      titleColor,
+      eyebrowColor,
+      descriptionColor,
       titleContrast: bg && title ? ratio(bg, title) : 0,
       eyebrowContrast: bg && eye ? ratio(bg, eye) : 0,
       descriptionContrast: bg && desc ? ratio(bg, desc) : 0,
