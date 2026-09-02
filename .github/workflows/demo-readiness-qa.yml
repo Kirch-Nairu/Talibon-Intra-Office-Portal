@@ -104,6 +104,12 @@ jobs:
       - name: Seven-account browser runtime matrix
         run: node tests/Browser/demo-readiness.mjs
 
+      - name: Reset synthetic data for isolated F2 presentation QA
+        run: php artisan migrate:fresh --seed --force
+
+      - name: F2 page foundation browser acceptance
+        run: node tests/Browser/f2-readiness.mjs
+
       - name: Upload sanitized QA evidence
         if: always()
         uses: actions/upload-artifact@v4
