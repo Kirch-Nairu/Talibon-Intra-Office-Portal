@@ -613,3 +613,15 @@ This append records the completed Approved Travel Orders wave. Earlier entries t
 - Production navigation behavior remained intact: F1 intentionally moved destination definitions into `portalNavigation.ts`, where `/admin` remains represented and filtered by the existing server capability contract; shared navigation consumption and Reports dual fail-closed gating remain in `AppLayout.tsx`.
 - Corrective scope is tests plus this append-only evidence entry only. The two historical tests now inspect the active `AppLayout.tsx` + `portalNavigation.ts` presentation contract without deleting `/admin`, parked-route, server-permission, Reports-gating, or no-role-authorization assertions.
 - Application, authentication, routes, permissions, workflow, schema, seed, and production navigation behavior: **unchanged**.
+
+## 2026-09-02 — F1 Browser presentation coverage correction
+
+### `test: cover F1 navigation and appearance in browser QA`
+
+- Talibon Demo Readiness Browser QA run **#13**, run ID `33580848723`, event `workflow_dispatch`, executed frontend branch `KIRCH-POSTFREEZE-CORE-FRONTEND-UX-V1` at exact SHA `ef637c15d5d82103b0ee4f4d5aef9bc1ba68f2d5` and concluded **SUCCESS**. The existing representative runtime matrix remained **174 / 174 checks PASS** with **7 / 7 representative accounts COMPLETE**.
+- Browser #13 artifact authority: artifact ID `9828363935`, name `demo-readiness-browser-qa-ef637c15d5d82103b0ee4f4d5aef9bc1ba68f2d5`, size `11750` bytes, digest `sha256:82c1db53c7efc346f31bd6bbcfd5e8e407b9478104761daa35b2fa48edeef185`.
+- Sanitization review of the #13 artifact was **GREEN**: no plaintext runtime demo password, TOTP/MFA secret, recovery-code value, session cookie, CSRF value, bearer credential, or private evidence content was found.
+- Acceptance review found that the historical Browser matrix did not exercise F1's workspace-specific grouped navigation, role-aware labels, active navigation state, mobile drawer behavior, `workspaceExperience` presentation payload, System/Light/Dark appearance behavior, persistence, or screenshot evidence. Classification: **C — Browser harness coverage defect**; no F1 application/runtime defect was reproduced by #13.
+- This forward correction is QA/documentation only. It adds F1-prefixed Browser assertions while retaining the historical 174 checks, adds sanitized synthetic shell/navigation screenshots under `storage/app/qa`, and broadens only the Browser artifact upload path to include those bounded QA files.
+- Product application behavior, authentication, MFA, permissions, routes, workflow, schema, seed, server authorization, navigation capability semantics, and F1 production presentation code: **unchanged**.
+- Exact-head Platform and Browser verification for the new QA-only commit remain **PENDING** until that new SHA is published and executed; F1 is not designated GREEN by this entry alone and F2 remains blocked.

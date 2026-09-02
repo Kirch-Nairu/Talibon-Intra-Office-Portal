@@ -110,7 +110,7 @@ jobs:
         with:
           name: demo-readiness-browser-qa-${{ github.sha }}
           path: |
-            storage/app/qa/demo-readiness-report.json
+            storage/app/qa/**
             storage/logs/demo-readiness-server.log
           if-no-files-found: warn
           retention-days: 7
