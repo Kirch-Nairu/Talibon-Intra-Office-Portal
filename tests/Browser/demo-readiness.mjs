@@ -415,6 +415,7 @@ async function appearanceState(page) {
 
 async function chooseAppearance(page, role, label, expectedPreference, expectedResolved) {
   const control = page.locator('[role="group"][aria-label="Appearance"]:visible').first();
+  await control.waitFor({ state: 'visible', timeout: 10000 }).catch(() => {});
   f1(`${role}: Appearance control is visible`, await control.isVisible(), label);
   const button = control.getByRole('button', { name: label, exact: true });
   f1(`${role}: ${label} appearance choice is usable`, await button.isVisible(), label);
@@ -530,6 +531,7 @@ async function verifyEmployeeMobileDrawer(page, contract) {
   await page.goto(`${BASE}/dashboard`, { waitUntil: 'domcontentloaded' });
   await page.setViewportSize({ width: 390, height: 844 });
   const open = page.getByRole('button', { name: 'Open navigation' });
+  await open.waitFor({ state: 'visible', timeout: 10000 }).catch(() => {});
   f1('employee: mobile Open navigation control is visible', await open.isVisible(), '390x844');
   f1('employee: mobile drawer is closed before Open navigation', await page.locator('nav[aria-label="Primary navigation"]:visible').count() === 0, 'visible primary nav exists before open');
 
