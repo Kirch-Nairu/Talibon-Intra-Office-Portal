@@ -9,7 +9,7 @@ export default function SystemOverview({ overview }: { overview: SystemOverviewD
             <div className="flex items-end justify-between gap-3">
                 <div>
                     <div className="text-[10px] font-bold uppercase tracking-[0.18em] text-blue-700 sm:text-xs">Platform governance</div>
-                    <h2 id="dashboard-system-overview" className="mt-1 text-lg font-bold text-slate-950 sm:text-xl">Security and office digital identity</h2>
+                    <h2 id="dashboard-system-overview" className="mt-1 text-lg font-bold text-slate-950 dark:text-slate-100 sm:text-xl">Security and office digital identity</h2>
                 </div>
                 <Link href="/admin" className="inline-flex items-center gap-1 text-[10px] font-semibold text-blue-700 sm:text-xs">System Administration <ArrowRight size={13} aria-hidden="true" /></Link>
             </div>

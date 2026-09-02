@@ -7,7 +7,7 @@ export default function QuickActions({ actions }: { actions: DashboardExperience
         <section aria-labelledby="dashboard-quick-actions">
             <div className="mb-3">
                 <div className="text-[10px] font-bold uppercase tracking-[0.18em] text-blue-700 sm:text-xs">Authoritative destinations</div>
-                <h2 id="dashboard-quick-actions" className="mt-1 text-lg font-bold text-slate-950 sm:text-xl">Quick access</h2>
+                <h2 id="dashboard-quick-actions" className="mt-1 text-lg font-bold text-slate-950 dark:text-slate-100 sm:text-xl">Quick access</h2>
             </div>
             <div className="grid gap-3 md:grid-cols-3">
                 {actions.map((action) => (

@@ -653,3 +653,19 @@ This append records the completed Approved Travel Orders wave. Earlier entries t
 - QA-only correction: the theme-surface assertion now identifies the application-shell header as the `<header>` directly owned by `<main>` that contains the existing accessible `Open notifications` button. The selector uses the existing structural/ARIA contract and does **not** use arbitrary `.first()` selection.
 - Historical Browser checks, F1 navigation/active-state/nested-active-state/mobile-drawer/Light/Dark/System/persistence/screenshot/security checks, production UI, `AppLayout.tsx`, permissions, routes, workflow behavior, and authorization remain unchanged.
 - F1 remains **OPEN** until this new exact QA-only SHA receives same-head Platform GREEN and a fresh Browser workflow_dispatch satisfying historical=174, F1 failures=0, accounts=7, screenshots=7, artifact sanitization GREEN, and acceptable screenshot review. F2 remains blocked.
+
+## 2026-09-02 — F1 Browser #16 dark-mode visual acceptance correction
+
+### `fix: restore dark dashboard heading contrast`
+
+- Talibon Platform CI run **#316** on exact F1 SHA `1e94a89682ff0d45dc43ca20ed648e42cd0e1ef7` concluded **GREEN**: **320 passed / 4526 assertions / 530.63s / 118 routes**.
+- Talibon Demo Readiness Browser QA run **#16**, run ID `33609401518`, event `workflow_dispatch`, executed exact SHA `1e94a89682ff0d45dc43ca20ed648e42cd0e1ef7` and concluded **GREEN**: **307 total checks**, **174 / 174 historical**, **133 / 133 F1**, **0 failures**, **7 / 7 representative accounts**, and **7 / 7 screenshots**.
+- Browser #16 artifact authority: artifact ID `9838442531`, size `700106` bytes, digest `sha256:e8779336269c9176ded1713760b72e503feab808beb8d93fa96486f12aefa456`. Artifact sanitization review was **GREEN**.
+- Manual screenshot acceptance was **6 / 7 acceptable**. `system-admin-desktop-dark.png` failed visual acceptance because three outer dashboard section headings rendered effectively black against the dark `#0d1624` shell canvas.
+- The affected headings are exactly **Identity, access, and security posture**, **Quick access**, and **Security and office digital identity**.
+- Classification: **production dark-mode presentation defect**. This is not a Browser harness, backend, authorization, permission, or navigation-model defect.
+- Minimal production correction: only the three outer `<h2>` headings in `MetricGroup.tsx`, `QuickActions.tsx`, and `SystemOverview.tsx` add the existing shell convention `dark:text-slate-100` beside `text-slate-950`.
+- Intentional white cards and their existing slate text remain unchanged and readable; no global `text-slate-950` replacement is performed.
+- Backend, authentication, permissions, navigation, routes, schema, seeders, Browser harness, and workflow YAML are unchanged by this correction.
+- Dependency-backed local `npm run types:check` and `npm run build` are **NOT OBSERVED pre-publication** because the isolated execution container cannot resolve `github.com`; no local PASS is inferred. Exact-head Talibon Platform CI remains the executable TypeScript/build authority for the new commit.
+- F1 remains **OPEN** until the new exact SHA receives Platform GREEN, a fresh Browser `workflow_dispatch` satisfies the full matrix/sanitization contract, and all seven screenshots pass manual visual acceptance. F2 remains blocked.

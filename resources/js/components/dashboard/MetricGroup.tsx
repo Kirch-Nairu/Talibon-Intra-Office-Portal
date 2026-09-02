@@ -8,7 +8,7 @@ export default function MetricGroup({ group }: { group: MetricGroupData }) {
             <div className="mb-3 flex items-end justify-between gap-3">
                 <div>
                     <div className="text-[10px] font-bold uppercase tracking-[0.18em] text-blue-700 sm:text-xs">{group.key} scope</div>
-                    <h2 id={`dashboard-${group.key}-metrics`} className="mt-1 text-lg font-bold text-slate-950 sm:text-xl">{group.title}</h2>
+                    <h2 id={`dashboard-${group.key}-metrics`} className="mt-1 text-lg font-bold text-slate-950 dark:text-slate-100 sm:text-xl">{group.title}</h2>
                 </div>
             </div>
             <div className="grid grid-cols-2 gap-2.5 sm:gap-4 lg:grid-cols-3 xl:grid-cols-4">
