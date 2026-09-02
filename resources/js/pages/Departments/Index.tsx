@@ -1,4 +1,6 @@
 import { Building2, Crown, Gavel, Network, Users } from 'lucide-react';
+import PageFrame from '../../components/PageFrame';
+import PageHeader from '../../components/PageHeader';
 import AppLayout from '../../layouts/AppLayout';
 
 type Office = {
@@ -51,12 +53,13 @@ export default function Index({ departments, summary }: { departments: Office[];
     );
 
     return <AppLayout title="Departments">
-        <div className="mx-auto max-w-7xl space-y-7">
-            <div>
-                <div className="text-xs font-bold uppercase tracking-[0.18em] text-blue-700">Phase 1 municipal organization</div>
-                <h1 className="mt-2 text-3xl font-bold text-slate-950">Office & Routing Directory</h1>
-                <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-500">The existing department identity remains the compatibility anchor while Phase 1 adds executive and legislative branch metadata, office classifications, ordering, and explicit routability.</p>
-            </div>
+        <PageFrame>
+            <PageHeader
+                eyebrow="Phase 1 municipal organization"
+                title="Office & Routing Directory"
+                description="The existing department identity remains the compatibility anchor while Phase 1 adds executive and legislative branch metadata, office classifications, ordering, and explicit routability."
+                icon={Building2}
+            />
 
             <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
                 <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"><Network className="text-blue-800" size={20} /><div className="mt-4 text-3xl font-bold text-slate-950">{summary.offices}</div><div className="text-sm text-slate-500">routable nodes</div></div>
@@ -77,6 +80,6 @@ export default function Index({ departments, summary }: { departments: Office[];
             </section>
 
             <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm leading-6 text-amber-900"><strong>Phase 1 routing baseline:</strong> 33 internal routing nodes are configured for implementation. Parent hierarchy, aliases, acting assignments, and any additional municipal units remain subject to formal organizational-chart and workflow validation.</div>
-        </div>
+        </PageFrame>
     </AppLayout>;
 }

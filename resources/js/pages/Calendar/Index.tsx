@@ -1,5 +1,7 @@
 import { Link } from '@inertiajs/react';
 import { AlertTriangle, CalendarDays, Clock3 } from 'lucide-react';
+import PageFrame from '../../components/PageFrame';
+import PageHeader from '../../components/PageHeader';
 import AppLayout from '../../layouts/AppLayout';
 
 type CalendarEvent = {
@@ -30,12 +32,12 @@ const formatDate = (value: string) => new Date(value).toLocaleString([], {
 
 export default function Index({ events, summary }: { events: CalendarEvent[]; summary: Summary }) {
     return <AppLayout title="Calendar">
-        <div className="mx-auto max-w-6xl space-y-6">
-            <div>
-                <div className="text-xs font-bold uppercase tracking-[0.18em] text-blue-700">Shared municipal calendar</div>
-                <h1 className="mt-2 text-3xl font-bold text-slate-950">Events, deadlines & schedules</h1>
-                <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-500">One calendar surface for office events and domain-generated deadlines. Phase 1 begins with routed-work deadlines and expands through HR, legislative, property, and municipal events.</p>
-            </div>
+        <PageFrame width="standard">
+            <PageHeader
+                eyebrow="Shared municipal calendar"
+                title="Events, deadlines & schedules"
+                description="One calendar surface for office events and domain-generated deadlines. Phase 1 begins with routed-work deadlines and expands through HR, legislative, property, and municipal events."
+            />
 
             <section className="grid gap-4 sm:grid-cols-3">
                 <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"><CalendarDays size={20} className="text-blue-800" /><div className="mt-3 text-3xl font-bold text-slate-950">{summary.upcoming}</div><div className="text-sm text-slate-500">upcoming</div></div>
@@ -62,6 +64,6 @@ export default function Index({ events, summary }: { events: CalendarEvent[]; su
                     {events.length === 0 && <div className="px-5 py-12 text-center text-sm text-slate-500">No calendar events are visible yet.</div>}
                 </div>
             </section>
-        </div>
+        </PageFrame>
     </AppLayout>;
 }
