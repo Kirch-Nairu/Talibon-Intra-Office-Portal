@@ -427,6 +427,32 @@ async function darkHeaderContrast(page, target) {
     JSON.stringify(metrics),
     'P1',
   );
+
+  if (target.key === 'audit') {
+    const auditSurface = await page.evaluate(() => {
+      const clear = Array.from(document.querySelectorAll('button')).find((button) => button.textContent?.trim() === 'Clear');
+      const table = Array.from(document.querySelectorAll('section')).find((section) => {
+        const text = section.textContent || '';
+        return text.includes('User') && text.includes('Department') && text.includes('Outcome') && section.querySelector('.divide-y');
+      });
+      const actor = table?.querySelector('.divide-y > div > div');
+      return {
+        clearColor: clear ? getComputedStyle(clear).color : null,
+        actorColor: actor ? getComputedStyle(actor).color : null,
+        formBackground: clear?.closest('form') ? getComputedStyle(clear.closest('form')).backgroundColor : null,
+        tableBackground: table ? getComputedStyle(table).backgroundColor : null,
+      };
+    });
+    f2(
+      'audit: dark white surfaces retain readable inherited text',
+      auditSurface.formBackground === 'rgb(255, 255, 255)'
+        && auditSurface.tableBackground === 'rgb(255, 255, 255)'
+        && auditSurface.clearColor === 'rgb(15, 23, 42)'
+        && auditSurface.actorColor === 'rgb(15, 23, 42)',
+      JSON.stringify(auditSurface),
+      'P1',
+    );
+  }
 }
 
 async function saveScreenshot(page, fileName) {
