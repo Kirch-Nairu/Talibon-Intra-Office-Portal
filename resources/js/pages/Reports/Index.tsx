@@ -1,5 +1,5 @@
 import { Link, router, useForm } from '@inertiajs/react';
-import { Download, FileBarChart, LoaderCircle, RotateCcw, Search } from 'lucide-react';
+import { ArrowRight, Download, FileBarChart, LoaderCircle, RotateCcw, Search } from 'lucide-react';
 import type { FormEvent, ReactNode } from 'react';
 import ProgressiveFilterBar from '../../components/filters/ProgressiveFilterBar';
 import AppLayout from '../../layouts/AppLayout';
@@ -22,7 +22,7 @@ type FilterOptions = {
     lifecycles: string[];
     classifications: string[];
 };
-type Row = Record<string, string | number | null> & { id: string | number; detailUrl?: string };
+type Row = Record<string, string | number | null | undefined> & { id: string | number; detailUrl?: string };
 type PageLink = { url: string | null; label: string; active: boolean };
 type Result = {
     data: Row[];
@@ -54,6 +54,15 @@ type Props = {
 
 const headline = (value: string) => value.replaceAll('_', ' ').replace(/\b\w/g, (letter) => letter.toUpperCase());
 const fieldClass = 'mt-1.5 w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-800';
+const leadKeys: Record<string, string[]> = {
+    'office-workload': ['office'],
+    'transaction-aging': ['reference', 'title'],
+    'correspondence-status': ['municipalReference', 'subject'],
+    'document-movement': ['municipalReference', 'subject'],
+    'completed-work': ['reference', 'title'],
+    'overdue-action-required': ['reference', 'title'],
+};
+const emphasisKeys = new Set(['status', 'priority', 'dueState', 'lifecycle', 'classification', 'event', 'hasEvidence', 'finalStatus']);
 
 export default function ReportsIndex({ catalog, activeReport, filters, filterOptions, result, errors = {} }: Props) {
     const report = catalog.find((item) => item.key === activeReport) ?? catalog[0];
@@ -95,25 +104,23 @@ export default function ReportsIndex({ catalog, activeReport, filters, filterOpt
     const hasAdvancedFilters = ['date_from', 'date_to', 'priority', 'transaction_type', 'lifecycle', 'classification'].some(supports);
 
     return <AppLayout title="Operational Reports">
-        <div className="mx-auto max-w-7xl space-y-5">
-            <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-7">
-                <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-                    <div>
-                        <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.16em] text-blue-700"><FileBarChart size={16} /> Core Portal</div>
-                        <h1 className="mt-2 text-2xl font-bold text-slate-950 sm:text-3xl">Operational Reports</h1>
-                        <p className="mt-2 max-w-3xl text-sm text-slate-500">Permission-scoped operational evidence from current transactions and incoming correspondence.</p>
-                    </div>
-                    <label className="block min-w-64 text-xs font-semibold text-slate-600">Report
-                        <select value={activeReport} onChange={(event) => selectReport(event.target.value)} className="mt-1.5 w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm">
-                            {catalog.map((item) => <option key={item.key} value={item.key}>{item.label}</option>)}
-                        </select>
-                    </label>
+        <div className="mx-auto max-w-7xl space-y-4 sm:space-y-6">
+            <header className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+                <div>
+                    <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.18em] text-blue-700 sm:text-xs"><FileBarChart size={15} /> Municipal operational reporting</div>
+                    <h1 className="mt-1.5 text-2xl font-bold text-slate-950 sm:text-3xl">Operational Reports</h1>
+                    <p className="mt-1.5 max-w-3xl text-[11px] leading-5 text-slate-500 sm:text-sm">Permission-scoped operational evidence from current transactions and incoming correspondence.</p>
                 </div>
-            </section>
+                <label className="block min-w-64 text-[10px] font-bold uppercase tracking-wide text-slate-500 sm:text-xs">Report
+                    <select value={activeReport} onChange={(event) => selectReport(event.target.value)} className="mt-1.5 w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm normal-case tracking-normal text-slate-900">
+                        {catalog.map((item) => <option key={item.key} value={item.key}>{item.label}</option>)}
+                    </select>
+                </label>
+            </header>
 
             <form onSubmit={apply} className="space-y-3">
                 <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
-                    <div><h2 className="font-bold text-slate-950">{report.label}</h2><p className="mt-1 text-xs text-slate-500">{report.description}</p></div>
+                    <div><h2 className="font-bold text-slate-950">{report.label}</h2><p className="mt-1 max-w-3xl text-xs leading-5 text-slate-500">{report.description}</p></div>
                     <a href={exportUrl} className="inline-flex w-fit items-center gap-2 rounded-xl bg-[#0b2852] px-4 py-2.5 text-xs font-semibold text-white"><Download size={15} /> Export CSV</a>
                 </div>
 
@@ -151,20 +158,81 @@ export default function ReportsIndex({ catalog, activeReport, filters, filterOpt
                 />
             </form>
 
-            <section className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
-                <div className="flex items-center justify-between border-b border-slate-200 px-5 py-4">
-                    <h2 className="font-bold text-slate-950">Results</h2>
-                    <span className="text-xs font-semibold text-slate-500">{result.total.toLocaleString()} {result.total === 1 ? 'row' : 'rows'}</span>
+            <section aria-label={`${report.label} results`} className="overflow-hidden rounded-2xl border border-slate-200 bg-white text-slate-900 shadow-sm">
+                <div className="flex flex-col gap-1 border-b border-slate-200 bg-slate-50 px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-5">
+                    <div>
+                        <div className="text-[11px] font-bold text-slate-800 sm:text-sm">{report.kind === 'aggregate' ? 'Office summary' : 'Detailed results'}</div>
+                        <div className="mt-0.5 text-[9px] text-slate-500 sm:text-[10px]">{report.label}</div>
+                    </div>
+                    <span className="text-[9px] font-semibold text-slate-500 sm:text-xs">{result.total.toLocaleString()} {result.total === 1 ? 'result' : 'results'}</span>
                 </div>
-                {result.data.length === 0 ? <div className="px-5 py-16 text-center text-sm text-slate-500">No authorized records match these filters.</div> :
-                    <div className="overflow-x-auto"><table className="min-w-full whitespace-nowrap text-left text-xs">
-                        <thead className="bg-slate-50 text-[10px] uppercase tracking-wide text-slate-500"><tr>{report.columns.map((column) => <th key={column.key} className="px-4 py-3 font-bold">{column.label}</th>)}</tr></thead>
-                        <tbody className="divide-y divide-slate-100">{result.data.map((row) => <tr key={row.id} className="hover:bg-slate-50">{report.columns.map((column, index) => <td key={column.key} className="max-w-80 truncate px-4 py-3 text-slate-700" title={String(row[column.key] ?? '')}>{index === 0 && row.detailUrl ? <Link href={row.detailUrl} className="font-semibold text-blue-700 hover:underline">{display(row[column.key])}</Link> : display(row[column.key])}</td>)}</tr>)}</tbody>
-                    </table></div>}
-                {result.last_page > 1 && <nav className="flex flex-wrap gap-1 border-t border-slate-200 px-4 py-3">{result.links.map((link, index) => link.url ? <Link key={`${link.label}-${index}`} href={link.url} preserveScroll className={`rounded-lg px-3 py-1.5 text-xs font-semibold ${link.active ? 'bg-blue-700 text-white' : 'border text-slate-600'}`} dangerouslySetInnerHTML={{ __html: link.label }} /> : <span key={`${link.label}-${index}`} className="rounded-lg px-3 py-1.5 text-xs text-slate-300" dangerouslySetInnerHTML={{ __html: link.label }} />)}</nav>}
+
+                {result.data.length === 0 ? (
+                    <div className="px-5 py-12 text-center">
+                        <div className="text-sm font-semibold text-slate-700">No authorized report results match these filters.</div>
+                        <div className="mt-1 text-xs text-slate-500">Adjust the report criteria or reset the filters.</div>
+                    </div>
+                ) : <ReportResultList report={report} rows={result.data} />}
+
+                {result.last_page > 1 && <nav aria-label="Report result pages" className="flex flex-wrap gap-1 border-t border-slate-200 px-4 py-3">{result.links.map((link, index) => link.url ? <Link key={`${link.label}-${index}`} href={link.url} preserveScroll className={`rounded-lg px-3 py-1.5 text-xs font-semibold ${link.active ? 'bg-blue-700 text-white' : 'border border-slate-200 text-slate-600 hover:bg-slate-50'}`} dangerouslySetInnerHTML={{ __html: link.label }} /> : <span key={`${link.label}-${index}`} className="rounded-lg px-3 py-1.5 text-xs text-slate-300" dangerouslySetInnerHTML={{ __html: link.label }} />)}</nav>}
             </section>
         </div>
     </AppLayout>;
+}
+
+function ReportResultList({ report, rows }: { report: Report; rows: Row[] }) {
+    const leads = leadKeys[report.key] ?? report.columns.slice(0, 2).map((column) => column.key);
+    const leadColumns = report.columns.filter((column) => leads.includes(column.key));
+    const metaColumns = report.columns.filter((column) => !leads.includes(column.key));
+    const primary = leadColumns[0];
+    const secondary = leadColumns[1];
+
+    return <div className="divide-y divide-slate-100">
+        {rows.map((row) => (
+            <article key={row.id} className="px-4 py-4 sm:px-5">
+                <div className="grid gap-4 lg:grid-cols-[minmax(220px,0.8fr)_minmax(0,2.2fr)_auto] lg:items-start">
+                    <div className="min-w-0">
+                        {primary && <>
+                            <div className="text-[8px] font-bold uppercase tracking-[0.12em] text-slate-400 sm:text-[9px]">{primary.label}</div>
+                            {row.detailUrl ? (
+                                <Link href={row.detailUrl} className="mt-1 block w-fit max-w-full break-words text-[10px] font-bold text-blue-700 hover:underline sm:text-xs">{display(row[primary.key])}</Link>
+                            ) : (
+                                <div className="mt-1 break-words text-[12px] font-bold text-slate-900 sm:text-sm">{display(row[primary.key])}</div>
+                            )}
+                        </>}
+                        {secondary && <>
+                            <div className="mt-2 text-[8px] font-bold uppercase tracking-[0.12em] text-slate-400 sm:text-[9px]">{secondary.label}</div>
+                            <h3 className="mt-1 break-words text-[12px] font-semibold leading-5 text-slate-950 sm:text-sm">{display(row[secondary.key])}</h3>
+                        </>}
+                    </div>
+
+                    <dl className="grid grid-cols-2 gap-x-4 gap-y-3 sm:grid-cols-3 xl:grid-cols-4">
+                        {metaColumns.map((column) => (
+                            <div key={column.key} className="min-w-0">
+                                <dt className="text-[8px] font-bold uppercase tracking-[0.12em] text-slate-400 sm:text-[9px]">{column.label}</dt>
+                                <dd className="mt-1 break-words text-[10px] font-medium leading-4 text-slate-700 sm:text-xs">
+                                    {emphasisKeys.has(column.key) ? (
+                                        <span className={resultEmphasisClass(column.key, row[column.key])}>{display(row[column.key])}</span>
+                                    ) : display(row[column.key])}
+                                </dd>
+                            </div>
+                        ))}
+                    </dl>
+
+                    {row.detailUrl && (
+                        <Link href={row.detailUrl} aria-label={`Open ${report.label} result ${display(row[primary?.key ?? 'id'])}`} className="inline-flex w-fit items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3 py-2 text-[10px] font-bold text-slate-700 hover:bg-slate-50 sm:text-xs lg:justify-self-end">
+                            Open <ArrowRight size={14} />
+                        </Link>
+                    )}
+                </div>
+            </article>
+        ))}
+    </div>;
+}
+
+function resultEmphasisClass(key: string, value: string | number | null | undefined) {
+    const overdue = key === 'dueState' && String(value).toLowerCase() === 'overdue';
+    return `inline-flex max-w-full rounded-md border px-1.5 py-0.5 text-[9px] font-bold sm:text-[10px] ${overdue ? 'border-rose-200 bg-rose-50 text-rose-700' : 'border-slate-200 bg-slate-50 text-slate-700'}`;
 }
 
 function display(value: string | number | null | undefined) {

@@ -84,11 +84,7 @@ const recordTypeLabel = (recordType: RecordRow['recordType']) => {
     return 'Transaction';
 };
 
-const recordTypeClass = (recordType: RecordRow['recordType']) => {
-    if (recordType === 'correspondence') return 'bg-blue-50 text-blue-800';
-    if (recordType === 'travel_order') return 'bg-emerald-50 text-emerald-800';
-    return 'bg-violet-50 text-violet-800';
-};
+const officeLabel = (office?: Office | null) => office?.shortName || office?.name || 'Not assigned';
 
 export default function Index({ records, filters, filterOptions }: Props) {
     const [search, setSearch] = useState(filters.search);
@@ -235,76 +231,73 @@ export default function Index({ records, filters, filterOptions }: Props) {
                     />
                 </form>
 
-                <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm sm:rounded-3xl">
+                <section aria-label="Records registry" className="overflow-hidden rounded-2xl border border-slate-200 bg-white text-slate-900 shadow-sm">
                     <div className="flex flex-col gap-1 border-b border-slate-100 bg-slate-50 px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-5">
                         <div className="flex items-center gap-2 text-[11px] font-bold text-slate-800 sm:text-sm">
                             <FileSearch size={15} />
                             Records Registry
                         </div>
-                        <div className="text-[9px] text-slate-400 sm:text-xs">
+                        <div className="text-[9px] text-slate-500 sm:text-xs">
                             {records.total === 0 ? 'No matching records' : `Showing ${records.from || 1}–${records.to || records.data.length} of ${records.total}`}
                         </div>
                     </div>
 
-                    <div className="hidden grid-cols-[110px_145px_minmax(220px,1.5fr)_170px_170px_130px_34px] gap-3 border-b border-slate-100 px-5 py-3 text-[10px] font-bold uppercase tracking-wide text-slate-400 lg:grid">
-                        <div>Type</div>
-                        <div>Reference</div>
-                        <div>Record</div>
-                        <div>Current Office</div>
-                        <div>Responsible</div>
-                        <div>Date</div>
-                        <div />
-                    </div>
-
                     <div className="divide-y divide-slate-100">
                         {records.data.map((record) => (
-                            <Link
-                                key={`${record.recordType}:${record.detailUrl}`}
-                                href={record.detailUrl}
-                                className="grid gap-3 px-4 py-4 transition hover:bg-blue-50/40 sm:px-5 lg:grid-cols-[110px_145px_minmax(220px,1.5fr)_170px_170px_130px_34px] lg:items-center"
-                            >
-                                <div>
-                                    <span className={`rounded-full px-2 py-1 text-[8px] font-bold uppercase sm:text-[9px] ${recordTypeClass(record.recordType)}`}>
-                                        {recordTypeLabel(record.recordType)}
-                                    </span>
-                                </div>
-
-                                <div className="min-w-0">
-                                    <div className="truncate text-[10px] font-bold text-blue-700 sm:text-xs">{record.reference || 'Reference pending'}</div>
-                                    <div className="mt-1 text-[9px] font-semibold uppercase tracking-wide text-slate-400">{humanize(record.state)}</div>
-                                </div>
-
-                                <div className="min-w-0">
-                                    <div className="truncate text-[12px] font-semibold text-slate-950 sm:text-sm">{record.title}</div>
-                                    <div className="mt-1 truncate text-[9px] text-slate-400 sm:text-[10px]">{record.source}</div>
-                                    <div className="mt-1.5 flex flex-wrap gap-1.5">
-                                        {record.classification && (
-                                            <span className="rounded-full bg-slate-100 px-2 py-1 text-[8px] font-bold uppercase text-slate-600 sm:text-[9px]">
-                                                {humanize(record.classification)}
+                            <article key={`${record.recordType}:${record.detailUrl}`} className="px-4 py-4 sm:px-5">
+                                <div className="grid gap-4 lg:grid-cols-[minmax(0,1.25fr)_minmax(420px,1fr)_auto] lg:items-start">
+                                    <div className="min-w-0">
+                                        <div className="flex flex-wrap items-center gap-1.5">
+                                            <span className="rounded-full bg-slate-100 px-2 py-1 text-[8px] font-bold uppercase tracking-wide text-slate-700 sm:text-[9px]">
+                                                {recordTypeLabel(record.recordType)}
                                             </span>
-                                        )}
+                                            <span className="rounded-full border border-slate-200 bg-white px-2 py-1 text-[8px] font-bold uppercase tracking-wide text-slate-600 sm:text-[9px]">
+                                                {humanize(record.state)}
+                                            </span>
+                                            {record.classification && (
+                                                <span className="text-[9px] font-semibold text-slate-500 sm:text-[10px]">{humanize(record.classification)}</span>
+                                            )}
+                                        </div>
+                                        <Link href={record.detailUrl} className="mt-2 block w-fit max-w-full text-[10px] font-bold uppercase tracking-[0.08em] text-blue-700 hover:underline sm:text-xs">
+                                            {record.reference || 'Reference pending'}
+                                        </Link>
+                                        <h2 className="mt-1 break-words text-[13px] font-semibold leading-5 text-slate-950 sm:text-sm">{record.title}</h2>
+                                        <p className="mt-1 break-words text-[10px] leading-4 text-slate-500 sm:text-xs">{record.source}</p>
                                         {record.originOffice && (
-                                            <span className="rounded-full bg-slate-50 px-2 py-1 text-[8px] text-slate-500 sm:text-[9px]">
-                                                From {record.originOffice.shortName || record.originOffice.name}
-                                            </span>
+                                            <p className="mt-1.5 text-[9px] font-medium text-slate-500 sm:text-[10px]">Origin: {officeLabel(record.originOffice)}</p>
                                         )}
                                     </div>
-                                </div>
 
-                                <div className="text-[10px] text-slate-600 sm:text-xs"><div className="flex items-center gap-1.5"><Building2 size={12} className="text-slate-400" />{record.currentOffice?.shortName || record.currentOffice?.name || 'Not assigned'}</div></div>
-                                <div className="text-[10px] text-slate-600 sm:text-xs"><div className="flex items-center gap-1.5"><UserRound size={12} className="text-slate-400" />{record.recordType === 'travel_order' ? 'Issued personnel on detail' : (record.assignedEmployee?.name || 'Unassigned')}</div>{record.assignedEmployee?.position && <div className="mt-1 text-[9px] text-slate-400">{record.assignedEmployee.position}</div>}</div>
-                                <div className="text-[10px] font-medium text-slate-600 sm:text-xs"><div className="flex items-center gap-1.5"><CalendarDays size={12} className="text-slate-400" />{formatDate(record.recordDate)}</div></div>
-                                <ArrowRight className="hidden text-slate-300 lg:block" size={17} />
-                            </Link>
+                                    <dl className="grid grid-cols-2 gap-x-4 gap-y-3 sm:grid-cols-3 lg:grid-cols-2 xl:grid-cols-3">
+                                        <div className="min-w-0">
+                                            <dt className="text-[8px] font-bold uppercase tracking-[0.12em] text-slate-400 sm:text-[9px]">Current office</dt>
+                                            <dd className="mt-1 flex items-start gap-1.5 break-words text-[10px] font-semibold text-slate-700 sm:text-xs"><Building2 size={12} className="mt-0.5 shrink-0 text-slate-400" />{officeLabel(record.currentOffice)}</dd>
+                                        </div>
+                                        <div className="min-w-0">
+                                            <dt className="text-[8px] font-bold uppercase tracking-[0.12em] text-slate-400 sm:text-[9px]">Responsible</dt>
+                                            <dd className="mt-1 flex items-start gap-1.5 break-words text-[10px] font-semibold text-slate-700 sm:text-xs"><UserRound size={12} className="mt-0.5 shrink-0 text-slate-400" />{record.recordType === 'travel_order' ? 'Issued personnel on detail' : (record.assignedEmployee?.name || 'Unassigned')}</dd>
+                                            {record.assignedEmployee?.position && <dd className="mt-1 pl-[18px] text-[9px] text-slate-500 sm:text-[10px]">{record.assignedEmployee.position}</dd>}
+                                        </div>
+                                        <div className="col-span-2 min-w-0 sm:col-span-1 lg:col-span-2 xl:col-span-1">
+                                            <dt className="text-[8px] font-bold uppercase tracking-[0.12em] text-slate-400 sm:text-[9px]">Record date</dt>
+                                            <dd className="mt-1 flex items-start gap-1.5 text-[10px] font-semibold text-slate-700 sm:text-xs"><CalendarDays size={12} className="mt-0.5 shrink-0 text-slate-400" />{formatDate(record.recordDate)}</dd>
+                                        </div>
+                                    </dl>
+
+                                    <Link href={record.detailUrl} aria-label={`Open record ${record.reference || record.title}`} className="inline-flex w-fit items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3 py-2 text-[10px] font-bold text-slate-700 hover:bg-slate-50 sm:text-xs lg:justify-self-end">
+                                        Open record <ArrowRight size={14} />
+                                    </Link>
+                                </div>
+                            </article>
                         ))}
 
-                        {records.data.length === 0 && <div className="px-5 py-12 text-center"><div className="text-sm font-semibold text-slate-700">No authorized records match this search.</div><div className="mt-1 text-xs text-slate-400">Change the filters or clear the search criteria.</div></div>}
+                        {records.data.length === 0 && <div className="px-5 py-12 text-center"><div className="text-sm font-semibold text-slate-700">No authorized records match this search.</div><div className="mt-1 text-xs text-slate-500">Change the filters or clear the search criteria.</div></div>}
                     </div>
 
                     {records.last_page > 1 && (
                         <div className="flex items-center justify-between gap-3 border-t border-slate-100 px-4 py-3 sm:px-5">
                             <Link href={records.prev_page_url || '#'} preserveScroll className={`rounded-lg border px-3 py-2 text-[10px] font-semibold sm:text-xs ${records.prev_page_url ? 'border-slate-300 text-slate-700 hover:bg-slate-50' : 'pointer-events-none border-slate-100 text-slate-300'}`}>Previous</Link>
-                            <div className="text-[9px] text-slate-400 sm:text-xs">Page {records.current_page} of {records.last_page}</div>
+                            <div className="text-[9px] text-slate-500 sm:text-xs">Page {records.current_page} of {records.last_page}</div>
                             <Link href={records.next_page_url || '#'} preserveScroll className={`rounded-lg border px-3 py-2 text-[10px] font-semibold sm:text-xs ${records.next_page_url ? 'border-slate-300 text-slate-700 hover:bg-slate-50' : 'pointer-events-none border-slate-100 text-slate-300'}`}>Next</Link>
                         </div>
                     )}
