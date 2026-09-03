@@ -119,6 +119,9 @@ jobs:
       - name: Reset synthetic data for isolated F4 operational UX QA
         run: php artisan migrate:fresh --seed --force
 
+      - name: Seed isolated F4 correspondence evidence
+        run: php artisan db:seed --class='Database\Seeders\F4BrowserQaCorrespondenceSeeder' --force
+
       - name: F4 My Work and correspondence browser acceptance
         run: node tests/Browser/f4-readiness.mjs
 
