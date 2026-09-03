@@ -527,7 +527,8 @@ async function clearTarget(page, target) {
 async function verifyInitialProgressiveState(page, target, form) {
   f3(`${target.key}: primary control remains visible`, await form.getByText(target.primaryText, { exact: true }).first().isVisible(), target.primaryText);
   for (const label of target.commonLabels) {
-    f3(`${target.key}: common filter remains visible: ${label}`, await form.getByText(label, { exact: true }).first().isVisible(), label);
+    const commonControl = await controlByCaption(form, label);
+    f3(`${target.key}: common filter remains visible: ${label}`, await commonControl.isVisible(), label);
   }
 
   const { button, root } = await controlledPanel(page);
