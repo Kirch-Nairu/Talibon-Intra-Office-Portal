@@ -1,6 +1,8 @@
 import { Link, router } from '@inertiajs/react';
-import { Plus, Search, X } from 'lucide-react';
+import { BriefcaseBusiness, Plus, Search, X } from 'lucide-react';
 import { type FormEvent, useEffect, useState } from 'react';
+import PageFrame from '../../components/PageFrame';
+import PageHeader from '../../components/PageHeader';
 import ProgressiveFilterBar from '../../components/filters/ProgressiveFilterBar';
 import StaffWorkloadTable from '../../components/work-queue/StaffWorkloadTable';
 import WorkItemList from '../../components/work-queue/WorkItemList';
@@ -29,7 +31,8 @@ export default function Index({ records, filters, scopeGroups, filterOptions, ex
     const [status, setStatus] = useState(filters.status);
     const [priority, setPriority] = useState(filters.priority);
     const [officeId, setOfficeId] = useState(filters.office_id ? String(filters.office_id) : '');
-    const currentTitle = scopeGroups.flatMap((group) => group.views).find((view) => view.key === currentView)?.label || 'My Work';
+    const currentQueue = scopeGroups.flatMap((group) => group.views).find((view) => view.key === currentView);
+    const currentTitle = currentQueue?.label || 'My Work';
 
     useEffect(() => {
         setSearch(filters.search);
@@ -78,22 +81,26 @@ export default function Index({ records, filters, scopeGroups, filterOptions, ex
 
     return (
         <AppLayout title="My Work">
-            <div className="mx-auto max-w-7xl space-y-4 sm:space-y-6">
-                <header className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-                    <div>
-                        <div className="text-[10px] font-bold uppercase tracking-[0.18em] text-blue-700 sm:text-xs">Personal and authorized office cockpit</div>
-                        <h1 className="mt-1.5 text-2xl font-bold text-slate-950 sm:text-3xl">My Work</h1>
-                        <p className="mt-1.5 max-w-3xl text-[11px] leading-5 text-slate-500 sm:text-sm">
-                            Action categories, workflow accountability, deadlines, last updates, and expected next actions across current Core Portal work.
-                        </p>
-                        <div className="mt-2 text-[10px] font-medium text-slate-400 sm:text-xs">
-                            {experience.department.name} · {experience.hasOfficeScope ? 'Personal and office leadership scopes' : 'Personal scope'}
-                        </div>
-                    </div>
-                    <Link href="/transactions/create" className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#0b2852] px-4 py-2.5 text-[11px] font-semibold text-white sm:py-3 sm:text-sm">
-                        <Plus size={16} aria-hidden="true" /> New transaction
-                    </Link>
-                </header>
+            <PageFrame>
+                <PageHeader
+                    eyebrow="Daily work queues"
+                    title="My Work"
+                    description="Review work that needs attention, assignments, deadlines, office accountability, and the next action available to you."
+                    icon={BriefcaseBusiness}
+                    aside={(
+                        <Link
+                            href="/transactions/create"
+                            className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-[#0b2852] px-4 py-2.5 text-[11px] font-semibold text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 focus-visible:ring-offset-2 sm:w-auto sm:py-3 sm:text-sm"
+                        >
+                            <Plus size={16} aria-hidden="true" /> New transaction
+                        </Link>
+                    )}
+                />
+
+                <div className="flex flex-wrap items-center justify-between gap-2 px-1 text-[10px] text-slate-500 dark:text-slate-400 sm:text-xs">
+                    <span>{experience.department.name} · {experience.hasOfficeScope ? 'Personal and office queues' : 'Personal queues'}</span>
+                    <span><span className="font-semibold text-slate-700 dark:text-slate-200">{currentTitle}</span> · {currentQueue?.count ?? records.total} item{(currentQueue?.count ?? records.total) === 1 ? '' : 's'}</span>
+                </div>
 
                 <WorkScopeTabs groups={scopeGroups} currentView={currentView} onSelect={selectView} />
 
@@ -131,7 +138,7 @@ export default function Index({ records, filters, scopeGroups, filterOptions, ex
                 {currentView === 'staff_workload'
                     ? <StaffWorkloadTable rows={staffWorkload} />
                     : <WorkItemList records={records} title={currentTitle} />}
-            </div>
+            </PageFrame>
         </AppLayout>
     );
 }

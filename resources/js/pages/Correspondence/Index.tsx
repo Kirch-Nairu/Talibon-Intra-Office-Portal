@@ -1,6 +1,8 @@
 import { Link, router } from '@inertiajs/react';
-import { AlertTriangle, ArrowRight, Inbox, Search, UserRound, X } from 'lucide-react';
-import { FormEvent, useState } from 'react';
+import { AlertTriangle, ArrowRight, Building2, Clock3, Inbox, Search, UserRound, X } from 'lucide-react';
+import { type FormEvent, useState } from 'react';
+import PageFrame from '../../components/PageFrame';
+import PageHeader from '../../components/PageHeader';
 import ProgressiveFilterBar from '../../components/filters/ProgressiveFilterBar';
 import AppLayout from '../../layouts/AppLayout';
 
@@ -53,14 +55,6 @@ const humanize = (value: string) => value.replaceAll('_', ' ').replace(/\b\w/g, 
 const enabled = (value: Filters['assigned_to_me']) => value === true || value === 1 || value === '1';
 const formatDate = (value?: string | null) => value ? new Date(value).toLocaleString() : 'Not recorded';
 
-const lifecycleTone: Record<string, string> = {
-    received: 'bg-blue-50 text-blue-800',
-    registered: 'bg-slate-100 text-slate-700',
-    classified: 'bg-violet-50 text-violet-800',
-    routed: 'bg-amber-50 text-amber-800',
-    in_action: 'bg-emerald-50 text-emerald-800',
-};
-
 export default function CorrespondenceIndex({ records, filters, filterOptions, workspace }: Props) {
     const [search, setSearch] = useState(filters.search ?? '');
     const [lifecycle, setLifecycle] = useState(filters.lifecycle ?? '');
@@ -106,17 +100,18 @@ export default function CorrespondenceIndex({ records, filters, filterOptions, w
 
     return (
         <AppLayout title="Correspondence">
-            <div className="mx-auto max-w-7xl space-y-4 sm:space-y-6">
-                <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:rounded-3xl sm:p-6 md:p-8">
-                    <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
-                        <div>
-                            <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.18em] text-blue-700 sm:text-xs"><Inbox size={15} /> Intra-office correspondence</div>
-                            <h1 className="mt-2 text-2xl font-bold text-slate-950 sm:text-3xl">Correspondence Inbox</h1>
-                            <p className="mt-2 max-w-3xl text-[12px] leading-5 text-slate-600 sm:text-sm sm:leading-6">Authorized correspondence visible to {workspace.departmentName}. Search, filtering, totals and pagination are enforced on the server before records reach this page.</p>
+            <PageFrame>
+                <PageHeader
+                    eyebrow="Municipal inbox and routing"
+                    title="Correspondence"
+                    description={`Review incoming correspondence visible to ${workspace.departmentName}, its current routing position, responsibility, and whether action is required.`}
+                    icon={Inbox}
+                    aside={(
+                        <div className="border border-slate-200 bg-slate-50 px-3 py-2 text-[10px] text-slate-600 dark:border-slate-600 dark:bg-[#0f1c2e] dark:text-slate-300 sm:text-xs">
+                            <span className="font-semibold text-slate-900 dark:text-slate-100">{records.total}</span> visible record{records.total === 1 ? '' : 's'}
                         </div>
-                        <div className="rounded-xl bg-slate-50 px-3 py-2 text-[10px] text-slate-500 sm:text-xs"><span className="font-semibold text-slate-800">{records.total}</span> visible record{records.total === 1 ? '' : 's'}</div>
-                    </div>
-                </section>
+                    )}
+                />
 
                 <form onSubmit={apply}>
                     <ProgressiveFilterBar
@@ -125,7 +120,7 @@ export default function CorrespondenceIndex({ records, filters, filterOptions, w
                         primary={(
                             <label className="block">
                                 <span className="mb-1 block text-[9px] font-bold uppercase tracking-wide text-slate-400 sm:text-[10px]">Search correspondence</span>
-                                <div className="relative"><Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={15} /><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Reference, sender, subject…" className="w-full rounded-xl border border-slate-300 bg-white py-2.5 pl-9 pr-3 text-[12px] text-slate-900 outline-none focus:border-blue-700 focus:ring-2 focus:ring-blue-100 sm:text-sm" /></div>
+                                <div className="relative"><Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={15} aria-hidden="true" /><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Reference, sender, subject…" className="w-full rounded-xl border border-slate-300 bg-white py-2.5 pl-9 pr-3 text-[12px] text-slate-900 outline-none focus:border-blue-700 focus:ring-2 focus:ring-blue-100 sm:text-sm" /></div>
                             </label>
                         )}
                         common={(
@@ -144,34 +139,100 @@ export default function CorrespondenceIndex({ records, filters, filterOptions, w
                         )}
                         actions={(
                             <>
-                                <button type="button" onClick={clear} className="inline-flex items-center gap-1.5 rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-[11px] font-semibold text-slate-700 sm:text-xs"><X size={14} /> Clear</button>
+                                <button type="button" onClick={clear} className="inline-flex items-center gap-1.5 rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-[11px] font-semibold text-slate-700 sm:text-xs"><X size={14} aria-hidden="true" /> Clear</button>
                                 <button className="rounded-xl bg-[#0b2852] px-4 py-2.5 text-[11px] font-semibold text-white sm:text-xs">Apply filters</button>
                             </>
                         )}
                     />
                 </form>
 
-                <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm sm:rounded-3xl">
-                    <div className="hidden grid-cols-[145px_1.25fr_155px_150px_155px_120px] gap-3 border-b border-slate-100 bg-slate-50 px-5 py-3 text-[9px] font-bold uppercase tracking-wide text-slate-500 lg:grid">
-                        <div>Reference</div><div>Sender / Subject</div><div>Current Office</div><div>Responsible</div><div>State</div><div>Received</div>
+                <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white text-slate-900 shadow-sm" aria-label="Correspondence inbox">
+                    <div className="flex flex-col gap-1 border-b border-slate-100 bg-slate-50 px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-5">
+                        <div className="text-[11px] font-bold text-slate-900 sm:text-sm">Current correspondence</div>
+                        <div className="text-[9px] text-slate-500 sm:text-xs">
+                            {records.total === 0 ? 'No matching records' : `Showing ${records.from || 1}–${records.to || records.data.length} of ${records.total}`}
+                        </div>
                     </div>
+
+                    <div className="hidden grid-cols-[minmax(290px,1.45fr)_180px_minmax(220px,1fr)_170px_112px] gap-4 border-b border-slate-100 px-5 py-3 text-[9px] font-bold uppercase tracking-wide text-slate-500 xl:grid">
+                        <div>Subject / Reference</div><div>Sender / Received</div><div>Routing / Responsibility</div><div>State</div><div />
+                    </div>
+
                     <div className="divide-y divide-slate-100">
                         {records.data.map((record) => (
-                            <div key={record.publicId} className="grid gap-3 px-4 py-4 sm:px-5 lg:grid-cols-[145px_1.25fr_155px_150px_155px_120px] lg:items-center">
-                                <div><div className="text-[10px] font-bold text-blue-700 sm:text-xs">{record.reference}</div>{record.workflowReference && <div className="mt-1 text-[8px] text-slate-400 sm:text-[9px]">{record.workflowReference}</div>}<Link href={`/correspondence/${record.publicId}/workspace`} className="mt-2 inline-flex items-center gap-1 text-[9px] font-bold text-blue-700 hover:text-blue-900 sm:text-[10px]">View <ArrowRight size={11} /></Link></div>
-                                <div className="min-w-0"><div className="text-[11px] font-semibold text-slate-900 sm:text-sm">{record.sender.name}</div><div className="mt-0.5 text-[9px] text-slate-400 sm:text-[10px]">{record.sender.organization || humanize(record.sender.source)}</div><div className="mt-1 truncate text-[12px] font-semibold text-slate-700 sm:text-sm">{record.subject}</div></div>
-                                <div><div className="text-[9px] uppercase text-slate-400 lg:hidden">Current office</div><div className="mt-0.5 text-[11px] font-semibold text-slate-700 sm:text-xs">{record.currentOffice?.shortName || record.currentOffice?.name || 'Unregistered intake'}</div></div>
-                                <div><div className="text-[9px] uppercase text-slate-400 lg:hidden">Responsible</div><div className="mt-0.5 flex items-center gap-1.5 text-[11px] text-slate-700 sm:text-xs"><UserRound size={13} /> {record.assignedEmployee?.name || 'Unassigned'}</div></div>
-                                <div className="flex flex-wrap gap-1.5"><span className={`rounded-full px-2.5 py-1 text-[9px] font-bold ${lifecycleTone[record.lifecycleState] || 'bg-slate-100 text-slate-700'}`}>{humanize(record.lifecycleState)}</span>{record.classification && <span className="rounded-full border border-slate-200 px-2.5 py-1 text-[9px] font-semibold text-slate-600">{humanize(record.classification)}</span>}{record.actionRequired && <span className="rounded-full bg-amber-50 px-2.5 py-1 text-[9px] font-bold text-amber-800">Action</span>}{record.overdue && <span className="inline-flex items-center gap-1 rounded-full bg-rose-50 px-2.5 py-1 text-[9px] font-bold text-rose-700"><AlertTriangle size={10} /> Overdue</span>}</div>
-                                <div><div className="text-[10px] text-slate-600 sm:text-xs">{formatDate(record.receivedAt)}</div><div className="mt-1 text-[9px] text-slate-400">{record.age} pending</div></div>
-                            </div>
+                            <article key={record.publicId} className="px-4 py-4 sm:px-5" aria-label={`${record.reference} correspondence`}>
+                                <div className="grid min-w-0 gap-4 xl:grid-cols-[minmax(290px,1.45fr)_180px_minmax(220px,1fr)_170px_112px] xl:items-center">
+                                    <div className="min-w-0">
+                                        <div className="flex flex-wrap items-center gap-1.5">
+                                            <span className="text-[10px] font-bold text-blue-700 sm:text-xs">{record.reference}</span>
+                                            {record.workflowReference ? <span className="border-l border-slate-300 pl-1.5 text-[9px] text-slate-500">Route {record.workflowReference}</span> : null}
+                                        </div>
+                                        <h2 className="mt-1 text-[13px] font-semibold leading-5 text-slate-950 sm:text-sm">{record.subject}</h2>
+                                        {record.classification ? <div className="mt-1.5 text-[9px] font-semibold uppercase tracking-wide text-slate-500">{humanize(record.classification)}</div> : null}
+                                    </div>
+
+                                    <div className="min-w-0">
+                                        <div className="text-[9px] font-bold uppercase tracking-wide text-slate-400 xl:hidden">Sender and receipt</div>
+                                        <div className="mt-1 text-[10px] font-semibold leading-4 text-slate-800 sm:text-xs">{record.sender.name}</div>
+                                        <div className="mt-0.5 text-[9px] leading-4 text-slate-500">{record.sender.organization || humanize(record.sender.source)}{record.sender.channel ? ` · ${humanize(record.sender.channel)}` : ''}</div>
+                                        <div className="mt-1.5 flex items-start gap-1.5 text-[9px] leading-4 text-slate-500">
+                                            <Clock3 size={11} className="mt-0.5 shrink-0" aria-hidden="true" />
+                                            <span>{formatDate(record.receivedAt)} · {record.age} ago</span>
+                                        </div>
+                                    </div>
+
+                                    <div className="border-l-2 border-slate-200 bg-slate-50 px-3 py-2.5">
+                                        <div className="text-[8px] font-bold uppercase tracking-[0.14em] text-slate-400">Current responsibility</div>
+                                        <div className="mt-1 flex items-start gap-1.5 text-[10px] font-semibold leading-4 text-slate-800 sm:text-xs">
+                                            <Building2 size={12} className="mt-0.5 shrink-0 text-slate-400" aria-hidden="true" />
+                                            <span>{record.currentOffice?.shortName || record.currentOffice?.name || 'Unregistered intake'}</span>
+                                        </div>
+                                        <div className="mt-1.5 flex items-start gap-1.5 text-[9px] leading-4 text-slate-600 sm:text-[10px]">
+                                            <UserRound size={11} className="mt-0.5 shrink-0 text-slate-400" aria-hidden="true" />
+                                            <span>{record.assignedEmployee?.name || 'Unassigned'}{record.assignedEmployee?.position ? ` · ${record.assignedEmployee.position}` : ''}</span>
+                                        </div>
+                                    </div>
+
+                                    <div>
+                                        <div className="text-[9px] font-bold uppercase tracking-wide text-slate-400 xl:hidden">State</div>
+                                        <div className="mt-1 flex flex-wrap gap-1.5">
+                                            <span className="border border-slate-200 bg-slate-50 px-2 py-1 text-[8px] font-bold uppercase text-slate-700 sm:text-[9px]">{humanize(record.lifecycleState)}</span>
+                                            {record.actionRequired ? <span className="border border-amber-200 bg-amber-50 px-2 py-1 text-[8px] font-bold uppercase text-amber-800 sm:text-[9px]">Action required</span> : <span className="border border-slate-200 bg-white px-2 py-1 text-[8px] font-semibold uppercase text-slate-500 sm:text-[9px]">For information</span>}
+                                            {record.overdue ? <span className="inline-flex items-center gap-1 border border-rose-200 bg-rose-50 px-2 py-1 text-[8px] font-bold uppercase text-rose-800 sm:text-[9px]"><AlertTriangle size={10} aria-hidden="true" /> Overdue</span> : null}
+                                        </div>
+                                    </div>
+
+                                    <Link
+                                        href={`/correspondence/${record.publicId}/workspace`}
+                                        className="inline-flex min-h-10 items-center justify-center gap-1.5 border border-slate-300 bg-white px-3 py-2 text-[10px] font-bold text-blue-800 transition hover:bg-blue-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-700 focus-visible:ring-offset-2 sm:text-xs"
+                                        aria-label={`Open correspondence ${record.reference}`}
+                                    >
+                                        Open <ArrowRight size={13} aria-hidden="true" />
+                                    </Link>
+                                </div>
+                            </article>
                         ))}
-                        {records.data.length === 0 && <div className="px-5 py-12 text-center"><Inbox className="mx-auto text-slate-300" size={28} /><div className="mt-3 text-sm font-semibold text-slate-700">No correspondence matches this authorized view.</div><div className="mt-1 text-xs text-slate-400">Try changing the filters or search terms.</div></div>}
+
+                        {records.data.length === 0 ? (
+                            <div className="px-5 py-12 text-center">
+                                <Inbox className="mx-auto text-slate-300" size={28} aria-hidden="true" />
+                                <div className="mt-3 text-sm font-semibold text-slate-700">No correspondence matches this authorized view.</div>
+                                <div className="mt-1 text-xs text-slate-500">Try changing the filters or search terms.</div>
+                            </div>
+                        ) : null}
                     </div>
                 </section>
 
-                {records.last_page > 1 && <div className="flex flex-col gap-2 rounded-xl border border-slate-200 bg-white px-4 py-3 text-[10px] text-slate-500 sm:flex-row sm:items-center sm:justify-between sm:text-xs"><div>Showing {records.from ?? 0}–{records.to ?? 0} of {records.total} authorized records · page {records.current_page} of {records.last_page}</div><div className="flex gap-2"><button type="button" disabled={!records.prev_page_url} onClick={() => records.prev_page_url && router.visit(records.prev_page_url, { preserveScroll: true })} className="rounded-lg border px-3 py-1.5 font-semibold disabled:opacity-40">Previous</button><button type="button" disabled={!records.next_page_url} onClick={() => records.next_page_url && router.visit(records.next_page_url, { preserveScroll: true })} className="rounded-lg border px-3 py-1.5 font-semibold disabled:opacity-40">Next</button></div></div>}
-            </div>
+                {records.last_page > 1 ? (
+                    <div className="flex flex-col gap-2 rounded-xl border border-slate-200 bg-white px-4 py-3 text-[10px] text-slate-600 sm:flex-row sm:items-center sm:justify-between sm:text-xs">
+                        <div>Showing {records.from ?? 0}–{records.to ?? 0} of {records.total} authorized records · page {records.current_page} of {records.last_page}</div>
+                        <div className="flex gap-2">
+                            <button type="button" disabled={!records.prev_page_url} onClick={() => records.prev_page_url && router.visit(records.prev_page_url, { preserveScroll: true })} className="min-h-9 border border-slate-300 bg-white px-3 py-1.5 font-semibold text-slate-700 disabled:opacity-40">Previous</button>
+                            <button type="button" disabled={!records.next_page_url} onClick={() => records.next_page_url && router.visit(records.next_page_url, { preserveScroll: true })} className="min-h-9 border border-slate-300 bg-white px-3 py-1.5 font-semibold text-slate-700 disabled:opacity-40">Next</button>
+                        </div>
+                    </div>
+                ) : null}
+            </PageFrame>
         </AppLayout>
     );
 }
