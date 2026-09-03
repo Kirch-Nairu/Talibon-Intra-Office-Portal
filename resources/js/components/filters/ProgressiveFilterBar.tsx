@@ -1,0 +1,101 @@
+import { SlidersHorizontal, X } from 'lucide-react';
+import { type ReactNode, useId, useState } from 'react';
+
+type Props = {
+    primary: ReactNode;
+    common?: ReactNode;
+    advanced?: ReactNode;
+    actions?: ReactNode;
+    activeFilters?: string[];
+    title?: string;
+};
+
+export default function ProgressiveFilterBar({
+    primary,
+    common,
+    advanced,
+    actions,
+    activeFilters = [],
+    title = 'Additional filters',
+}: Props) {
+    const [expanded, setExpanded] = useState(false);
+    const panelId = useId();
+    const hasAdvanced = Boolean(advanced);
+
+    return (
+        <div className="rounded-2xl border border-slate-200 bg-white p-3 text-slate-900 shadow-sm sm:rounded-3xl sm:p-4">
+            <div className="flex flex-col gap-3 lg:flex-row lg:items-end">
+                <div className="min-w-0 flex-1">{primary}</div>
+
+                {common && (
+                    <div className="grid gap-2 sm:grid-cols-2 lg:flex lg:shrink-0 lg:items-end">
+                        {common}
+                    </div>
+                )}
+
+                <div className="flex flex-wrap items-center gap-2 lg:shrink-0 lg:justify-end">
+                    {hasAdvanced && (
+                        <button
+                            type="button"
+                            aria-controls={panelId}
+                            aria-expanded={expanded}
+                            onClick={() => setExpanded((value) => !value)}
+                            className="inline-flex items-center gap-2 rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-[11px] font-bold text-slate-700 transition hover:border-blue-300 hover:bg-blue-50 sm:text-xs"
+                        >
+                            <SlidersHorizontal size={15} aria-hidden="true" />
+                            Filters{activeFilters.length > 0 ? ` ${activeFilters.length}` : ''}
+                        </button>
+                    )}
+                    {actions}
+                </div>
+            </div>
+
+            {activeFilters.length > 0 && (
+                <div className="mt-3 flex flex-wrap gap-1.5" aria-label="Active filters">
+                    {activeFilters.map((filter) => (
+                        <span key={filter} className="rounded-full border border-blue-100 bg-blue-50 px-2.5 py-1 text-[9px] font-semibold text-blue-800 sm:text-[10px]">
+                            {filter}
+                        </span>
+                    ))}
+                </div>
+            )}
+
+            {hasAdvanced && (
+                <div
+                    id={panelId}
+                    className={expanded
+                        ? 'fixed inset-0 z-50 flex items-end md:static md:z-auto md:mt-3 md:block'
+                        : 'hidden'}
+                >
+                    <button
+                        type="button"
+                        className="absolute inset-0 bg-slate-950/45 md:hidden"
+                        aria-label="Close filters"
+                        onClick={() => setExpanded(false)}
+                    />
+                    <div
+                        role="dialog"
+                        aria-label={title}
+                        className="relative z-10 max-h-[82vh] w-full overflow-y-auto rounded-t-3xl bg-white p-4 text-slate-900 shadow-2xl md:max-h-none md:rounded-2xl md:border md:border-slate-200 md:bg-slate-50/70 md:p-4 md:shadow-none"
+                    >
+                        <div className="mb-4 flex items-center justify-between md:hidden">
+                            <div>
+                                <div className="text-[10px] font-bold uppercase tracking-[0.16em] text-blue-700">Filters</div>
+                                <div className="mt-0.5 text-sm font-bold text-slate-900">{title}</div>
+                            </div>
+                            <button
+                                type="button"
+                                onClick={() => setExpanded(false)}
+                                className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-slate-300 text-slate-600"
+                                aria-label="Close filters"
+                            >
+                                <X size={16} aria-hidden="true" />
+                            </button>
+                        </div>
+                        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">{advanced}</div>
+                    </div>
+                </div>
+            )}
+        </div>
+    );
+}

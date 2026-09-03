@@ -1,6 +1,7 @@
 import { Link, router } from '@inertiajs/react';
 import { CalendarDays, FileCheck2, MapPin, Plus, Search, Users, X } from 'lucide-react';
 import { type FormEvent, useEffect, useState } from 'react';
+import ProgressiveFilterBar from '../../components/filters/ProgressiveFilterBar';
 import AppLayout from '../../layouts/AppLayout';
 
 type Office = { id?: number; code: string; name: string; shortName?: string | null };
@@ -72,6 +73,15 @@ export default function Index({ travelOrders, filters, filterOptions, canRecordA
         router.get('/travel-orders', {}, { preserveState: true, preserveScroll: true, replace: true });
     };
 
+    const selectedStatus = filterOptions.statuses.find((option) => option.value === status);
+    const selectedOffice = filterOptions.offices.find((office) => String(office.id) === officeId);
+    const activeFilters = [
+        status ? `Status: ${selectedStatus?.label || humanize(status)}` : '',
+        officeId ? `Office: ${selectedOffice?.shortName || selectedOffice?.name || officeId}` : '',
+        dateFrom ? `From: ${dateFrom}` : '',
+        dateTo ? `To: ${dateTo}` : '',
+    ].filter(Boolean);
+
     return (
         <AppLayout title="Approved Travel Orders">
             <div className="mx-auto max-w-7xl space-y-4 sm:space-y-6">
@@ -90,18 +100,36 @@ export default function Index({ travelOrders, filters, filterOptions, canRecordA
                     )}
                 </header>
 
-                <form onSubmit={submit} className="space-y-3 rounded-2xl border border-slate-200 bg-white p-3 shadow-sm sm:rounded-3xl sm:p-5">
-                    <label className="relative block">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={17} />
-                        <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search reference, purpose, destination, office, employee…" className="w-full rounded-xl border border-slate-300 py-3 pl-10 pr-3 text-[12px] outline-none focus:border-blue-700 focus:ring-2 focus:ring-blue-100 sm:text-sm" />
-                    </label>
-                    <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-[1.1fr_1.4fr_1fr_1fr_auto]">
-                        <label><span className="mb-1 block text-[9px] font-bold uppercase tracking-wide text-slate-400 sm:text-[10px]">Status</span><select value={status} onChange={(event) => setStatus(event.target.value)} className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-[11px] sm:text-sm"><option value="">All statuses</option>{filterOptions.statuses.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}</select></label>
-                        <label><span className="mb-1 block text-[9px] font-bold uppercase tracking-wide text-slate-400 sm:text-[10px]">Responsible office</span><select value={officeId} onChange={(event) => setOfficeId(event.target.value)} className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-[11px] sm:text-sm"><option value="">All authorized offices</option>{filterOptions.offices.map((office) => <option key={office.id} value={office.id}>{office.shortName || office.name}</option>)}</select></label>
-                        <label><span className="mb-1 block text-[9px] font-bold uppercase tracking-wide text-slate-400 sm:text-[10px]">Travel from</span><input type="date" value={dateFrom} onChange={(event) => setDateFrom(event.target.value)} className="w-full rounded-xl border border-slate-300 px-3 py-2.5 text-[11px] sm:text-sm" /></label>
-                        <label><span className="mb-1 block text-[9px] font-bold uppercase tracking-wide text-slate-400 sm:text-[10px]">Travel to</span><input type="date" value={dateTo} onChange={(event) => setDateTo(event.target.value)} className="w-full rounded-xl border border-slate-300 px-3 py-2.5 text-[11px] sm:text-sm" /></label>
-                        <div className="flex items-end gap-2"><button className="flex-1 rounded-xl bg-[#0b2852] px-4 py-2.5 text-[11px] font-bold text-white sm:text-xs lg:flex-none">Apply</button><button type="button" onClick={clear} className="rounded-xl border border-slate-300 px-3 py-2.5 text-slate-500 hover:bg-slate-50" aria-label="Clear Travel Order filters"><X size={15} /></button></div>
-                    </div>
+                <form onSubmit={submit}>
+                    <ProgressiveFilterBar
+                        title="Travel Order filters"
+                        activeFilters={activeFilters}
+                        primary={(
+                            <label className="block">
+                                <span className="mb-1 block text-[9px] font-bold uppercase tracking-wide text-slate-400 sm:text-[10px]">Search approved orders</span>
+                                <div className="relative">
+                                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={17} />
+                                    <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search reference, purpose, destination, office, employee…" className="w-full rounded-xl border border-slate-300 bg-white py-2.5 pl-10 pr-3 text-[12px] text-slate-900 outline-none focus:border-blue-700 focus:ring-2 focus:ring-blue-100 sm:text-sm" />
+                                </div>
+                            </label>
+                        )}
+                        common={(
+                            <label className="block lg:min-w-44"><span className="mb-1 block text-[9px] font-bold uppercase tracking-wide text-slate-400 sm:text-[10px]">Status</span><select value={status} onChange={(event) => setStatus(event.target.value)} className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-[11px] text-slate-900 sm:text-sm"><option value="">All statuses</option>{filterOptions.statuses.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}</select></label>
+                        )}
+                        advanced={(
+                            <>
+                                <label><span className="mb-1 block text-[9px] font-bold uppercase tracking-wide text-slate-400 sm:text-[10px]">Responsible office</span><select value={officeId} onChange={(event) => setOfficeId(event.target.value)} className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-[11px] text-slate-900 sm:text-sm"><option value="">All authorized offices</option>{filterOptions.offices.map((office) => <option key={office.id} value={office.id}>{office.shortName || office.name}</option>)}</select></label>
+                                <label><span className="mb-1 block text-[9px] font-bold uppercase tracking-wide text-slate-400 sm:text-[10px]">Travel from</span><input type="date" value={dateFrom} onChange={(event) => setDateFrom(event.target.value)} className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-[11px] text-slate-900 sm:text-sm" /></label>
+                                <label><span className="mb-1 block text-[9px] font-bold uppercase tracking-wide text-slate-400 sm:text-[10px]">Travel to</span><input type="date" value={dateTo} onChange={(event) => setDateTo(event.target.value)} className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-[11px] text-slate-900 sm:text-sm" /></label>
+                            </>
+                        )}
+                        actions={(
+                            <>
+                                <button className="rounded-xl bg-[#0b2852] px-4 py-2.5 text-[11px] font-bold text-white sm:text-xs">Apply</button>
+                                <button type="button" onClick={clear} className="rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-slate-500 hover:bg-slate-50" aria-label="Clear Travel Order filters"><X size={15} /></button>
+                            </>
+                        )}
+                    />
                 </form>
 
                 <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm sm:rounded-3xl">

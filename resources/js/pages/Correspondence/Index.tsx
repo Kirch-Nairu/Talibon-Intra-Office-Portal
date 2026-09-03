@@ -1,6 +1,7 @@
 import { Link, router } from '@inertiajs/react';
-import { AlertTriangle, ArrowRight, Inbox, Search, SlidersHorizontal, UserRound, X } from 'lucide-react';
+import { AlertTriangle, ArrowRight, Inbox, Search, UserRound, X } from 'lucide-react';
 import { FormEvent, useState } from 'react';
+import ProgressiveFilterBar from '../../components/filters/ProgressiveFilterBar';
 import AppLayout from '../../layouts/AppLayout';
 
 type Office = { id: number; code: string; name: string; short_name?: string | null };
@@ -93,6 +94,16 @@ export default function CorrespondenceIndex({ records, filters, filterOptions, w
         router.get('/correspondence', {}, { replace: true });
     };
 
+    const selectedOffice = filterOptions.offices.find((office) => String(office.id) === officeId);
+    const activeFilters = [
+        lifecycle ? `Lifecycle: ${humanize(lifecycle)}` : '',
+        classification ? `Class: ${humanize(classification)}` : '',
+        officeId ? `Office: ${selectedOffice?.short_name || selectedOffice?.name || officeId}` : '',
+        aging ? 'Overdue workflow' : '',
+        assignedToMe ? 'Assigned to me' : '',
+        actionRequired ? 'Action required' : '',
+    ].filter(Boolean);
+
     return (
         <AppLayout title="Correspondence">
             <div className="mx-auto max-w-7xl space-y-4 sm:space-y-6">
@@ -107,37 +118,37 @@ export default function CorrespondenceIndex({ records, filters, filterOptions, w
                     </div>
                 </section>
 
-                <form onSubmit={apply} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:rounded-3xl sm:p-5">
-                    <div className="flex items-center gap-2 text-[11px] font-bold text-slate-800 sm:text-sm"><SlidersHorizontal size={16} /> Filter workspace</div>
-                    <div className="mt-3 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-                        <label className="text-[10px] font-semibold text-slate-600 sm:text-xs">
-                            Search
-                            <div className="relative mt-1"><Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={15} /><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Reference, sender, subject…" className="w-full rounded-xl border border-slate-300 py-2.5 pl-9 pr-3 text-[12px] sm:text-sm" /></div>
-                        </label>
-                        <label className="text-[10px] font-semibold text-slate-600 sm:text-xs">
-                            Lifecycle
-                            <select value={lifecycle} onChange={(event) => setLifecycle(event.target.value)} className="mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-[12px] sm:text-sm"><option value="">All visible states</option>{filterOptions.lifecycles.map((state) => <option key={state} value={state}>{humanize(state)}</option>)}</select>
-                        </label>
-                        {filterOptions.classifications.length > 0 && <label className="text-[10px] font-semibold text-slate-600 sm:text-xs">
-                            Classification
-                            <select value={classification} onChange={(event) => setClassification(event.target.value)} className="mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-[12px] sm:text-sm"><option value="">All authorized classifications</option>{filterOptions.classifications.map((value) => <option key={value} value={value}>{humanize(value)}</option>)}</select>
-                        </label>}
-                        <label className="text-[10px] font-semibold text-slate-600 sm:text-xs">
-                            Current office
-                            <select value={officeId} onChange={(event) => setOfficeId(event.target.value)} className="mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-[12px] sm:text-sm"><option value="">All visible offices</option>{filterOptions.offices.map((office) => <option key={office.id} value={office.id}>{office.short_name || office.name}</option>)}</select>
-                        </label>
-                        <label className="text-[10px] font-semibold text-slate-600 sm:text-xs">
-                            Aging
-                            <select value={aging} onChange={(event) => setAging(event.target.value)} className="mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-[12px] sm:text-sm"><option value="">All</option><option value="overdue">Overdue workflow only</option></select>
-                        </label>
-                    </div>
-                    <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                        <div className="flex flex-wrap gap-4">
-                            <label className="flex items-center gap-2 text-[11px] font-semibold text-slate-700 sm:text-xs"><input type="checkbox" checked={assignedToMe} onChange={(event) => setAssignedToMe(event.target.checked)} className="rounded border-slate-300" /> Assigned to me</label>
-                            <label className="flex items-center gap-2 text-[11px] font-semibold text-slate-700 sm:text-xs"><input type="checkbox" checked={actionRequired} onChange={(event) => setActionRequired(event.target.checked)} className="rounded border-slate-300" /> Action required</label>
-                        </div>
-                        <div className="flex gap-2"><button type="button" onClick={clear} className="inline-flex items-center gap-1.5 rounded-xl border border-slate-300 px-3 py-2 text-[11px] font-semibold text-slate-700 sm:text-xs"><X size={14} /> Clear</button><button className="rounded-xl bg-[#0b2852] px-4 py-2 text-[11px] font-semibold text-white sm:text-xs">Apply filters</button></div>
-                    </div>
+                <form onSubmit={apply}>
+                    <ProgressiveFilterBar
+                        title="Correspondence filters"
+                        activeFilters={activeFilters}
+                        primary={(
+                            <label className="block">
+                                <span className="mb-1 block text-[9px] font-bold uppercase tracking-wide text-slate-400 sm:text-[10px]">Search correspondence</span>
+                                <div className="relative"><Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={15} /><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Reference, sender, subject…" className="w-full rounded-xl border border-slate-300 bg-white py-2.5 pl-9 pr-3 text-[12px] text-slate-900 outline-none focus:border-blue-700 focus:ring-2 focus:ring-blue-100 sm:text-sm" /></div>
+                            </label>
+                        )}
+                        common={(
+                            <>
+                                <label className="block lg:min-w-44"><span className="mb-1 block text-[9px] font-bold uppercase tracking-wide text-slate-400 sm:text-[10px]">Lifecycle</span><select value={lifecycle} onChange={(event) => setLifecycle(event.target.value)} className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-[12px] text-slate-900 sm:text-sm"><option value="">All visible states</option>{filterOptions.lifecycles.map((state) => <option key={state} value={state}>{humanize(state)}</option>)}</select></label>
+                                <label className={`flex min-h-10 items-center gap-2 rounded-xl border px-3 py-2.5 text-[11px] font-semibold transition sm:text-xs ${assignedToMe ? 'border-blue-200 bg-blue-50 text-blue-800' : 'border-slate-300 bg-white text-slate-700'}`}><input type="checkbox" checked={assignedToMe} onChange={(event) => setAssignedToMe(event.target.checked)} className="rounded border-slate-300" /> Assigned to me</label>
+                                <label className={`flex min-h-10 items-center gap-2 rounded-xl border px-3 py-2.5 text-[11px] font-semibold transition sm:text-xs ${actionRequired ? 'border-amber-200 bg-amber-50 text-amber-800' : 'border-slate-300 bg-white text-slate-700'}`}><input type="checkbox" checked={actionRequired} onChange={(event) => setActionRequired(event.target.checked)} className="rounded border-slate-300" /> Action required</label>
+                            </>
+                        )}
+                        advanced={(
+                            <>
+                                {filterOptions.classifications.length > 0 && <label className="block text-[10px] font-semibold text-slate-600 sm:text-xs">Classification<select value={classification} onChange={(event) => setClassification(event.target.value)} className="mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-[12px] text-slate-900 sm:text-sm"><option value="">All authorized classifications</option>{filterOptions.classifications.map((value) => <option key={value} value={value}>{humanize(value)}</option>)}</select></label>}
+                                <label className="block text-[10px] font-semibold text-slate-600 sm:text-xs">Current office<select value={officeId} onChange={(event) => setOfficeId(event.target.value)} className="mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-[12px] text-slate-900 sm:text-sm"><option value="">All visible offices</option>{filterOptions.offices.map((office) => <option key={office.id} value={office.id}>{office.short_name || office.name}</option>)}</select></label>
+                                <label className="block text-[10px] font-semibold text-slate-600 sm:text-xs">Aging<select value={aging} onChange={(event) => setAging(event.target.value)} className="mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-[12px] text-slate-900 sm:text-sm"><option value="">All</option><option value="overdue">Overdue workflow only</option></select></label>
+                            </>
+                        )}
+                        actions={(
+                            <>
+                                <button type="button" onClick={clear} className="inline-flex items-center gap-1.5 rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-[11px] font-semibold text-slate-700 sm:text-xs"><X size={14} /> Clear</button>
+                                <button className="rounded-xl bg-[#0b2852] px-4 py-2.5 text-[11px] font-semibold text-white sm:text-xs">Apply filters</button>
+                            </>
+                        )}
+                    />
                 </form>
 
                 <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm sm:rounded-3xl">

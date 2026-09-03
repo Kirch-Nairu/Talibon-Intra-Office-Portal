@@ -1,6 +1,7 @@
 import { Link, router } from '@inertiajs/react';
 import { ArrowRight, Building2, CalendarDays, FileSearch, Search, UserRound, X } from 'lucide-react';
 import { type FormEvent, useEffect, useState } from 'react';
+import ProgressiveFilterBar from '../../components/filters/ProgressiveFilterBar';
 import AppLayout from '../../layouts/AppLayout';
 
 type Office = {
@@ -140,6 +141,17 @@ export default function Index({ records, filters, filterOptions }: Props) {
         });
     };
 
+    const selectedType = filterOptions.recordTypes.find((option) => option.value === recordType);
+    const selectedState = filterOptions.states.find((option) => option.value === state);
+    const selectedOffice = filterOptions.offices.find((office) => String(office.id) === officeId);
+    const activeFilters = [
+        recordType && recordType !== 'all' ? `Type: ${selectedType?.label || humanize(recordType)}` : '',
+        state ? `State: ${selectedState?.label || humanize(state)}` : '',
+        officeId ? `Office: ${selectedOffice?.shortName || selectedOffice?.name || officeId}` : '',
+        dateFrom ? `From: ${dateFrom}` : '',
+        dateTo ? `To: ${dateTo}` : '',
+    ].filter(Boolean);
+
     return (
         <AppLayout title="Records">
             <div className="mx-auto max-w-7xl space-y-4 sm:space-y-6">
@@ -151,96 +163,76 @@ export default function Index({ records, filters, filterOptions }: Props) {
                     </p>
                 </header>
 
-                <form onSubmit={submit} className="space-y-3 rounded-2xl border border-slate-200 bg-white p-3 shadow-sm sm:rounded-3xl sm:p-5">
-                    <label className="relative block">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={17} />
-                        <input
-                            value={search}
-                            onChange={(event) => setSearch(event.target.value)}
-                            placeholder="Search reference, record, office, destination, sender, employee…"
-                            className="w-full rounded-xl border border-slate-300 py-3 pl-10 pr-3 text-[12px] outline-none transition focus:border-blue-700 focus:ring-2 focus:ring-blue-100 sm:text-sm"
-                        />
-                    </label>
-
-                    <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-[1.2fr_1.2fr_1.3fr_1fr_1fr_auto]">
-                        <label>
-                            <span className="mb-1 block text-[9px] font-bold uppercase tracking-wide text-slate-400 sm:text-[10px]">Record Type</span>
-                            <select
-                                value={recordType}
-                                onChange={(event) => {
-                                    setRecordType(event.target.value);
-                                    setState('');
-                                }}
-                                className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-[11px] sm:text-sm"
-                            >
-                                {filterOptions.recordTypes.map((option) => (
-                                    <option key={option.value} value={option.value}>{option.label}</option>
-                                ))}
-                            </select>
-                        </label>
-
-                        <label>
-                            <span className="mb-1 block text-[9px] font-bold uppercase tracking-wide text-slate-400 sm:text-[10px]">Status / Lifecycle</span>
-                            <select
-                                value={state}
-                                onChange={(event) => setState(event.target.value)}
-                                className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-[11px] sm:text-sm"
-                            >
-                                <option value="">All states</option>
-                                {filterOptions.states.map((option) => (
-                                    <option key={option.value} value={option.value}>{option.label}</option>
-                                ))}
-                            </select>
-                        </label>
-
-                        <label>
-                            <span className="mb-1 block text-[9px] font-bold uppercase tracking-wide text-slate-400 sm:text-[10px]">Current / Responsible Office</span>
-                            <select
-                                value={officeId}
-                                onChange={(event) => setOfficeId(event.target.value)}
-                                className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-[11px] sm:text-sm"
-                            >
-                                <option value="">All authorized offices</option>
-                                {filterOptions.offices.map((office) => (
-                                    <option key={office.id} value={office.id}>{office.shortName || office.name}</option>
-                                ))}
-                            </select>
-                        </label>
-
-                        <label>
-                            <span className="mb-1 block text-[9px] font-bold uppercase tracking-wide text-slate-400 sm:text-[10px]">From</span>
-                            <input
-                                type="date"
-                                value={dateFrom}
-                                onChange={(event) => setDateFrom(event.target.value)}
-                                className="w-full rounded-xl border border-slate-300 px-3 py-2.5 text-[11px] sm:text-sm"
-                            />
-                        </label>
-
-                        <label>
-                            <span className="mb-1 block text-[9px] font-bold uppercase tracking-wide text-slate-400 sm:text-[10px]">To</span>
-                            <input
-                                type="date"
-                                value={dateTo}
-                                onChange={(event) => setDateTo(event.target.value)}
-                                className="w-full rounded-xl border border-slate-300 px-3 py-2.5 text-[11px] sm:text-sm"
-                            />
-                        </label>
-
-                        <div className="flex items-end gap-2">
-                            <button className="flex-1 rounded-xl bg-[#0b2852] px-4 py-2.5 text-[11px] font-bold text-white sm:text-xs lg:flex-none">
-                                Search
-                            </button>
-                            <button
-                                type="button"
-                                onClick={clearFilters}
-                                className="inline-flex items-center justify-center rounded-xl border border-slate-300 px-3 py-2.5 text-slate-500 hover:bg-slate-50"
-                                aria-label="Clear records filters"
-                            >
-                                <X size={15} />
-                            </button>
-                        </div>
-                    </div>
+                <form onSubmit={submit}>
+                    <ProgressiveFilterBar
+                        title="Records filters"
+                        activeFilters={activeFilters}
+                        primary={(
+                            <label className="block">
+                                <span className="mb-1 block text-[9px] font-bold uppercase tracking-wide text-slate-400 sm:text-[10px]">Search records</span>
+                                <div className="relative">
+                                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={17} />
+                                    <input
+                                        value={search}
+                                        onChange={(event) => setSearch(event.target.value)}
+                                        placeholder="Search reference, record, office, destination, sender, employee…"
+                                        className="w-full rounded-xl border border-slate-300 bg-white py-2.5 pl-10 pr-3 text-[12px] text-slate-900 outline-none transition focus:border-blue-700 focus:ring-2 focus:ring-blue-100 sm:text-sm"
+                                    />
+                                </div>
+                            </label>
+                        )}
+                        common={(
+                            <>
+                                <label className="block lg:min-w-40">
+                                    <span className="mb-1 block text-[9px] font-bold uppercase tracking-wide text-slate-400 sm:text-[10px]">Record Type</span>
+                                    <select
+                                        value={recordType}
+                                        onChange={(event) => {
+                                            setRecordType(event.target.value);
+                                            setState('');
+                                        }}
+                                        className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-[11px] text-slate-900 sm:text-sm"
+                                    >
+                                        {filterOptions.recordTypes.map((option) => (
+                                            <option key={option.value} value={option.value}>{option.label}</option>
+                                        ))}
+                                    </select>
+                                </label>
+                                <label className="block lg:min-w-44">
+                                    <span className="mb-1 block text-[9px] font-bold uppercase tracking-wide text-slate-400 sm:text-[10px]">Status / Lifecycle</span>
+                                    <select
+                                        value={state}
+                                        onChange={(event) => setState(event.target.value)}
+                                        className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-[11px] text-slate-900 sm:text-sm"
+                                    >
+                                        <option value="">All states</option>
+                                        {filterOptions.states.map((option) => (
+                                            <option key={option.value} value={option.value}>{option.label}</option>
+                                        ))}
+                                    </select>
+                                </label>
+                            </>
+                        )}
+                        advanced={(
+                            <>
+                                <label>
+                                    <span className="mb-1 block text-[9px] font-bold uppercase tracking-wide text-slate-400 sm:text-[10px]">Current / Responsible Office</span>
+                                    <select value={officeId} onChange={(event) => setOfficeId(event.target.value)} className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-[11px] text-slate-900 sm:text-sm">
+                                        <option value="">All authorized offices</option>
+                                        {filterOptions.offices.map((office) => <option key={office.id} value={office.id}>{office.shortName || office.name}</option>)}
+                                    </select>
+                                </label>
+                                <label><span className="mb-1 block text-[9px] font-bold uppercase tracking-wide text-slate-400 sm:text-[10px]">From</span><input type="date" value={dateFrom} onChange={(event) => setDateFrom(event.target.value)} className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-[11px] text-slate-900 sm:text-sm" /></label>
+                                <label><span className="mb-1 block text-[9px] font-bold uppercase tracking-wide text-slate-400 sm:text-[10px]">To</span><input type="date" value={dateTo} onChange={(event) => setDateTo(event.target.value)} className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-[11px] text-slate-900 sm:text-sm" /></label>
+                            </>
+                        )}
+                        actions={(
+                            <>
+                                <button className="rounded-xl bg-[#0b2852] px-4 py-2.5 text-[11px] font-bold text-white sm:text-xs">Search</button>
+                                <button type="button" onClick={clearFilters} className="inline-flex items-center justify-center rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-slate-500 hover:bg-slate-50" aria-label="Clear records filters"><X size={15} /></button>
+                            </>
+                        )}
+                    />
                 </form>
 
                 <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm sm:rounded-3xl">
@@ -299,59 +291,21 @@ export default function Index({ records, filters, filterOptions }: Props) {
                                     </div>
                                 </div>
 
-                                <div className="text-[10px] text-slate-600 sm:text-xs">
-                                    <div className="flex items-center gap-1.5">
-                                        <Building2 size={12} className="text-slate-400" />
-                                        {record.currentOffice?.shortName || record.currentOffice?.name || 'Not assigned'}
-                                    </div>
-                                </div>
-
-                                <div className="text-[10px] text-slate-600 sm:text-xs">
-                                    <div className="flex items-center gap-1.5">
-                                        <UserRound size={12} className="text-slate-400" />
-                                        {record.recordType === 'travel_order'
-                                            ? 'Issued personnel on detail'
-                                            : (record.assignedEmployee?.name || 'Unassigned')}
-                                    </div>
-                                    {record.assignedEmployee?.position && <div className="mt-1 text-[9px] text-slate-400">{record.assignedEmployee.position}</div>}
-                                </div>
-
-                                <div className="text-[10px] font-medium text-slate-600 sm:text-xs">
-                                    <div className="flex items-center gap-1.5">
-                                        <CalendarDays size={12} className="text-slate-400" />
-                                        {formatDate(record.recordDate)}
-                                    </div>
-                                </div>
-
+                                <div className="text-[10px] text-slate-600 sm:text-xs"><div className="flex items-center gap-1.5"><Building2 size={12} className="text-slate-400" />{record.currentOffice?.shortName || record.currentOffice?.name || 'Not assigned'}</div></div>
+                                <div className="text-[10px] text-slate-600 sm:text-xs"><div className="flex items-center gap-1.5"><UserRound size={12} className="text-slate-400" />{record.recordType === 'travel_order' ? 'Issued personnel on detail' : (record.assignedEmployee?.name || 'Unassigned')}</div>{record.assignedEmployee?.position && <div className="mt-1 text-[9px] text-slate-400">{record.assignedEmployee.position}</div>}</div>
+                                <div className="text-[10px] font-medium text-slate-600 sm:text-xs"><div className="flex items-center gap-1.5"><CalendarDays size={12} className="text-slate-400" />{formatDate(record.recordDate)}</div></div>
                                 <ArrowRight className="hidden text-slate-300 lg:block" size={17} />
                             </Link>
                         ))}
 
-                        {records.data.length === 0 && (
-                            <div className="px-5 py-12 text-center">
-                                <div className="text-sm font-semibold text-slate-700">No authorized records match this search.</div>
-                                <div className="mt-1 text-xs text-slate-400">Change the filters or clear the search criteria.</div>
-                            </div>
-                        )}
+                        {records.data.length === 0 && <div className="px-5 py-12 text-center"><div className="text-sm font-semibold text-slate-700">No authorized records match this search.</div><div className="mt-1 text-xs text-slate-400">Change the filters or clear the search criteria.</div></div>}
                     </div>
 
                     {records.last_page > 1 && (
                         <div className="flex items-center justify-between gap-3 border-t border-slate-100 px-4 py-3 sm:px-5">
-                            <Link
-                                href={records.prev_page_url || '#'}
-                                preserveScroll
-                                className={`rounded-lg border px-3 py-2 text-[10px] font-semibold sm:text-xs ${records.prev_page_url ? 'border-slate-300 text-slate-700 hover:bg-slate-50' : 'pointer-events-none border-slate-100 text-slate-300'}`}
-                            >
-                                Previous
-                            </Link>
+                            <Link href={records.prev_page_url || '#'} preserveScroll className={`rounded-lg border px-3 py-2 text-[10px] font-semibold sm:text-xs ${records.prev_page_url ? 'border-slate-300 text-slate-700 hover:bg-slate-50' : 'pointer-events-none border-slate-100 text-slate-300'}`}>Previous</Link>
                             <div className="text-[9px] text-slate-400 sm:text-xs">Page {records.current_page} of {records.last_page}</div>
-                            <Link
-                                href={records.next_page_url || '#'}
-                                preserveScroll
-                                className={`rounded-lg border px-3 py-2 text-[10px] font-semibold sm:text-xs ${records.next_page_url ? 'border-slate-300 text-slate-700 hover:bg-slate-50' : 'pointer-events-none border-slate-100 text-slate-300'}`}
-                            >
-                                Next
-                            </Link>
+                            <Link href={records.next_page_url || '#'} preserveScroll className={`rounded-lg border px-3 py-2 text-[10px] font-semibold sm:text-xs ${records.next_page_url ? 'border-slate-300 text-slate-700 hover:bg-slate-50' : 'pointer-events-none border-slate-100 text-slate-300'}`}>Next</Link>
                         </div>
                     )}
                 </section>

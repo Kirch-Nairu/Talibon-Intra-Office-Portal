@@ -1,6 +1,7 @@
 import { Link, router, useForm } from '@inertiajs/react';
 import { Download, FileBarChart, LoaderCircle, RotateCcw, Search } from 'lucide-react';
 import type { FormEvent, ReactNode } from 'react';
+import ProgressiveFilterBar from '../../components/filters/ProgressiveFilterBar';
 import AppLayout from '../../layouts/AppLayout';
 
 type Column = { key: string; label: string };
@@ -79,6 +80,19 @@ export default function ReportsIndex({ catalog, activeReport, filters, filterOpt
         Object.entries(filters).filter(([, value]) => value !== '' && value !== undefined) as [string, string][],
     );
     const exportUrl = `/reports/export/${activeReport}${exportParams.size ? `?${exportParams}` : ''}`;
+    const selectedOffice = filterOptions.offices.find((office) => String(office.id) === data.office);
+    const activeFilters = [
+        data.date_from ? `From: ${data.date_from}` : '',
+        data.date_to ? `To: ${data.date_to}` : '',
+        data.office ? `Office: ${selectedOffice?.label || data.office}` : '',
+        data.status ? `Status: ${headline(data.status)}` : '',
+        data.priority ? `Priority: ${headline(data.priority)}` : '',
+        data.transaction_type ? `Type: ${headline(data.transaction_type)}` : '',
+        data.lifecycle ? `Lifecycle: ${headline(data.lifecycle)}` : '',
+        data.classification ? `Class: ${headline(data.classification)}` : '',
+    ].filter(Boolean);
+    const hasCommonFilters = supports('office') || supports('status');
+    const hasAdvancedFilters = ['date_from', 'date_to', 'priority', 'transaction_type', 'lifecycle', 'classification'].some(supports);
 
     return <AppLayout title="Operational Reports">
         <div className="mx-auto max-w-7xl space-y-5">
@@ -97,27 +111,44 @@ export default function ReportsIndex({ catalog, activeReport, filters, filterOpt
                 </div>
             </section>
 
-            <form onSubmit={apply} className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+            <form onSubmit={apply} className="space-y-3">
                 <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
                     <div><h2 className="font-bold text-slate-950">{report.label}</h2><p className="mt-1 text-xs text-slate-500">{report.description}</p></div>
                     <a href={exportUrl} className="inline-flex w-fit items-center gap-2 rounded-xl bg-[#0b2852] px-4 py-2.5 text-xs font-semibold text-white"><Download size={15} /> Export CSV</a>
                 </div>
 
-                <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                    {supports('date_from') && <Field label="Date from" error={errors.date_from}><input type="date" value={data.date_from} onChange={(event) => setData('date_from', event.target.value)} className={fieldClass} /></Field>}
-                    {supports('date_to') && <Field label="Date to" error={errors.date_to}><input type="date" value={data.date_to} onChange={(event) => setData('date_to', event.target.value)} className={fieldClass} /></Field>}
-                    {supports('office') && <Field label="Office" error={errors.office}><select value={data.office} onChange={(event) => setData('office', event.target.value)} className={fieldClass}><option value="">All authorized offices</option>{filterOptions.offices.map((office) => <option key={office.id} value={office.id}>{office.label}</option>)}</select></Field>}
-                    {supports('status') && <Choice label="Status" value={data.status} values={filterOptions.statuses} onChange={(value) => setData('status', value)} error={errors.status} />}
-                    {supports('priority') && <Choice label="Priority" value={data.priority} values={filterOptions.priorities} onChange={(value) => setData('priority', value)} error={errors.priority} />}
-                    {supports('transaction_type') && <Choice label="Transaction type" value={data.transaction_type} values={filterOptions.transactionTypes} onChange={(value) => setData('transaction_type', value)} error={errors.transaction_type} />}
-                    {supports('lifecycle') && <Choice label="Lifecycle" value={data.lifecycle} values={filterOptions.lifecycles} onChange={(value) => setData('lifecycle', value)} error={errors.lifecycle} />}
-                    {supports('classification') && <Choice label="Classification" value={data.classification} values={filterOptions.classifications} onChange={(value) => setData('classification', value)} error={errors.classification} />}
-                </div>
-
-                <div className="mt-4 flex flex-wrap gap-2">
-                    <button disabled={processing} className="inline-flex items-center gap-2 rounded-xl bg-blue-700 px-4 py-2.5 text-xs font-semibold text-white disabled:opacity-60">{processing ? <LoaderCircle className="animate-spin" size={15} /> : <Search size={15} />} Apply</button>
-                    <button type="button" onClick={reset} className="inline-flex items-center gap-2 rounded-xl border border-slate-300 px-4 py-2.5 text-xs font-semibold text-slate-700"><RotateCcw size={14} /> Reset</button>
-                </div>
+                <ProgressiveFilterBar
+                    title="Report filters"
+                    activeFilters={activeFilters}
+                    primary={(
+                        <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5">
+                            <div className="text-[9px] font-bold uppercase tracking-[0.14em] text-blue-700 sm:text-[10px]">Current report scope</div>
+                            <div className="mt-0.5 text-[11px] font-semibold text-slate-800 sm:text-xs">{report.label}</div>
+                        </div>
+                    )}
+                    common={hasCommonFilters ? (
+                        <>
+                            {supports('office') && <Field label="Office" error={errors.office}><select value={data.office} onChange={(event) => setData('office', event.target.value)} className={fieldClass}><option value="">All authorized offices</option>{filterOptions.offices.map((office) => <option key={office.id} value={office.id}>{office.label}</option>)}</select></Field>}
+                            {supports('status') && <Choice label="Status" value={data.status} values={filterOptions.statuses} onChange={(value) => setData('status', value)} error={errors.status} />}
+                        </>
+                    ) : undefined}
+                    advanced={hasAdvancedFilters ? (
+                        <>
+                            {supports('date_from') && <Field label="Date from" error={errors.date_from}><input type="date" value={data.date_from} onChange={(event) => setData('date_from', event.target.value)} className={fieldClass} /></Field>}
+                            {supports('date_to') && <Field label="Date to" error={errors.date_to}><input type="date" value={data.date_to} onChange={(event) => setData('date_to', event.target.value)} className={fieldClass} /></Field>}
+                            {supports('priority') && <Choice label="Priority" value={data.priority} values={filterOptions.priorities} onChange={(value) => setData('priority', value)} error={errors.priority} />}
+                            {supports('transaction_type') && <Choice label="Transaction type" value={data.transaction_type} values={filterOptions.transactionTypes} onChange={(value) => setData('transaction_type', value)} error={errors.transaction_type} />}
+                            {supports('lifecycle') && <Choice label="Lifecycle" value={data.lifecycle} values={filterOptions.lifecycles} onChange={(value) => setData('lifecycle', value)} error={errors.lifecycle} />}
+                            {supports('classification') && <Choice label="Classification" value={data.classification} values={filterOptions.classifications} onChange={(value) => setData('classification', value)} error={errors.classification} />}
+                        </>
+                    ) : undefined}
+                    actions={(
+                        <>
+                            <button disabled={processing} className="inline-flex items-center gap-2 rounded-xl bg-blue-700 px-4 py-2.5 text-xs font-semibold text-white disabled:opacity-60">{processing ? <LoaderCircle className="animate-spin" size={15} /> : <Search size={15} />} Apply</button>
+                            <button type="button" onClick={reset} className="inline-flex items-center gap-2 rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-xs font-semibold text-slate-700"><RotateCcw size={14} /> Reset</button>
+                        </>
+                    )}
+                />
             </form>
 
             <section className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
@@ -141,7 +172,7 @@ function display(value: string | number | null | undefined) {
 }
 
 function Field({ label, error, children }: { label: string; error?: string; children: ReactNode }) {
-    return <label className="block text-xs font-semibold text-slate-600">{label}{children}{error && <span className="mt-1 block text-[10px] text-rose-700">{error}</span>}</label>;
+    return <label className="block min-w-40 text-xs font-semibold text-slate-600">{label}{children}{error && <span className="mt-1 block text-[10px] text-rose-700">{error}</span>}</label>;
 }
 
 function Choice({ label, value, values, onChange, error }: { label: string; value: string; values: string[]; onChange: (value: string) => void; error?: string }) {
