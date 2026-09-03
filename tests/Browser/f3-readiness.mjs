@@ -346,6 +346,28 @@ async function filterForm(page) {
   return button.locator('xpath=ancestor::form[1]');
 }
 
+async function controlByCaption(form, caption) {
+  const labels = form.locator('label');
+  const index = await labels.evaluateAll((nodes, wanted) => nodes.findIndex((label) => {
+    const normalize = (value) => String(value || '').replace(/\s+/g, ' ').trim();
+    const directText = normalize(Array.from(label.childNodes)
+      .filter((node) => node.nodeType === Node.TEXT_NODE)
+      .map((node) => node.textContent || '')
+      .join(' '));
+    const firstElement = label.firstElementChild;
+    const firstElementCaption = firstElement?.tagName === 'SPAN'
+      ? normalize(firstElement.textContent)
+      : '';
+    return directText === wanted || firstElementCaption === wanted;
+  }), caption);
+
+  if (index < 0) throw new Error(`Unable to locate filter label caption: ${caption}`);
+
+  const control = labels.nth(index).locator('input, select, textarea').first();
+  if (await control.count() !== 1) throw new Error(`Unable to locate filter control for caption: ${caption}`);
+  return control;
+}
+
 async function controlledPanel(page) {
   const button = filterButton(page);
   const id = await button.getAttribute('aria-controls');
@@ -399,7 +421,7 @@ async function selectFirstRealOption(locator, label) {
 }
 
 async function activateControl(form, spec) {
-  const control = form.getByLabel(spec.label, { exact: true });
+  const control = await controlByCaption(form, spec.label);
   await control.waitFor({ state: 'visible' });
   if (spec.type === 'select') {
     await selectFirstRealOption(control, spec.label);
@@ -473,7 +495,7 @@ async function verifyActiveFilterState(form, page, label, minimum = 1) {
 
 async function verifyResetState(form, target) {
   for (const check of target.resetChecks) {
-    const control = form.getByLabel(check.label, { exact: true });
+    const control = await controlByCaption(form, check.label);
     if (check.type === 'checkbox') {
       f3(`${target.key}: reset clears ${check.label}`, await control.isChecked() === check.value, `checked=${await control.isChecked()}`);
     } else {
@@ -512,7 +534,8 @@ async function verifyInitialProgressiveState(page, target, form) {
   f3(`${target.key}: Filters control exists`, await button.isVisible(), 'Filters button not visible');
   f3(`${target.key}: aria-expanded=false initially`, await button.getAttribute('aria-expanded') === 'false', `aria-expanded=${await button.getAttribute('aria-expanded')}`);
   f3(`${target.key}: advanced controls are hidden initially`, !(await root.isVisible()), `panelVisible=${await root.isVisible()}`);
-  f3(`${target.key}: advanced control is hidden initially`, !(await form.getByLabel(target.advancedLabel, { exact: true }).isVisible()), target.advancedLabel);
+  const advancedControl = await controlByCaption(form, target.advancedLabel);
+  f3(`${target.key}: advanced control is hidden initially`, !(await advancedControl.isVisible()), target.advancedLabel);
 }
 
 async function openDesktopFilters(page, target, form) {
@@ -523,7 +546,8 @@ async function openDesktopFilters(page, target, form) {
     return candidates.some((item) => item.getAttribute('aria-expanded') === 'true' && item.textContent?.trim()?.startsWith('Filters'));
   });
   await root.waitFor({ state: 'visible' });
-  f3(`${target.key}: Filters opens advanced controls`, await form.getByLabel(target.advancedLabel, { exact: true }).isVisible(), target.advancedLabel);
+  const advancedControl = await controlByCaption(form, target.advancedLabel);
+  f3(`${target.key}: Filters opens advanced controls`, await advancedControl.isVisible(), target.advancedLabel);
   const metrics = await root.evaluate((element) => ({
     position: getComputedStyle(element).position,
     display: getComputedStyle(element).display,
@@ -598,7 +622,8 @@ async function exerciseMobile(page, target) {
 
   await filterButton(page).click();
   await root.waitFor({ state: 'visible' });
-  f3(`${target.key}: mobile Filters opens advanced controls`, await form.getByLabel(target.advancedLabel, { exact: true }).isVisible(), target.advancedLabel);
+  const advancedControl = await controlByCaption(form, target.advancedLabel);
+  f3(`${target.key}: mobile Filters opens advanced controls`, await advancedControl.isVisible(), target.advancedLabel);
 
   const rootMetrics = await root.evaluate((element) => ({
     position: getComputedStyle(element).position,
