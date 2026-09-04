@@ -228,7 +228,14 @@ async function reports(page) {
 
   start=runtime.length; response=await page.goto(`${BASE}/reports?report=transaction-aging&date_from=2099-01-01&date_to=2099-01-02`);
   check('reports zero-result query loads',response?.status()===200,String(response?.status()));
-  const zero=page.getByRole('region',{name:'Transaction Aging results'}); check('reports zero-result state coherent',await zero.getByText('No authorized report results match these filters.',{exact:true}).isVisible()); await noOverflow(page,'reports zero result'); await noErrors('reports zero result',start);
+  const zero=page.getByRole('region',{name:'Transaction Aging results'});
+  await zero.waitFor({state:'visible'});
+  const zeroCount=zero.getByText('0 results',{exact:true});
+  const zeroState=zero.getByText('No authorized report results match these filters.',{exact:true});
+  await zeroCount.waitFor({state:'visible'});
+  await zeroState.waitFor({state:'visible'});
+  check('reports zero-result state coherent',await zeroCount.isVisible()&&await zeroState.isVisible(),`articles=${await zero.getByRole('article').count()}`);
+  await noOverflow(page,'reports zero result'); await noErrors('reports zero result',start);
 
   start=runtime.length; await page.setViewportSize({width:390,height:844}); response=await page.goto(populatedUrl);
   check('reports mobile loads',response?.status()===200,String(response?.status()));
