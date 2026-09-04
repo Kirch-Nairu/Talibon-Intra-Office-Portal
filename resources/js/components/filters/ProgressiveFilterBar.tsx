@@ -1,5 +1,5 @@
 import { SlidersHorizontal, X } from 'lucide-react';
-import { type ReactNode, useId, useState } from 'react';
+import { type ReactNode, useEffect, useId, useState } from 'react';
 
 type Props = {
     primary: ReactNode;
@@ -22,6 +22,15 @@ export default function ProgressiveFilterBar({
     const panelId = useId();
     const hasAdvanced = Boolean(advanced);
 
+    useEffect(() => {
+        if (!expanded) return;
+        const onKeyDown = (event: KeyboardEvent) => {
+            if (event.key === 'Escape') setExpanded(false);
+        };
+        window.addEventListener('keydown', onKeyDown);
+        return () => window.removeEventListener('keydown', onKeyDown);
+    }, [expanded]);
+
     return (
         <div className="rounded-2xl border border-slate-200 bg-white p-3 text-slate-900 shadow-sm sm:rounded-3xl sm:p-4">
             <div className="flex flex-col gap-3 lg:flex-row lg:items-end">
@@ -39,8 +48,9 @@ export default function ProgressiveFilterBar({
                             type="button"
                             aria-controls={panelId}
                             aria-expanded={expanded}
+                            aria-haspopup="dialog"
                             onClick={() => setExpanded((value) => !value)}
-                            className="inline-flex items-center gap-2 rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-[11px] font-bold text-slate-700 transition hover:border-blue-300 hover:bg-blue-50 sm:text-xs"
+                            className="inline-flex items-center gap-2 rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-[11px] font-bold text-slate-700 transition hover:border-blue-300 hover:bg-blue-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 sm:text-xs"
                         >
                             <SlidersHorizontal size={15} aria-hidden="true" />
                             Filters{activeFilters.length > 0 ? ` ${activeFilters.length}` : ''}
@@ -86,7 +96,7 @@ export default function ProgressiveFilterBar({
                             <button
                                 type="button"
                                 onClick={() => setExpanded(false)}
-                                className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-slate-300 text-slate-600"
+                                className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-slate-300 text-slate-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
                                 aria-label="Close filters"
                             >
                                 <X size={16} aria-hidden="true" />
