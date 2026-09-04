@@ -2,10 +2,10 @@ import { Building2, Landmark, ShieldCheck, UserRound } from 'lucide-react';
 import type { DashboardExperience } from './types';
 
 const profileCopy: Record<DashboardExperience['key'], string> = {
-    employee: 'Your assigned work, deadlines, correspondence, and recent activity in one focused view.',
-    department_head: 'Personal responsibilities and bounded office accountability, separated into clear operational scopes.',
-    executive_oversight: 'Authorized municipal aggregates, executive approvals, bottlenecks, and unresolved work without expanding correspondence access.',
-    system_administration: 'Identity, account, MFA, office digital identity, audit, and security posture for platform governance.',
+    employee: 'Assigned work, deadlines, correspondence, and recent activity prioritized for daily execution.',
+    department_head: 'Office workload, staff accountability, unresolved work, and personal responsibilities within your approved scope.',
+    executive_oversight: 'Municipal workload, bottlenecks, executive attention items, and completed work within existing executive visibility.',
+    system_administration: 'Account, MFA, office identity, security, and platform-governance status without widening municipal content access.',
 };
 
 const profileIcon = {
@@ -15,28 +15,35 @@ const profileIcon = {
     system_administration: ShieldCheck,
 };
 
+const scopeLabels: Record<keyof DashboardExperience['scopes'], string> = {
+    personal: 'Personal work',
+    office: 'Office accountability',
+    municipal: 'Municipal oversight',
+    system: 'System governance',
+};
+
 export default function DashboardHeader({ experience }: { experience: DashboardExperience }) {
     const Icon = profileIcon[experience.key];
-    const visibleScopes = Object.entries(experience.scopes).filter(([, visible]) => visible);
+    const visibleScopes = Object.entries(experience.scopes).filter(([, visible]) => visible) as Array<[keyof DashboardExperience['scopes'], boolean]>;
 
     return (
-        <header className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
-            <div className="grid gap-5 p-5 sm:p-7 lg:grid-cols-[1fr_auto] lg:items-center">
-                <div>
-                    <div className="inline-flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.18em] text-blue-700 sm:text-xs">
-                        <Icon size={16} aria-hidden="true" /> {experience.label}
+        <header className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition-colors dark:border-slate-700 dark:bg-[#142236] sm:rounded-3xl">
+            <div className="grid gap-4 p-4 sm:p-6 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end lg:gap-6">
+                <div className="min-w-0">
+                    <div className="inline-flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.18em] text-blue-700 dark:text-blue-300 sm:text-xs">
+                        <Icon size={15} aria-hidden="true" /> {experience.label}
                     </div>
-                    <h1 className="mt-2 text-2xl font-bold tracking-tight text-slate-950 sm:text-3xl">
+                    <h1 className="mt-1.5 break-words text-2xl font-bold tracking-tight text-slate-950 dark:text-slate-100 sm:text-3xl">
                         {experience.department.name}
                     </h1>
-                    <p className="mt-2 max-w-3xl text-[11px] leading-5 text-slate-500 sm:text-sm sm:leading-6">
+                    <p className="mt-1.5 max-w-3xl text-[11px] leading-5 text-slate-600 dark:text-slate-300 sm:text-sm sm:leading-6">
                         {profileCopy[experience.key]}
                     </p>
                 </div>
-                <div className="flex flex-wrap gap-2 lg:max-w-64 lg:justify-end">
+                <div className="flex flex-wrap gap-1.5 lg:max-w-sm lg:justify-end" aria-label="Dashboard visibility scopes">
                     {visibleScopes.map(([scope]) => (
-                        <span key={scope} className="rounded-full border border-blue-100 bg-blue-50 px-3 py-1.5 text-[9px] font-bold uppercase tracking-wide text-blue-800 sm:text-[10px]">
-                            {scope} scope
+                        <span key={scope} className="rounded-full border border-blue-100 bg-blue-50 px-2.5 py-1 text-[9px] font-bold uppercase tracking-wide text-blue-800 dark:border-blue-900 dark:bg-blue-950/40 dark:text-blue-200 sm:text-[10px]">
+                            {scopeLabels[scope]}
                         </span>
                     ))}
                 </div>
