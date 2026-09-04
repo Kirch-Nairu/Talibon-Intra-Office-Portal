@@ -134,6 +134,12 @@ jobs:
       - name: F5 records travel orders and reports browser acceptance
         run: node tests/Browser/f5-readiness.mjs
 
+      - name: Reset synthetic data for isolated F6 dashboard QA
+        run: php artisan migrate:fresh --seed --force
+
+      - name: F6 dashboard experience browser acceptance
+        run: node tests/Browser/f6-readiness.mjs
+
       - name: Upload sanitized QA evidence
         if: always()
         uses: actions/upload-artifact@v4
