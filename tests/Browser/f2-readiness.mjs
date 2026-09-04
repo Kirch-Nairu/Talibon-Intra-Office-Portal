@@ -16,9 +16,9 @@ const EXPECTED_F1_SCREENSHOTS = 7;
 
 const TARGETS = [
   { key: 'calendar', route: '/calendar', title: 'Events, deadlines & schedules', widthClass: 'max-w-6xl' },
-  { key: 'departments', route: '/departments', title: 'Office & Routing Directory', widthClass: 'max-w-7xl' },
+  { key: 'departments', route: '/departments', title: 'Municipal Offices', widthClass: 'max-w-7xl' },
   { key: 'employees', route: '/employees', title: 'Employee Directory', widthClass: 'max-w-7xl' },
-  { key: 'audit', route: '/audit', title: 'Audit & Security Events', widthClass: 'max-w-7xl' },
+  { key: 'audit', route: '/audit', title: 'Audit & Security', widthClass: 'max-w-7xl' },
 ];
 
 const EXPECTED_ADMIN_NAV = [
