@@ -56,7 +56,7 @@ class F5BrowserQaSeeder extends Seeder
                     'created_by_user_id' => $engineeringUser->id,
                     'assigned_to_user_id' => $engineeringUser->id,
                     'assigned_employee_id' => $engineeringEmployee->id,
-                    'status' => 'assigned',
+                    'status' => 'for_review',
                     'received_at' => CarbonImmutable::parse('2026-09-03T09:00:00+08:00'),
                     'due_at' => CarbonImmutable::parse('2026-09-10T17:00:00+08:00'),
                 ],
