@@ -209,7 +209,13 @@ async function reports(page) {
   check('reports detail action reachable',await seeded.getByRole('link',{name:/^Open Transaction Aging result /}).isVisible()); await articleFit(seeded,'reports desktop');
   const form=await formFor(page), statusControl=await controlByCaption(form,'Status'); const options=await statusControl.locator('option').evaluateAll(nodes=>nodes.map(node=>node.value));
   const status=options.includes('assigned')?'assigned':options.find(value=>value)||''; check('reports has selectable common status filter',Boolean(status),JSON.stringify(options)); await statusControl.selectOption(status);
-  await Promise.all([page.waitForURL(url=>url.pathname==='/reports'&&url.searchParams.get('report')==='transaction-aging'&&url.searchParams.has('status')),form.getByRole('button',{name:'Apply',exact:true}).click()]);
+  await Promise.all([
+    page.waitForFunction(expectedStatus => {
+      const url=new URL(window.location.href);
+      return url.pathname==='/reports'&&url.searchParams.get('report')==='transaction-aging'&&url.searchParams.get('status')===expectedStatus;
+    }, status),
+    form.getByRole('button',{name:'Apply',exact:true}).click(),
+  ]);
   await activeFiltersVisible(form,'reports');
   await Promise.all([
     page.waitForFunction(() => {
