@@ -211,7 +211,13 @@ async function reports(page) {
   const status=options.includes('assigned')?'assigned':options.find(value=>value)||''; check('reports has selectable common status filter',Boolean(status),JSON.stringify(options)); await statusControl.selectOption(status);
   await Promise.all([page.waitForURL(url=>url.pathname==='/reports'&&url.searchParams.get('report')==='transaction-aging'&&url.searchParams.has('status')),form.getByRole('button',{name:'Apply',exact:true}).click()]);
   await activeFiltersVisible(form,'reports');
-  await Promise.all([page.waitForURL(url=>url.pathname==='/reports'&&url.searchParams.get('report')==='transaction-aging'&&!url.searchParams.has('status')),form.getByRole('button',{name:'Reset',exact:true}).click()]);
+  await Promise.all([
+    page.waitForFunction(() => {
+      const url=new URL(window.location.href);
+      return url.pathname==='/reports'&&url.searchParams.get('report')==='transaction-aging'&&!url.searchParams.has('status');
+    }),
+    form.getByRole('button',{name:'Reset',exact:true}).click(),
+  ]);
   await page.waitForLoadState('networkidle'); await shot(page,'reports-desktop-populated.png'); await noOverflow(page,'reports desktop'); await noErrors('reports desktop',start);
 
   start=runtime.length; response=await page.goto(`${BASE}/reports?report=transaction-aging&date_from=2099-01-01&date_to=2099-01-02`);
