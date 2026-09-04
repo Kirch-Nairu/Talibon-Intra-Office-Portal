@@ -145,7 +145,7 @@ async function records(page) {
   const articles=registry.getByRole('article'); check('records populated results visible',await articles.count()>=2,`articles=${await articles.count()}`);
   const seeded=articles.filter({hasText:'TAL-F5-QA-REPORT-0001'}).first(); check('records deterministic transaction result visible',await seeded.count()===1);
   check('records reference/title hierarchy readable',await seeded.getByRole('link',{name:'TAL-F5-QA-REPORT-0001',exact:true}).isVisible()&&await seeded.locator('h2').isVisible());
-  check('records type and state readable',await seeded.getByText('Transaction',{exact:true}).isVisible()&&await seeded.getByText(/Assigned/i).first().isVisible());
+  check('records type and state readable',await seeded.getByText('Transaction',{exact:true}).isVisible()&&await seeded.getByText('For Review',{exact:true}).isVisible());
   check('records accountability readable',await seeded.getByText('Current office',{exact:true}).isVisible()&&await seeded.getByText('Responsible',{exact:true}).isVisible());
   check('records action reachable',await seeded.getByRole('link',{name:/^Open record /}).isVisible()); await articleFit(seeded,'records desktop');
   const form=await formFor(page), typeControl=await controlByCaption(form,'Record Type'); await typeControl.selectOption('travel_order');
