@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - KIRCH-PROTOTYPE-DEMO-READINESS-QA
+      - KIRCH-PROTOTYPE-FINAL-FRONTEND-READINESS-QA
   workflow_dispatch:
 
 permissions:
