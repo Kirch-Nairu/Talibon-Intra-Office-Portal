@@ -25,61 +25,80 @@ type Summary = {
     activeTransactions: number;
 };
 
-const officeTypeLabel = (value: string) => value.replace(/_/g, ' ');
+const officeTypeLabel = (value: string) => value.replace(/_/g, ' ').replace(/\b\w/g, letter => letter.toUpperCase());
 
 export default function Index({ departments, summary }: { departments: Office[]; summary: Summary }) {
     const executive = departments.filter((office) => office.branch === 'executive');
     const legislative = departments.filter((office) => office.branch === 'legislative');
 
     const officeCard = (office: Office) => (
-        <article key={office.id} className={`rounded-3xl border bg-white p-6 shadow-sm ${office.is_executive ? 'border-blue-200 ring-1 ring-blue-100' : office.is_legislative ? 'border-indigo-200' : 'border-slate-200'}`}>
-            <div className="flex items-start justify-between gap-4">
-                <div className={`flex h-11 w-11 items-center justify-center rounded-2xl ${office.is_executive ? 'bg-blue-900 text-white' : office.is_legislative ? 'bg-indigo-50 text-indigo-800' : 'bg-slate-100 text-slate-700'}`}>
-                    {office.is_executive ? <Crown size={20} /> : office.is_legislative ? <Gavel size={20} /> : <Building2 size={20} />}
+        <article key={office.id} className="min-w-0 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
+            <div className="flex items-start gap-3">
+                <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${office.is_executive ? 'bg-blue-900 text-white' : office.is_legislative ? 'bg-indigo-50 text-indigo-800' : 'bg-slate-100 text-slate-700'}`}>
+                    {office.is_executive ? <Crown size={17} aria-hidden="true" /> : office.is_legislative ? <Gavel size={17} aria-hidden="true" /> : <Building2 size={17} aria-hidden="true" />}
                 </div>
-                <div className="text-right">
-                    <span className="rounded-full bg-slate-100 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-slate-600">{office.code}</span>
-                    <div className="mt-2 text-[10px] font-semibold uppercase tracking-wide text-slate-400">{officeTypeLabel(office.office_type)}</div>
+                <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center gap-2">
+                        <span className="rounded-md bg-slate-100 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide text-slate-600">{office.code}</span>
+                        <span className="text-[9px] font-semibold uppercase tracking-wide text-slate-400">{officeTypeLabel(office.office_type)}</span>
+                    </div>
+                    <h2 className="mt-2 break-words text-sm font-bold leading-5 text-slate-950 sm:text-base">{office.name}</h2>
+                    {office.short_name && office.short_name !== office.name ? <div className="mt-0.5 text-[10px] text-slate-500 sm:text-xs">{office.short_name}</div> : null}
                 </div>
             </div>
-            <h2 className="mt-5 text-lg font-bold leading-6 text-slate-950">{office.name}</h2>
-            <div className="mt-5 grid grid-cols-2 gap-3">
-                <div className="rounded-xl bg-slate-50 p-3"><div className="text-xl font-bold text-slate-950">{office.active_employees_count}</div><div className="text-xs text-slate-500">Employees</div></div>
-                <div className="rounded-xl bg-slate-50 p-3"><div className="text-xl font-bold text-slate-950">{office.active_transactions_count}</div><div className="text-xs text-slate-500">Active Work</div></div>
-            </div>
-            {office.is_executive && <div className="mt-4 rounded-xl bg-blue-50 px-3 py-2 text-xs font-semibold text-blue-800">Executive review and decision authority</div>}
-            {office.is_legislative && <div className="mt-4 rounded-xl bg-indigo-50 px-3 py-2 text-xs font-semibold text-indigo-800">Legislative branch routing workspace</div>}
+            <dl className="mt-4 grid grid-cols-2 gap-2 border-t border-slate-100 pt-3">
+                <div><dt className="text-[9px] font-bold uppercase tracking-wide text-slate-400">Active employees</dt><dd className="mt-1 text-lg font-bold text-slate-950">{office.active_employees_count}</dd></div>
+                <div><dt className="text-[9px] font-bold uppercase tracking-wide text-slate-400">Active work</dt><dd className="mt-1 text-lg font-bold text-slate-950">{office.active_transactions_count}</dd></div>
+            </dl>
         </article>
     );
 
-    return <AppLayout title="Departments">
+    const summaryItems = [
+        { label: 'Municipal offices', value: summary.offices, icon: Network },
+        { label: 'Executive / administrative', value: summary.executiveOffices, icon: Crown },
+        { label: 'Legislative offices', value: summary.legislativeOffices, icon: Gavel },
+        { label: 'Active employees', value: summary.employees, icon: Users },
+        { label: 'Active routed work', value: summary.activeTransactions, icon: Building2 },
+    ];
+
+    return <AppLayout title="Municipal Offices">
         <PageFrame>
             <PageHeader
-                eyebrow="Phase 1 municipal organization"
-                title="Office & Routing Directory"
-                description="The existing department identity remains the compatibility anchor while Phase 1 adds executive and legislative branch metadata, office classifications, ordering, and explicit routability."
+                eyebrow="Municipal operating structure"
+                title="Municipal Offices"
+                description="Directory of active municipal offices, branch placement, staffing, and current routed workload used across the intra-office portal."
                 icon={Building2}
             />
 
-            <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
-                <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"><Network className="text-blue-800" size={20} /><div className="mt-4 text-3xl font-bold text-slate-950">{summary.offices}</div><div className="text-sm text-slate-500">routable nodes</div></div>
-                <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"><Crown className="text-blue-800" size={20} /><div className="mt-4 text-3xl font-bold text-slate-950">{summary.executiveOffices}</div><div className="text-sm text-slate-500">executive / admin</div></div>
-                <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"><Gavel className="text-indigo-700" size={20} /><div className="mt-4 text-3xl font-bold text-slate-950">{summary.legislativeOffices}</div><div className="text-sm text-slate-500">legislative nodes</div></div>
-                <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"><Users className="text-blue-800" size={20} /><div className="mt-4 text-3xl font-bold text-slate-950">{summary.employees}</div><div className="text-sm text-slate-500">active employees</div></div>
-                <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"><Building2 className="text-blue-800" size={20} /><div className="mt-4 text-3xl font-bold text-slate-950">{summary.activeTransactions}</div><div className="text-sm text-slate-500">active routed work</div></div>
+            <section aria-label="Municipal office summary" className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5">
+                {summaryItems.map(({ label, value, icon: Icon }) => (
+                    <div key={label} className="rounded-xl border border-slate-200 bg-white p-3 shadow-sm sm:rounded-2xl sm:p-4">
+                        <Icon className="text-blue-800" size={17} aria-hidden="true" />
+                        <div className="mt-2 text-xl font-bold text-slate-950 sm:text-2xl">{value}</div>
+                        <div className="mt-0.5 text-[9px] font-semibold leading-4 text-slate-500 sm:text-[10px]">{label}</div>
+                    </div>
+                ))}
             </section>
 
-            <section className="space-y-4">
-                <div><div className="text-xs font-bold uppercase tracking-[0.16em] text-blue-700">Executive / Administrative</div><h2 className="mt-1 text-xl font-bold text-slate-950">Municipal offices and functions</h2></div>
-                <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">{executive.map(officeCard)}</div>
+            <section className="space-y-3" aria-labelledby="executive-offices-heading">
+                <div>
+                    <div className="text-[10px] font-bold uppercase tracking-[0.16em] text-blue-700">Executive and administrative branch</div>
+                    <h2 id="executive-offices-heading" className="mt-1 text-lg font-bold text-slate-950">Offices supporting municipal operations</h2>
+                </div>
+                <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">{executive.map(officeCard)}</div>
             </section>
 
-            <section className="space-y-4">
-                <div><div className="text-xs font-bold uppercase tracking-[0.16em] text-indigo-700">Legislative Branch</div><h2 className="mt-1 text-xl font-bold text-slate-950">Vice Mayor, Sangguniang Bayan, and SB Secretary</h2></div>
-                <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">{legislative.map(officeCard)}</div>
+            <section className="space-y-3" aria-labelledby="legislative-offices-heading">
+                <div>
+                    <div className="text-[10px] font-bold uppercase tracking-[0.16em] text-indigo-700">Legislative branch</div>
+                    <h2 id="legislative-offices-heading" className="mt-1 text-lg font-bold text-slate-950">Vice Mayor, Sangguniang Bayan, and legislative support</h2>
+                </div>
+                <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">{legislative.map(officeCard)}</div>
             </section>
 
-            <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm leading-6 text-amber-900"><strong>Phase 1 routing baseline:</strong> 33 internal routing nodes are configured for implementation. Parent hierarchy, aliases, acting assignments, and any additional municipal units remain subject to formal organizational-chart and workflow validation.</div>
+            <div className="rounded-xl border border-slate-200 bg-white px-4 py-3 text-[11px] leading-5 text-slate-600 sm:text-xs">
+                Office names, branch placement, and routing availability reflect the municipality structure currently configured for this portal.
+            </div>
         </PageFrame>
     </AppLayout>;
 }
