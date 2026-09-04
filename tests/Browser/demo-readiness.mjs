@@ -726,8 +726,8 @@ async function main() {
       await page.goBack({ waitUntil: 'domcontentloaded' }).catch(() => null);
       record('system_admin: browser back does not replay one-time recovery code', !(await text(page)).includes(recovery), 'recovery code replayed', 'P0');
       checkpoint('admin workspace', page);
-      await go(page, '/admin', { has: 'System Administration', role: 'system_admin' });
-      await go(page, '/departments', { has: 'Office & Routing Directory', role: 'system_admin' });
+      await go(page, '/admin', { has: 'Accounts & Access', role: 'system_admin' });
+      await go(page, '/departments', { has: 'Municipal Offices', role: 'system_admin' });
       await deny(page, '/travel-orders/create', 'system_admin');
       await responsive(page, '/admin', 'system_admin', 'admin workspace');
       await logout(page);
@@ -862,7 +862,7 @@ async function main() {
       await verifyEmployeeMobileDrawer(page, employeeContract);
       await go(page, '/transactions', { role: 'employee', label: 'personal My Work' });
       await deny(page, '/transactions?view=office_queue', 'employee', 'Department Head work view');
-      await go(page, '/departments', { has: 'Office & Routing Directory', role: 'employee' });
+      await go(page, '/departments', { has: 'Municipal Offices', role: 'employee' });
       await deny(page, '/admin', 'employee');
       await go(page, paths.mpdo, { has: orders.mpdo.ref, role: 'employee', label: 'self Travel Order' });
       await deny(page, paths.eng, 'employee', 'coworker Travel Order');
