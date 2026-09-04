@@ -107,11 +107,11 @@ export default function ReportsIndex({ catalog, activeReport, filters, filterOpt
         <div className="mx-auto max-w-7xl space-y-4 sm:space-y-6">
             <header className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
                 <div>
-                    <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.18em] text-blue-700 sm:text-xs"><FileBarChart size={15} /> Municipal operational reporting</div>
-                    <h1 className="mt-1.5 text-2xl font-bold text-slate-950 sm:text-3xl">Operational Reports</h1>
-                    <p className="mt-1.5 max-w-3xl text-[11px] leading-5 text-slate-500 sm:text-sm">Permission-scoped operational evidence from current transactions and incoming correspondence.</p>
+                    <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.18em] text-blue-700 dark:text-blue-300 sm:text-xs"><FileBarChart size={15} /> Municipal operational reporting</div>
+                    <h1 className="mt-1.5 text-2xl font-bold text-slate-950 dark:text-white sm:text-3xl">Operational Reports</h1>
+                    <p className="mt-1.5 max-w-3xl text-[11px] leading-5 text-slate-500 dark:text-slate-300 sm:text-sm">Permission-scoped operational evidence from current transactions and incoming correspondence.</p>
                 </div>
-                <label className="block min-w-64 text-[10px] font-bold uppercase tracking-wide text-slate-500 sm:text-xs">Report
+                <label className="block min-w-64 text-[10px] font-bold uppercase tracking-wide text-slate-500 dark:text-slate-300 sm:text-xs">Report
                     <select value={activeReport} onChange={(event) => selectReport(event.target.value)} className="mt-1.5 w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm normal-case tracking-normal text-slate-900">
                         {catalog.map((item) => <option key={item.key} value={item.key}>{item.label}</option>)}
                     </select>
@@ -120,7 +120,7 @@ export default function ReportsIndex({ catalog, activeReport, filters, filterOpt
 
             <form onSubmit={apply} className="space-y-3">
                 <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
-                    <div><h2 className="font-bold text-slate-950">{report.label}</h2><p className="mt-1 max-w-3xl text-xs leading-5 text-slate-500">{report.description}</p></div>
+                    <div><h2 className="font-bold text-slate-950 dark:text-white">{report.label}</h2><p className="mt-1 max-w-3xl text-xs leading-5 text-slate-500 dark:text-slate-300">{report.description}</p></div>
                     <a href={exportUrl} className="inline-flex w-fit items-center gap-2 rounded-xl bg-[#0b2852] px-4 py-2.5 text-xs font-semibold text-white"><Download size={15} /> Export CSV</a>
                 </div>
 
