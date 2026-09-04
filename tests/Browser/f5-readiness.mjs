@@ -154,7 +154,7 @@ async function records(page) {
   await Promise.all([page.waitForURL(url=>url.pathname==='/records'&&!url.searchParams.has('record_type')),form.getByRole('button',{name:'Clear records filters'}).click()]);
   await shot(page,'records-desktop-light.png'); await noOverflow(page,'records desktop'); await noErrors('records desktop',start);
 
-  start=runtime.length; await page.setViewportSize({width:390,height:844}); response=await page.goto(`${BASE}/records`); await appearance(page,'Light','light');
+  start=runtime.length; await page.setViewportSize({width:390,height:844}); response=await page.goto(`${BASE}/records`);
   check('records mobile loads',response?.status()===200,String(response?.status()));
   const mobileRegistry=page.getByRole('region',{name:'Records registry'}), mobile=mobileRegistry.getByRole('article').filter({hasText:'TAL-F5-QA-REPORT-0001'}).first();
   check('records mobile populated hierarchy remains visible',await mobile.count()===1&&await mobile.locator('h2').isVisible());
@@ -183,7 +183,7 @@ async function travelOrders(page) {
   await Promise.all([page.waitForURL(url=>url.pathname==='/travel-orders'&&!url.searchParams.has('status')),form.getByRole('button',{name:'Clear Travel Order filters'}).click()]);
   await shot(page,'travel-orders-desktop-light.png'); await noOverflow(page,'travel-orders desktop'); await noErrors('travel-orders desktop',start);
 
-  start=runtime.length; await page.setViewportSize({width:390,height:844}); response=await page.goto(`${BASE}/travel-orders`); await appearance(page,'Light','light');
+  start=runtime.length; await page.setViewportSize({width:390,height:844}); response=await page.goto(`${BASE}/travel-orders`);
   check('travel-orders mobile loads',response?.status()===200,String(response?.status()));
   const mobile=page.getByRole('region',{name:'Approved travel order registry'}).getByRole('article').filter({hasText:'TAL-TO-F5-0001'}).first();
   check('travel-orders mobile populated hierarchy remains visible',await mobile.count()===1&&await mobile.locator('h2').isVisible());
@@ -218,7 +218,7 @@ async function reports(page) {
   check('reports zero-result query loads',response?.status()===200,String(response?.status()));
   const zero=page.getByRole('region',{name:'Transaction Aging results'}); check('reports zero-result state coherent',await zero.getByText('No authorized report results match these filters.',{exact:true}).isVisible()); await noOverflow(page,'reports zero result'); await noErrors('reports zero result',start);
 
-  start=runtime.length; await page.setViewportSize({width:390,height:844}); response=await page.goto(populatedUrl); await appearance(page,'Light','light');
+  start=runtime.length; await page.setViewportSize({width:390,height:844}); response=await page.goto(populatedUrl);
   check('reports mobile loads',response?.status()===200,String(response?.status()));
   const mobileResults=page.getByRole('region',{name:'Transaction Aging results'}), mobile=mobileResults.getByRole('article').filter({hasText:'TAL-F5-QA-REPORT-0001'}).first();
   check('reports mobile representative result remains visible',await mobile.count()===1);
