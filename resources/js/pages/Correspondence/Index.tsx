@@ -107,7 +107,7 @@ export default function CorrespondenceIndex({ records, filters, filterOptions, w
                     description={`Review incoming correspondence visible to ${workspace.departmentName}, its current routing position, responsibility, and whether action is required.`}
                     icon={Inbox}
                     aside={(
-                        <div className="border border-slate-200 bg-slate-50 px-3 py-2 text-[10px] text-slate-600 dark:border-slate-600 dark:bg-[#0f1c2e] dark:text-slate-300 sm:text-xs">
+                        <div className="border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-600 dark:border-slate-600 dark:bg-[#0f1c2e] dark:text-slate-300 sm:text-xs">
                             <span className="font-semibold text-slate-900 dark:text-slate-100">{records.total}</span> visible record{records.total === 1 ? '' : 's'}
                         </div>
                     )}
@@ -119,42 +119,42 @@ export default function CorrespondenceIndex({ records, filters, filterOptions, w
                         activeFilters={activeFilters}
                         primary={(
                             <label className="block">
-                                <span className="mb-1 block text-[9px] font-bold uppercase tracking-wide text-slate-400 sm:text-[10px]">Search correspondence</span>
+                                <span className="mb-1 block text-xs font-bold uppercase tracking-wide text-slate-400 sm:text-xs">Search correspondence</span>
                                 <div className="relative"><Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={15} aria-hidden="true" /><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Reference, sender, subject…" className="w-full rounded-xl border border-slate-300 bg-white py-2.5 pl-9 pr-3 text-[12px] text-slate-900 outline-none focus:border-blue-700 focus:ring-2 focus:ring-blue-100 sm:text-sm" /></div>
                             </label>
                         )}
                         common={(
                             <>
-                                <label className="block lg:min-w-44"><span className="mb-1 block text-[9px] font-bold uppercase tracking-wide text-slate-400 sm:text-[10px]">Lifecycle</span><select value={lifecycle} onChange={(event) => setLifecycle(event.target.value)} className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-[12px] text-slate-900 sm:text-sm"><option value="">All visible states</option>{filterOptions.lifecycles.map((state) => <option key={state} value={state}>{humanize(state)}</option>)}</select></label>
-                                <label className={`flex min-h-10 items-center gap-2 rounded-xl border px-3 py-2.5 text-[11px] font-semibold transition sm:text-xs ${assignedToMe ? 'border-blue-200 bg-blue-50 text-blue-800' : 'border-slate-300 bg-white text-slate-700'}`}><input type="checkbox" checked={assignedToMe} onChange={(event) => setAssignedToMe(event.target.checked)} className="rounded border-slate-300" /> Assigned to me</label>
-                                <label className={`flex min-h-10 items-center gap-2 rounded-xl border px-3 py-2.5 text-[11px] font-semibold transition sm:text-xs ${actionRequired ? 'border-amber-200 bg-amber-50 text-amber-800' : 'border-slate-300 bg-white text-slate-700'}`}><input type="checkbox" checked={actionRequired} onChange={(event) => setActionRequired(event.target.checked)} className="rounded border-slate-300" /> Action required</label>
+                                <label className="block lg:min-w-44"><span className="mb-1 block text-xs font-bold uppercase tracking-wide text-slate-400 sm:text-xs">Lifecycle</span><select value={lifecycle} onChange={(event) => setLifecycle(event.target.value)} className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-[12px] text-slate-900 sm:text-sm"><option value="">All visible states</option>{filterOptions.lifecycles.map((state) => <option key={state} value={state}>{humanize(state)}</option>)}</select></label>
+                                <label className={`flex min-h-10 items-center gap-2 rounded-xl border px-3 py-2.5 text-[13px] font-semibold transition sm:text-xs ${assignedToMe ? 'border-blue-200 bg-blue-50 text-blue-800' : 'border-slate-300 bg-white text-slate-700'}`}><input type="checkbox" checked={assignedToMe} onChange={(event) => setAssignedToMe(event.target.checked)} className="rounded border-slate-300" /> Assigned to me</label>
+                                <label className={`flex min-h-10 items-center gap-2 rounded-xl border px-3 py-2.5 text-[13px] font-semibold transition sm:text-xs ${actionRequired ? 'border-amber-200 bg-amber-50 text-amber-800' : 'border-slate-300 bg-white text-slate-700'}`}><input type="checkbox" checked={actionRequired} onChange={(event) => setActionRequired(event.target.checked)} className="rounded border-slate-300" /> Action required</label>
                             </>
                         )}
                         advanced={(
                             <>
-                                {filterOptions.classifications.length > 0 && <label className="block text-[10px] font-semibold text-slate-600 sm:text-xs">Classification<select value={classification} onChange={(event) => setClassification(event.target.value)} className="mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-[12px] text-slate-900 sm:text-sm"><option value="">All authorized classifications</option>{filterOptions.classifications.map((value) => <option key={value} value={value}>{humanize(value)}</option>)}</select></label>}
-                                <label className="block text-[10px] font-semibold text-slate-600 sm:text-xs">Current office<select value={officeId} onChange={(event) => setOfficeId(event.target.value)} className="mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-[12px] text-slate-900 sm:text-sm"><option value="">All visible offices</option>{filterOptions.offices.map((office) => <option key={office.id} value={office.id}>{office.short_name || office.name}</option>)}</select></label>
-                                <label className="block text-[10px] font-semibold text-slate-600 sm:text-xs">Aging<select value={aging} onChange={(event) => setAging(event.target.value)} className="mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-[12px] text-slate-900 sm:text-sm"><option value="">All</option><option value="overdue">Overdue workflow only</option></select></label>
+                                {filterOptions.classifications.length > 0 && <label className="block text-xs font-semibold text-slate-600 sm:text-xs">Classification<select value={classification} onChange={(event) => setClassification(event.target.value)} className="mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-[12px] text-slate-900 sm:text-sm"><option value="">All authorized classifications</option>{filterOptions.classifications.map((value) => <option key={value} value={value}>{humanize(value)}</option>)}</select></label>}
+                                <label className="block text-xs font-semibold text-slate-600 sm:text-xs">Current office<select value={officeId} onChange={(event) => setOfficeId(event.target.value)} className="mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-[12px] text-slate-900 sm:text-sm"><option value="">All visible offices</option>{filterOptions.offices.map((office) => <option key={office.id} value={office.id}>{office.short_name || office.name}</option>)}</select></label>
+                                <label className="block text-xs font-semibold text-slate-600 sm:text-xs">Aging<select value={aging} onChange={(event) => setAging(event.target.value)} className="mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-[12px] text-slate-900 sm:text-sm"><option value="">All</option><option value="overdue">Overdue workflow only</option></select></label>
                             </>
                         )}
                         actions={(
                             <>
-                                <button type="button" onClick={clear} className="inline-flex items-center gap-1.5 rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-[11px] font-semibold text-slate-700 sm:text-xs"><X size={14} aria-hidden="true" /> Clear</button>
-                                <button className="rounded-xl bg-[#0b2852] px-4 py-2.5 text-[11px] font-semibold text-white sm:text-xs">Apply filters</button>
+                                <button type="button" onClick={clear} className="inline-flex items-center gap-1.5 rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-[13px] font-semibold text-slate-700 sm:text-xs"><X size={14} aria-hidden="true" /> Clear</button>
+                                <button className="rounded-xl bg-[#0b2852] px-4 py-2.5 text-[13px] font-semibold text-white sm:text-xs">Apply filters</button>
                             </>
                         )}
                     />
                 </form>
 
-                <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white text-slate-900 shadow-sm" aria-label="Correspondence inbox">
+                <section className="overflow-hidden rounded-xl border border-slate-200 bg-white text-slate-900 " aria-label="Correspondence inbox">
                     <div className="flex flex-col gap-1 border-b border-slate-100 bg-slate-50 px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-5">
-                        <div className="text-[11px] font-bold text-slate-900 sm:text-sm">Current correspondence</div>
-                        <div className="text-[9px] text-slate-500 sm:text-xs">
+                        <div className="text-[13px] font-bold text-slate-900 sm:text-sm">Current correspondence</div>
+                        <div className="text-xs text-slate-500 sm:text-xs">
                             {records.total === 0 ? 'No matching records' : `Showing ${records.from || 1}–${records.to || records.data.length} of ${records.total}`}
                         </div>
                     </div>
 
-                    <div className="hidden grid-cols-[minmax(290px,1.45fr)_180px_minmax(220px,1fr)_170px_112px] gap-4 border-b border-slate-100 px-5 py-3 text-[9px] font-bold uppercase tracking-wide text-slate-500 xl:grid">
+                    <div className="hidden grid-cols-[minmax(290px,1.45fr)_180px_minmax(220px,1fr)_170px_112px] gap-4 border-b border-slate-100 px-5 py-3 text-xs font-bold uppercase tracking-wide text-slate-500 xl:grid">
                         <div>Subject / Reference</div><div>Sender / Received</div><div>Routing / Responsibility</div><div>State</div><div />
                     </div>
 
@@ -164,47 +164,47 @@ export default function CorrespondenceIndex({ records, filters, filterOptions, w
                                 <div className="grid min-w-0 gap-4 xl:grid-cols-[minmax(290px,1.45fr)_180px_minmax(220px,1fr)_170px_112px] xl:items-center">
                                     <div className="min-w-0">
                                         <div className="flex flex-wrap items-center gap-1.5">
-                                            <span className="text-[10px] font-bold text-blue-700 sm:text-xs">{record.reference}</span>
-                                            {record.workflowReference ? <span className="border-l border-slate-300 pl-1.5 text-[9px] text-slate-500">Route {record.workflowReference}</span> : null}
+                                            <span className="text-xs font-bold text-blue-700 sm:text-xs">{record.reference}</span>
+                                            {record.workflowReference ? <span className="border-l border-slate-300 pl-1.5 text-xs text-slate-500">Route {record.workflowReference}</span> : null}
                                         </div>
                                         <h2 className="mt-1 text-[13px] font-semibold leading-5 text-slate-950 sm:text-sm">{record.subject}</h2>
-                                        {record.classification ? <div className="mt-1.5 text-[9px] font-semibold uppercase tracking-wide text-slate-500">{humanize(record.classification)}</div> : null}
+                                        {record.classification ? <div className="mt-1.5 text-xs font-semibold uppercase tracking-wide text-slate-500">{humanize(record.classification)}</div> : null}
                                     </div>
 
                                     <div className="min-w-0">
-                                        <div className="text-[9px] font-bold uppercase tracking-wide text-slate-400 xl:hidden">Sender and receipt</div>
-                                        <div className="mt-1 text-[10px] font-semibold leading-4 text-slate-800 sm:text-xs">{record.sender.name}</div>
-                                        <div className="mt-0.5 text-[9px] leading-4 text-slate-500">{record.sender.organization || humanize(record.sender.source)}{record.sender.channel ? ` · ${humanize(record.sender.channel)}` : ''}</div>
-                                        <div className="mt-1.5 flex items-start gap-1.5 text-[9px] leading-4 text-slate-500">
+                                        <div className="text-xs font-bold uppercase tracking-wide text-slate-400 xl:hidden">Sender and receipt</div>
+                                        <div className="mt-1 text-xs font-semibold leading-4 text-slate-800 sm:text-xs">{record.sender.name}</div>
+                                        <div className="mt-0.5 text-xs leading-4 text-slate-500">{record.sender.organization || humanize(record.sender.source)}{record.sender.channel ? ` · ${humanize(record.sender.channel)}` : ''}</div>
+                                        <div className="mt-1.5 flex items-start gap-1.5 text-xs leading-4 text-slate-500">
                                             <Clock3 size={11} className="mt-0.5 shrink-0" aria-hidden="true" />
                                             <span>{formatDate(record.receivedAt)} · {record.age} ago</span>
                                         </div>
                                     </div>
 
                                     <div className="border-l-2 border-slate-200 bg-slate-50 px-3 py-2.5">
-                                        <div className="text-[8px] font-bold uppercase tracking-[0.14em] text-slate-400">Current responsibility</div>
-                                        <div className="mt-1 flex items-start gap-1.5 text-[10px] font-semibold leading-4 text-slate-800 sm:text-xs">
+                                        <div className="text-xs font-bold uppercase tracking-[0.14em] text-slate-400">Current responsibility</div>
+                                        <div className="mt-1 flex items-start gap-1.5 text-xs font-semibold leading-4 text-slate-800 sm:text-xs">
                                             <Building2 size={12} className="mt-0.5 shrink-0 text-slate-400" aria-hidden="true" />
                                             <span>{record.currentOffice?.shortName || record.currentOffice?.name || 'Unregistered intake'}</span>
                                         </div>
-                                        <div className="mt-1.5 flex items-start gap-1.5 text-[9px] leading-4 text-slate-600 sm:text-[10px]">
+                                        <div className="mt-1.5 flex items-start gap-1.5 text-xs leading-4 text-slate-600 sm:text-xs">
                                             <UserRound size={11} className="mt-0.5 shrink-0 text-slate-400" aria-hidden="true" />
                                             <span>{record.assignedEmployee?.name || 'Unassigned'}{record.assignedEmployee?.position ? ` · ${record.assignedEmployee.position}` : ''}</span>
                                         </div>
                                     </div>
 
                                     <div>
-                                        <div className="text-[9px] font-bold uppercase tracking-wide text-slate-400 xl:hidden">State</div>
+                                        <div className="text-xs font-bold uppercase tracking-wide text-slate-400 xl:hidden">State</div>
                                         <div className="mt-1 flex flex-wrap gap-1.5">
-                                            <span className="border border-slate-200 bg-slate-50 px-2 py-1 text-[8px] font-bold uppercase text-slate-700 sm:text-[9px]">{humanize(record.lifecycleState)}</span>
-                                            {record.actionRequired ? <span className="border border-amber-200 bg-amber-50 px-2 py-1 text-[8px] font-bold uppercase text-amber-800 sm:text-[9px]">Action required</span> : <span className="border border-slate-200 bg-white px-2 py-1 text-[8px] font-semibold uppercase text-slate-500 sm:text-[9px]">For information</span>}
-                                            {record.overdue ? <span className="inline-flex items-center gap-1 border border-rose-200 bg-rose-50 px-2 py-1 text-[8px] font-bold uppercase text-rose-800 sm:text-[9px]"><AlertTriangle size={10} aria-hidden="true" /> Overdue</span> : null}
+                                            <span className="border border-slate-200 bg-slate-50 px-2 py-1 text-xs font-bold uppercase text-slate-700 sm:text-xs">{humanize(record.lifecycleState)}</span>
+                                            {record.actionRequired ? <span className="border border-amber-200 bg-amber-50 px-2 py-1 text-xs font-bold uppercase text-amber-800 sm:text-xs">Action required</span> : <span className="border border-slate-200 bg-white px-2 py-1 text-xs font-semibold uppercase text-slate-500 sm:text-xs">For information</span>}
+                                            {record.overdue ? <span className="inline-flex items-center gap-1 border border-rose-200 bg-rose-50 px-2 py-1 text-xs font-bold uppercase text-rose-800 sm:text-xs"><AlertTriangle size={10} aria-hidden="true" /> Overdue</span> : null}
                                         </div>
                                     </div>
 
                                     <Link
                                         href={`/correspondence/${record.publicId}/workspace`}
-                                        className="inline-flex min-h-10 items-center justify-center gap-1.5 border border-slate-300 bg-white px-3 py-2 text-[10px] font-bold text-blue-800 transition hover:bg-blue-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-700 focus-visible:ring-offset-2 sm:text-xs"
+                                        className="inline-flex min-h-10 items-center justify-center gap-1.5 border border-slate-300 bg-white px-3 py-2 text-xs font-bold text-blue-800 transition hover:bg-blue-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-700 focus-visible:ring-offset-2 sm:text-xs"
                                         aria-label={`Open correspondence ${record.reference}`}
                                     >
                                         Open <ArrowRight size={13} aria-hidden="true" />
@@ -224,7 +224,7 @@ export default function CorrespondenceIndex({ records, filters, filterOptions, w
                 </section>
 
                 {records.last_page > 1 ? (
-                    <div className="flex flex-col gap-2 rounded-xl border border-slate-200 bg-white px-4 py-3 text-[10px] text-slate-600 sm:flex-row sm:items-center sm:justify-between sm:text-xs">
+                    <div className="flex flex-col gap-2 rounded-xl border border-slate-200 bg-white px-4 py-3 text-xs text-slate-600 sm:flex-row sm:items-center sm:justify-between sm:text-xs">
                         <div>Showing {records.from ?? 0}–{records.to ?? 0} of {records.total} authorized records · page {records.current_page} of {records.last_page}</div>
                         <div className="flex gap-2">
                             <button type="button" disabled={!records.prev_page_url} onClick={() => records.prev_page_url && router.visit(records.prev_page_url, { preserveScroll: true })} className="min-h-9 border border-slate-300 bg-white px-3 py-1.5 font-semibold text-slate-700 disabled:opacity-40">Previous</button>

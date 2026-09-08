@@ -956,3 +956,11 @@ This append records the completed Approved Travel Orders wave. Earlier entries t
 - Schema/migrations: none. Existing authorization, data contracts and workflows retained.
 - Verification: Source diff reviewed; compilation and visual verification pending the next checkpoint.
 - Gaps/next: approved municipal assets and consolidated real-role QA remain pending; continue the visual polish pass.
+
+### 2026-09-08 — Core Portal frontend polish: fix: normalize work queue and correspondence presentation
+
+- Intent: Normalize existing Core Portal lists to readable metadata and restrained card radius; remove repeated surface shadows. Existing mobile list transformations, filters and actions are unchanged.
+- Files: resources/js/pages/Transactions/Index.tsx, resources/js/pages/Correspondence/Index.tsx, resources/js/components/work-queue/StaffWorkloadTable.tsx, resources/js/components/work-queue/WorkItemList.tsx, resources/js/components/work-queue/WorkScopeTabs.tsx.
+- Schema/migrations: none. Existing authorization, data contracts and workflows retained.
+- Verification: Source diff reviewed; compilation and visual verification pending the next checkpoint.
+- Gaps/next: approved municipal assets and consolidated real-role QA remain pending; continue the visual polish pass.
