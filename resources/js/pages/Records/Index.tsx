@@ -2,6 +2,7 @@ import { Link, router } from '@inertiajs/react';
 import { ArrowRight, Building2, CalendarDays, FileSearch, Search, UserRound, X } from 'lucide-react';
 import { type FormEvent, useEffect, useState } from 'react';
 import ProgressiveFilterBar from '../../components/filters/ProgressiveFilterBar';
+import PageHeader from '../../components/PageHeader';
 import AppLayout from '../../layouts/AppLayout';
 
 type Office = {
@@ -151,13 +152,7 @@ export default function Index({ records, filters, filterOptions }: Props) {
     return (
         <AppLayout title="Records">
             <div className="mx-auto max-w-7xl space-y-4 sm:space-y-6">
-                <header>
-                    <div className="text-[10px] font-bold uppercase tracking-[0.18em] text-blue-700 sm:text-xs">Authorized records registry</div>
-                    <h1 className="mt-1.5 text-2xl font-bold text-slate-950 sm:text-3xl">Records</h1>
-                    <p className="mt-1.5 text-[11px] leading-5 text-slate-500 sm:text-sm">
-                        Search authorized correspondence, inter-office transactions, and approved Travel Orders.
-                    </p>
-                </header>
+                <PageHeader eyebrow="Authorized records registry" title="Records" icon={FileSearch} description="Search authorized correspondence, inter-office transactions, and approved Travel Orders." />
 
                 <form onSubmit={submit}>
                     <ProgressiveFilterBar

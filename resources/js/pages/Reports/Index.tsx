@@ -2,6 +2,7 @@ import { Link, router, useForm } from '@inertiajs/react';
 import { ArrowRight, Download, FileBarChart, LoaderCircle, RotateCcw, Search } from 'lucide-react';
 import type { FormEvent, ReactNode } from 'react';
 import ProgressiveFilterBar from '../../components/filters/ProgressiveFilterBar';
+import PageHeader from '../../components/PageHeader';
 import AppLayout from '../../layouts/AppLayout';
 
 type Column = { key: string; label: string };
@@ -105,18 +106,16 @@ export default function ReportsIndex({ catalog, activeReport, filters, filterOpt
 
     return <AppLayout title="Operational Reports">
         <div className="mx-auto max-w-7xl space-y-4 sm:space-y-6">
-            <header className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-                <div>
-                    <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.18em] text-blue-700 dark:text-blue-300 sm:text-xs"><FileBarChart size={15} /> Municipal operational reporting</div>
-                    <h1 className="mt-1.5 text-2xl font-bold text-slate-950 dark:text-white sm:text-3xl">Operational Reports</h1>
-                    <p className="mt-1.5 max-w-3xl text-[11px] leading-5 text-slate-500 dark:text-slate-300 sm:text-sm">Permission-scoped operational evidence from current transactions and incoming correspondence.</p>
-                </div>
+            <PageHeader eyebrow="Municipal operational reporting" title="Operational Reports" icon={FileBarChart}
+                description="Operational evidence from current transactions and incoming correspondence."
+                aside={
                 <label className="block min-w-64 text-[10px] font-bold uppercase tracking-wide text-slate-500 dark:text-slate-300 sm:text-xs">Report
                     <select value={activeReport} onChange={(event) => selectReport(event.target.value)} className="mt-1.5 w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm normal-case tracking-normal text-slate-900">
                         {catalog.map((item) => <option key={item.key} value={item.key}>{item.label}</option>)}
                     </select>
                 </label>
-            </header>
+                }
+            />
 
             <form onSubmit={apply} className="space-y-3">
                 <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">

@@ -2,6 +2,7 @@ import { Link, router } from '@inertiajs/react';
 import { ArrowRight, CalendarDays, FileCheck2, MapPin, Plus, Search, Users, X } from 'lucide-react';
 import { type FormEvent, useEffect, useState } from 'react';
 import ProgressiveFilterBar from '../../components/filters/ProgressiveFilterBar';
+import PageHeader from '../../components/PageHeader';
 import AppLayout from '../../layouts/AppLayout';
 
 type Office = { id?: number; code: string; name: string; shortName?: string | null };
@@ -86,20 +87,14 @@ export default function Index({ travelOrders, filters, filterOptions, canRecordA
     return (
         <AppLayout title="Approved Travel Orders">
             <div className="mx-auto max-w-7xl space-y-4 sm:space-y-6">
-                <header className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-                    <div>
-                        <div className="text-[10px] font-bold uppercase tracking-[0.18em] text-blue-700 sm:text-xs">Official post-approval registry</div>
-                        <h1 className="mt-1.5 text-2xl font-bold text-slate-950 sm:text-3xl">Approved Travel Orders</h1>
-                        <p className="mt-1.5 max-w-2xl text-[11px] leading-5 text-slate-500 sm:text-sm">
-                            Locate official approved travel records you are authorized to see. Requests, bookings, liquidation, and reimbursement remain outside this registry.
-                        </p>
-                    </div>
-                    {canRecordApproved && (
+                <PageHeader eyebrow="Official post-approval registry" title="Approved Travel Orders" icon={FileCheck2}
+                    description="Locate official approved travel records you are authorized to see."
+                    aside={canRecordApproved && (
                         <Link href="/travel-orders/create" className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#0b2852] px-4 py-2.5 text-[11px] font-bold text-white sm:text-xs">
                             <Plus size={15} /> Record approved order
                         </Link>
                     )}
-                </header>
+                />
 
                 <form onSubmit={submit}>
                     <ProgressiveFilterBar

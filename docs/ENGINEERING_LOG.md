@@ -732,3 +732,10 @@ This append records the completed Approved Travel Orders wave. Earlier entries t
 - Schema/migration impact: none; filtering and workflow semantics untouched.
 - Verification: pre-polish TypeScript and Vite build PASS. Public page observed locally at 1440x900 light, default desktop dark, and 390x844 light; zero console errors/broken images and no desktop horizontal overflow in observed state. Final recheck pending after polish.
 - Gap/next: complete Records/Travel/Reports/Memoranda header alignment and isolated synthetic authenticated visual check; full acceptance deferred.
+
+## 2026-09-08 — Current-scope registry and memorandum presentation
+- Slice/intent: Records, Approved Travel Orders and Reports reuse the municipal PageHeader; Memoranda receives matching header, compact rows and dark appearance.
+- Files: Records/Index, TravelOrders/Index, Reports/Index, Memoranda/Index.
+- Schema/migration impact: none. Existing search/filter/publish/record permissions and links unchanged; memo timestamps rendered in Philippine time.
+- Verification: source inspection; final TypeScript/build checkpoint pending after focused visual corrections.
+- Gap/next: page-specific acceptance deferred; isolated authenticated visual preview and final handoff next.
