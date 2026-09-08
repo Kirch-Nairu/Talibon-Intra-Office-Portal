@@ -6,7 +6,7 @@ import type { PublicContent } from './types';
 export default function PublicFooter({ content, authenticated }: { content: PublicContent; authenticated: boolean }) {
     return <footer id="contact" className="border-t-2 border-[#e5b63a] bg-[#0b2852] text-white">
         <div className="public-footer-grid">
-            <div id="about">
+            <div>
                 <h2 className="text-sm font-bold">{content.contact.heading}</h2>
                 <p className="mt-3 flex items-start gap-2 text-xs leading-5 text-blue-100"><MapPin size={15} className="mt-0.5 shrink-0" />{content.contact.location}</p>
                 <p className="mt-2 max-w-md text-sm leading-5 text-blue-200">{content.contact.description}</p>

@@ -1060,3 +1060,11 @@ This append records the completed Approved Travel Orders wave. Earlier entries t
 - Schema/migrations: none. Existing authorization, data contracts and workflows retained.
 - Verification: TypeScript PASS after TSX changes; production build PASS after final CSS correction. Browser viewed at 1366x768, 1440x900, 390x844 light/dark and 1024x800 boundary. No horizontal overflow observed at 1366, 390 or corrected 1024. Desktop services/facts share top 432px; mobile header 69px. Approved photography/seal and real-role QA remain separate.
 - Gaps/next: approved municipal assets and consolidated real-role QA remain pending; continue the visual polish pass.
+
+### 2026-09-08 — Core Portal frontend polish: fix: organize public portal into three purposeful content bands
+
+- Intent: Replace the rejected persistent rail composition with a full-width welcome and primary employee action, a service directory beside municipal information, and one shared news/documents/projects band. Remove placeholder statistical presentation, repeated sample headings and forced card stretching. Keep Inter/system typography, navy identity, blue actions and limited green branding. Preserve all news types and existing content/authentication contracts; use existing replaceable landscape only on larger screens.
+- Files: resources/css/public-portal.css, resources/js/pages/Public/Home.tsx, resources/js/components/public/PublicFooter.tsx, resources/js/components/public/PublicGlance.tsx, resources/js/components/public/PublicHeader.tsx, resources/js/components/public/PublicHero.tsx, resources/js/components/public/PublicServices.tsx, resources/js/components/public/PublicUpdates.tsx.
+- Schema/migrations: none. Existing authorization, data contracts and workflows retained.
+- Verification: TypeScript PASS; production build PASS. Actual public page reviewed at 1366x768 and 390x844 in light and dark modes, including lower desktop updates/footer. No horizontal overflow observed. All public fragment links resolve to existing IDs. Mobile menu appearance selection and Escape dismissal observed. Approved imagery/content and consolidated QA remain separate.
+- Gaps/next: approved municipal assets and consolidated real-role QA remain pending; continue the visual polish pass.

@@ -1,31 +1,23 @@
 import { Link } from '@inertiajs/react';
-import { ArrowRight, FileCheck2, Landmark, LogIn, MessageCircle } from 'lucide-react';
+import { ArrowRight, LogIn } from 'lucide-react';
 import { talibonAssets } from '../../branding/talibonAssets';
 import type { PublicContent } from './types';
 
 export default function PublicHero({ content, authenticated }: { content: PublicContent; authenticated: boolean }) {
-    const actions = [
-        { title: 'Explore Services', href: '#services', icon: Landmark, tone: 'bg-[#0b2852]' },
-        { title: 'Transparency', href: '#transparency', icon: FileCheck2, tone: 'bg-[#0b2852]' },
-        { title: authenticated ? 'Employee Portal' : 'Employee Login', href: authenticated ? '/dashboard' : '/login', icon: LogIn, tone: 'bg-[#1769aa]' },
-        { title: 'Contact Municipality', href: '#contact', icon: MessageCircle, tone: 'bg-[#0b2852]' },
-    ];
     return <section id="home" className="public-hero">
-        <div className="public-hero-scene relative isolate flex items-center overflow-hidden">
-            <img src={talibonAssets.publicHero} alt="" className="municipal-photo public-landscape -z-20" />
-            <div className="absolute inset-0 -z-10 bg-gradient-to-r from-[#eef6f4]/95 via-[#eef6f4]/75 to-transparent dark:from-[#0b2852]/95 dark:via-[#0b2852]/75" />
+        <div className="public-hero-intro">
             <div className="public-hero-copy">
-                <div className="public-welcome">Welcome to</div>
-                <h1 className="public-hero-title">TALIBON, BOHOL</h1>
+                <p className="public-welcome">One Talibon Digital Portal</p>
+                <h1 className="public-hero-title">Welcome to<br />Talibon, Bohol.</h1>
                 <p className="public-hero-lead">{content.hero.lead}</p>
+                <Link href={authenticated ? '/dashboard' : '/login'} className="public-primary-action"><LogIn size={17} aria-hidden="true" />{authenticated ? 'Open employee portal' : 'Employee Login'}<ArrowRight size={16} aria-hidden="true" /></Link>
             </div>
+            <div className="public-hero-landscape"><img src={talibonAssets.publicHero} alt="" /></div>
         </div>
-        <div id="quick-access" className="public-action-ribbon">
-            {actions.map(({ title, href, icon: Icon, tone }) => {
-                const children = <><Icon size={22} className="shrink-0" aria-hidden="true" /><div className="min-w-0 flex-1"><div className="text-sm font-semibold leading-5">{title}</div></div><ArrowRight size={17} className="hidden shrink-0 sm:block" aria-hidden="true" /></>;
-                const className = `public-action text-white transition-colors duration-150 hover:bg-[#1769aa] ${tone}`;
-                return href.startsWith('#') ? <a key={href} href={href} className={className}>{children}</a> : <Link key={href} href={href} className={className}>{children}</Link>;
-            })}
-        </div>
+        <nav className="public-destinations" aria-label="Public information shortcuts">
+            <a href="#services">Municipal services <ArrowRight size={16} aria-hidden="true" /></a>
+            <a href="#news">News & notices <ArrowRight size={16} aria-hidden="true" /></a>
+            <a href="#transparency">Public documents <ArrowRight size={16} aria-hidden="true" /></a>
+        </nav>
     </section>;
 }

@@ -1,19 +1,17 @@
-import { BarChart3, Building2, Files, Info, Megaphone } from 'lucide-react';
+import { ArrowRight, Landmark, MapPin } from 'lucide-react';
 import PublicPanel from './PublicPanel';
 import type { PublicContent } from './types';
 
-const icons = [Building2, Info, Files, Megaphone];
 export default function PublicGlance({ content }: { content: PublicContent }) {
-    return <PublicPanel id="dashboards" title="Talibon at a Glance" icon={BarChart3}>
-        <div className="public-facts-grid">
-            {content.dashboard.map((item, index) => {
-                const Icon = icons[index % icons.length];
-                return <article key={item.label} className="public-fact">
-                    <Icon size={26} aria-hidden="true" />
-                    <div><h3>{item.label}</h3><strong>{item.value}</strong><p>{item.detail}</p></div>
-                </article>;
-            })}
+    return <PublicPanel id="about" title="About the municipality" icon={Landmark}>
+        <div className="public-municipality">
+            <h3>Talibon, Bohol</h3>
+            <p>{content.hero.description}</p>
+            <p className="public-location"><MapPin size={16} aria-hidden="true" />{content.contact.location}</p>
+            <div className="public-info-links">
+                <a href="#news">Municipal updates <ArrowRight size={15} aria-hidden="true" /></a>
+                <a href="#contact">Contact information <ArrowRight size={15} aria-hidden="true" /></a>
+            </div>
         </div>
-        <p className="public-panel-note">Sample information · Not official municipal statistics</p>
     </PublicPanel>;
 }

@@ -4,7 +4,6 @@ import PublicFooter from '../../components/public/PublicFooter';
 import PublicGlance from '../../components/public/PublicGlance';
 import PublicHeader from '../../components/public/PublicHeader';
 import PublicHero from '../../components/public/PublicHero';
-import PublicNewsRail from '../../components/public/PublicNewsRail';
 import PublicServices from '../../components/public/PublicServices';
 import PublicUpdates from '../../components/public/PublicUpdates';
 import type { PublicContent } from '../../components/public/types';
@@ -21,16 +20,13 @@ export default function Home({ appName, authenticated, content }: Props) {
                 <div className="public-disclosure">
                     <Info size={14} className="mt-0.5 shrink-0" aria-hidden="true" /><p>Prototype preview — sample public content is shown for evaluation and does not represent official municipal reporting.</p>
                 </div>
-                <div className="public-layout">
-                    <div className="public-primary @container">
-                        <PublicHero content={content} authenticated={authenticated} />
-                        <div className="public-summary">
-                            <div className="@container min-w-0"><PublicServices content={content} /></div>
-                            <PublicGlance content={content} />
-                        </div>
-                        <PublicUpdates content={content} />
+                <div className="public-primary">
+                    <PublicHero content={content} authenticated={authenticated} />
+                    <div className="public-summary">
+                        <div className="@container min-w-0"><PublicServices content={content} /></div>
+                        <PublicGlance content={content} />
                     </div>
-                    <PublicNewsRail content={content} />
+                    <PublicUpdates content={content} />
                 </div>
             </main>
             <PublicFooter content={content} authenticated={authenticated} />

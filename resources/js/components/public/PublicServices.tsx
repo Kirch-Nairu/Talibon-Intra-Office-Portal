@@ -4,13 +4,13 @@ import type { PublicContent } from './types';
 
 const serviceIcons = [FileCheck2, Users, FileText, Megaphone, Building2, ShieldCheck];
 export default function PublicServices({ content }: { content: PublicContent }) {
-    return <PublicPanel id="services" title="Quick Services" icon={Bookmark}>
+    return <PublicPanel id="services" title="Municipal services" icon={Bookmark}>
         <div className="public-service-grid">
             {content.services.map((service, index) => {
                 const Icon = serviceIcons[index % serviceIcons.length];
                 return <article key={service.title} className="public-service-tile">
                     <Icon size={24} aria-hidden="true" />
-                    <div><h3>{service.title}</h3><p>{service.status}</p></div>
+                    <div><h3>{service.title}</h3><p>{service.description}</p></div>
                 </article>;
             })}
         </div>
