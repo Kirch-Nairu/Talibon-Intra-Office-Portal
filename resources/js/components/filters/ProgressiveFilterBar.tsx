@@ -33,8 +33,8 @@ export default function ProgressiveFilterBar({
 
     return (
         <div className="municipal-panel p-3 text-slate-900 dark:text-slate-100 sm:p-4">
-            <div className="flex flex-col gap-3 lg:flex-row lg:items-end">
-                <div className="min-w-0 flex-1">{primary}</div>
+            <div className="flex flex-col gap-3 lg:flex-row lg:flex-wrap lg:items-end">
+                <div className="min-w-0 flex-1 lg:min-w-60">{primary}</div>
 
                 {common && (
                     <div className="grid gap-2 sm:grid-cols-2 lg:flex lg:shrink-0 lg:items-end">

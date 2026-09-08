@@ -1028,3 +1028,11 @@ This append records the completed Approved Travel Orders wave. Earlier entries t
 - Schema/migrations: none. Existing authorization, data contracts and workflows retained.
 - Verification: Source diff reviewed; compilation and visual verification pending the next checkpoint.
 - Gaps/next: approved municipal assets and consolidated real-role QA remain pending; continue the visual polish pass.
+
+### 2026-09-08 — Core Portal frontend polish: fix: improve correspondence medium viewport layout
+
+- Intent: Replace fixed correspondence column minimums with flexible subject and responsibility columns; allow shared filter actions to wrap instead of squeezing the search field.
+- Files: resources/js/pages/Correspondence/Index.tsx, resources/js/components/filters/ProgressiveFilterBar.tsx.
+- Schema/migrations: none. Existing authorization, data contracts and workflows retained.
+- Verification: Source diff reviewed; compilation and visual verification pending the next checkpoint.
+- Gaps/next: approved municipal assets and consolidated real-role QA remain pending; continue the visual polish pass.

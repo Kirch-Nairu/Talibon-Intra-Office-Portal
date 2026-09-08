@@ -154,14 +154,14 @@ export default function CorrespondenceIndex({ records, filters, filterOptions, w
                         </div>
                     </div>
 
-                    <div className="hidden grid-cols-[minmax(290px,1.45fr)_180px_minmax(220px,1fr)_170px_112px] gap-4 border-b border-slate-100 px-5 py-3 text-xs font-bold uppercase tracking-wide text-slate-500 xl:grid dark:text-slate-400 dark:border-slate-700">
+                    <div className="hidden grid-cols-[minmax(0,1.5fr)_minmax(120px,1fr)_minmax(0,1.2fr)_130px_88px] gap-4 border-b border-slate-100 px-5 py-3 text-xs font-bold uppercase tracking-wide text-slate-500 xl:grid dark:text-slate-400 dark:border-slate-700">
                         <div>Subject / Reference</div><div>Sender / Received</div><div>Routing / Responsibility</div><div>State</div><div />
                     </div>
 
                     <div className="divide-y divide-slate-100 dark:divide-slate-700">
                         {records.data.map((record) => (
                             <article key={record.publicId} className="px-4 py-4 sm:px-5" aria-label={`${record.reference} correspondence`}>
-                                <div className="grid min-w-0 gap-4 xl:grid-cols-[minmax(290px,1.45fr)_180px_minmax(220px,1fr)_170px_112px] xl:items-center">
+                                <div className="grid min-w-0 gap-4 xl:grid-cols-[minmax(0,1.5fr)_minmax(120px,1fr)_minmax(0,1.2fr)_130px_88px] xl:items-center">
                                     <div className="min-w-0">
                                         <div className="flex flex-wrap items-center gap-1.5">
                                             <span className="text-xs font-bold text-blue-700 sm:text-xs">{record.reference}</span>
