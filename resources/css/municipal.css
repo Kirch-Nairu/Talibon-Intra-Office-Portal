@@ -49,3 +49,8 @@
     .dark .municipal-link { color: #93c5fd; }
     .municipal-link:hover { text-decoration: underline; }
 }
+
+.public-portal [id] { scroll-margin-top: 170px; }
+@media (max-width: 639px) {
+    .public-portal [id] { scroll-margin-top: 190px; }
+}

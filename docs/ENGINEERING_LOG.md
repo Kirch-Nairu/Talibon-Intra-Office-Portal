@@ -718,3 +718,10 @@ This append records the completed Approved Travel Orders wave. Earlier entries t
 - Schema/migration impact: none; data from existing public content contract only. Sample labels retained; no official metrics, weather, events or service workflows invented.
 - Verification: source inspection; components await Home integration for compile and rendering checkpoint.
 - Gap/next: final municipal photography required; lower public sections and footer next.
+
+## 2026-09-08 — Complete public landing composition
+- Slice/intent: compact image 1 landing with lower announcements, projects, transparency/document preview, About, safe config contact and municipal navy footer.
+- Files: Public/Home, PublicUpdates, PublicFooter, municipal.css.
+- Schema/migration impact: none. No public routes, publication systems, contact values, protected props or fake document downloads added.
+- Verification: dashboard cluster TypeScript check observed PASS before this public cluster; full current frontend compile/build follows.
+- Gap/next: raw assets and consolidated QA remain; responsive/appearance and current-page normalization next.
