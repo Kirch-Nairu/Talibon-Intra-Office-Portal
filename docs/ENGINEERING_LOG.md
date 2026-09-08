@@ -860,3 +860,11 @@ This append records the completed Approved Travel Orders wave. Earlier entries t
 - Schema/migrations: none. Existing authorization, data contracts and workflows retained.
 - Verification: Source diff reviewed; compilation and visual verification pending the next checkpoint.
 - Gaps/next: approved municipal assets and consolidated real-role QA remain pending; continue the visual polish pass.
+
+### 2026-09-08 — Core Portal frontend polish: fix: shorten dashboard welcome and municipal context
+
+- Intent: Use one role-specific sentence and first-name greeting; replace the oversized date card with a compact Philippine-time context line.
+- Files: resources/js/components/dashboard/DashboardHeader.tsx, resources/js/components/dashboard/MunicipalContext.tsx.
+- Schema/migrations: none. Existing authorization, data contracts and workflows retained.
+- Verification: Source diff reviewed; compilation and visual verification pending the next checkpoint.
+- Gaps/next: approved municipal assets and consolidated real-role QA remain pending; continue the visual polish pass.
