@@ -753,3 +753,9 @@ This append records the completed Approved Travel Orders wave. Earlier entries t
 - Schema/migration impact: none.
 - Verification: 390x844 browser check observed working drawer and Escape dismissal; review identified missing focus return and resize lock risk addressed here. Final rebuild/recheck next.
 - Gap/next: final compile and bounded interaction recheck; full role workflow QA remains deferred.
+
+## 2026-09-08 — Explicit modal opening focus
+- Slice/intent: focus the visible navigation close button after native showModal; React autofocus before showModal was superseded by native dialog focus placement.
+- Files: shell/MobileNavigation.tsx. Schema/migration impact: none.
+- Verification: final browser check proved Escape focus restoration to Open navigation; opening focus issue observed and corrected here. TypeScript/build and focused final check next.
+- Gap/next: consolidated real-role QA remains deferred.
