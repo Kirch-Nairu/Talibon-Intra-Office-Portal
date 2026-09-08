@@ -22,7 +22,7 @@ export default function Home({ appName, authenticated, content }: Props) {
                     <Info size={14} className="mt-0.5 shrink-0" aria-hidden="true" /><p>Prototype preview — sample public content is shown for evaluation and does not represent official municipal reporting.</p>
                 </div>
                 <div className="grid items-start gap-4 xl:grid-cols-[minmax(0,1fr)_290px]">
-                    <div className="min-w-0 space-y-4">
+                    <div className="@container min-w-0 space-y-4">
                         <PublicHero content={content} authenticated={authenticated} />
                         <div className="grid items-start gap-4 min-[1500px]:grid-cols-[1.05fr_1fr]">
                             <div className="@container min-w-0"><PublicServices content={content} /></div>
