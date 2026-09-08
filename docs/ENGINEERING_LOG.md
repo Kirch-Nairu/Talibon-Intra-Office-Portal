@@ -772,3 +772,11 @@ This append records the completed Approved Travel Orders wave. Earlier entries t
 - Verification: implementation head 7c7943bcce9c6552c4fcbab93b8d3ab68437b31d TypeScript PASS, Vite build PASS (2214 modules, 2.33s), diff check PASS. Bounded actual-public and explicitly synthetic dashboard browser observations recorded in the handoff. Final mobile drawer focus/return observed working.
 - Gaps: approved municipal raw assets and consolidated real-role QA remain. No production/final QA readiness claim; no CI/Browser carriers moved. Existing untracked package-lock.json retained; implementation commits remain local.
 - Next: review visual direction, replace approved assets, then consolidated verification against the accepted SHA.
+
+### 2026-09-08 — Core Portal frontend polish: refactor: centralize municipal surface and color tokens
+
+- Intent: Establish the requested municipal palette and remove the universal panel shadow. Initial public and four synthetic-role visual review completed at all four requested sizes in light and dark; observed tiny text, competing cards and excessive mobile context.
+- Files: resources/css/municipal.css.
+- Schema/migrations: none. Existing authorization, data contracts and workflows retained.
+- Verification: Source diff reviewed; compilation and visual verification pending the next checkpoint.
+- Gaps/next: approved municipal assets and consolidated real-role QA remain pending; continue the visual polish pass.
