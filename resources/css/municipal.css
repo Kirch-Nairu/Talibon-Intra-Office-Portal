@@ -1,0 +1,51 @@
+@layer base {
+    :root {
+        --municipal-navy: #0b2852;
+        --municipal-blue: #0876cd;
+        --municipal-gold: #e3bf45;
+        --municipal-surface: #ffffff;
+        --municipal-border: #dfe7ee;
+    }
+    :root.dark {
+        --municipal-surface: #142236;
+        --municipal-border: #304158;
+    }
+}
+
+@layer components {
+    .municipal-panel {
+        min-width: 0;
+        border: 1px solid var(--municipal-border);
+        border-radius: .75rem;
+        background: var(--municipal-surface);
+        box-shadow: 0 2px 8px #0b285205;
+    }
+    .municipal-panel-title {
+        display: flex;
+        align-items: center;
+        gap: .6rem;
+        font-size: .875rem;
+        font-weight: 750;
+    }
+    .municipal-kicker {
+        font-size: .625rem;
+        font-weight: 750;
+        letter-spacing: .14em;
+        text-transform: uppercase;
+    }
+    .municipal-photo {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        pointer-events: none;
+    }
+    .municipal-link {
+        color: #1559a1;
+        font-size: .75rem;
+        font-weight: 650;
+    }
+    .dark .municipal-link { color: #93c5fd; }
+    .municipal-link:hover { text-decoration: underline; }
+}

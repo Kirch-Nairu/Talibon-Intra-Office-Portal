@@ -669,3 +669,10 @@ This append records the completed Approved Travel Orders wave. Earlier entries t
 - Backend, authentication, permissions, navigation, routes, schema, seeders, Browser harness, and workflow YAML are unchanged by this correction.
 - Dependency-backed local `npm run types:check` and `npm run build` are **NOT OBSERVED pre-publication** because the isolated execution container cannot resolve `github.com`; no local PASS is inferred. Exact-head Talibon Platform CI remains the executable TypeScript/build authority for the new commit.
 - F1 remains **OPEN** until the new exact SHA receives Platform GREEN, a fresh Browser `workflow_dispatch` satisfies the full matrix/sanitization contract, and all seven screenshots pass manual visual acceptance. F2 remains blocked.
+
+## 2026-09-08 — Municipal visual foundation
+- Slice/intent: Core Portal and authorized public prototype visual integration; establish municipal identity, shared surface tokens and replaceable illustration slots.
+- Files: branding/talibonAssets.ts, MunicipalBrand.tsx, municipal.css/app.css, public/brand and public/images/talibon SVG placeholders.
+- Schema/migration impact: none. Artwork is explicitly illustrative; the municipal mark is not an official seal.
+- Verification: source inspection only; compile and consolidated visual checks pending.
+- Gap/next: approved raw municipal assets required; integrate shell and landing composition next. Base ec082a9; existing untracked package-lock.json preserved.
