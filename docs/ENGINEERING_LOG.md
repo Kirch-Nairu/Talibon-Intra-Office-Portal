@@ -765,3 +765,10 @@ This append records the completed Approved Travel Orders wave. Earlier entries t
 - Files: dashboard/QuickActions.tsx. Schema/migration impact: none; action count and destinations remain server-provided.
 - Verification: synthetic System Admin screenshot exposed unnecessary empty tile columns; Executive desktop composition also rendered without horizontal overflow. Final compile/build follows this correction.
 - Gap/next: approved municipal artwork and real-role consolidated QA still required; handoff next.
+
+## 2026-09-08 — Visual integration build handoff
+- Slice/intent: record completed frontend implementation, source stamp, 14 implementation commits, production-file inventory, asset replacement slots and precise open QA gates in docs/TALIBON_VISUAL_INTEGRATION_HANDOFF.md.
+- Schema/migration impact: none. Documentation-only closure.
+- Verification: implementation head 7c7943bcce9c6552c4fcbab93b8d3ab68437b31d TypeScript PASS, Vite build PASS (2214 modules, 2.33s), diff check PASS. Bounded actual-public and explicitly synthetic dashboard browser observations recorded in the handoff. Final mobile drawer focus/return observed working.
+- Gaps: approved municipal raw assets and consolidated real-role QA remain. No production/final QA readiness claim; no CI/Browser carriers moved. Existing untracked package-lock.json retained; implementation commits remain local.
+- Next: review visual direction, replace approved assets, then consolidated verification against the accepted SHA.
