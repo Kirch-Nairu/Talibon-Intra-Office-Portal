@@ -61,7 +61,7 @@
     .municipal-link:hover { text-decoration: underline; }
 }
 
-.public-portal [id] { scroll-margin-top: 170px; }
+.public-portal [id] { scroll-margin-top: 140px; }
 @media (max-width: 639px) {
-    .public-portal [id] { scroll-margin-top: 190px; }
+    .public-portal [id] { scroll-margin-top: 88px; }
 }
