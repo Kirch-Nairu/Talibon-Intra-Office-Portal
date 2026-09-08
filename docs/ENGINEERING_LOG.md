@@ -676,3 +676,10 @@ This append records the completed Approved Travel Orders wave. Earlier entries t
 - Schema/migration impact: none. Artwork is explicitly illustrative; the municipal mark is not an official seal.
 - Verification: source inspection only; compile and consolidated visual checks pending.
 - Gap/next: approved raw municipal assets required; integrate shell and landing composition next. Base ec082a9; existing untracked package-lock.json preserved.
+
+## 2026-09-08 — Authenticated municipal shell
+- Slice/intent: municipal sidebar, blue active navigation, identity topbar, authorized application launcher and Records search using existing navigation/route contracts.
+- Files: AppLayout.tsx and shell/PortalTools.tsx. Existing notification polling, memo behavior, logout and permission gates retained.
+- Schema/migration impact: none. No avatar backend or universal search introduced.
+- Verification: source inspection; TypeScript/build pending at next cluster checkpoint.
+- Gap/next: visual browser review pending; dashboard hero and role composition next.

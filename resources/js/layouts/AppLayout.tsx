@@ -2,6 +2,9 @@ import { Head, Link, router, usePage } from '@inertiajs/react';
 import { Bell, LogOut, Menu, X } from 'lucide-react';
 import { type PropsWithChildren, useEffect, useRef, useState } from 'react';
 import AppearanceControl from '../components/AppearanceControl';
+import MunicipalBrand from '../components/MunicipalBrand';
+import { PortalIdentity, PortalLauncher, RecordsSearch } from '../components/shell/PortalTools';
+import { talibonAssets } from '../branding/talibonAssets';
 import { useVisiblePolling } from '../hooks/useVisiblePolling';
 import { buildPortalNavigation, isPortalPathActive } from '../navigation/portalNavigation';
 import type { LiveNotification, NotificationFeed, SharedProps } from '../types';
@@ -125,14 +128,13 @@ export default function AppLayout({ title, children }: Props) {
 
     const sidebar = (
         <div className="flex h-full flex-col bg-[#0b2852] text-white">
-            <div className="border-b border-white/10 px-5 py-5 sm:px-6 sm:py-6">
-                <div className="text-[10px] font-semibold uppercase tracking-[0.22em] text-blue-200 sm:text-xs">Municipality of Talibon</div>
-                <div className="mt-1.5 text-lg font-bold tracking-tight sm:mt-2 sm:text-xl">Intra-Office Portal</div>
-                <div className="mt-1 text-[10px] text-blue-200 sm:text-xs">Prototype Environment</div>
+            <div className="border-b border-white/10 px-5 py-6">
+                <MunicipalBrand inverse compact />
+                <div className="mt-3 text-[9px] font-semibold uppercase tracking-[.18em] text-blue-200">Intra-Office Portal · Prototype</div>
             </div>
 
-            <nav className="flex-1 overflow-y-auto px-3 py-4 sm:px-4 sm:py-5" aria-label="Primary navigation">
-                <div className="space-y-5">
+            <nav className="min-h-0 flex-1 overflow-y-auto px-3 py-4" aria-label="Primary navigation">
+                <div className="space-y-4">
                     {navigationGroups.map((group) => {
                         const groupActive = group.items.some((item) => isPortalPathActive(page.url, item.href));
 
@@ -150,9 +152,9 @@ export default function AppLayout({ title, children }: Props) {
                                                 href={href}
                                                 onClick={() => setMobileOpen(false)}
                                                 aria-current={active ? 'page' : undefined}
-                                                className={`flex min-h-10 items-center gap-3 rounded-lg px-3 py-2 text-[13px] font-medium transition sm:text-sm ${active ? 'bg-white text-[#0b2852] shadow-sm' : 'text-blue-100 hover:bg-white/10 hover:text-white'}`}
+                                                className={`flex min-h-11 items-center gap-3 rounded-lg px-3 py-2 text-[13px] font-medium transition ${active ? 'bg-[#0876cd] text-white shadow-sm ring-1 ring-white/10' : 'text-blue-100 hover:bg-white/10 hover:text-white'}`}
                                             >
-                                                <Icon size={16} aria-hidden="true" />
+                                                <Icon size={19} aria-hidden="true" />
                                                 <span className="min-w-0 flex-1 truncate">{label}</span>
                                                 {key === 'memoranda' && unreadMemoCount > 0 && (
                                                     <span className={`rounded-full px-2 py-0.5 text-[9px] font-bold ${active ? 'bg-amber-100 text-amber-900' : 'bg-amber-400 text-slate-950'}`}>
@@ -169,7 +171,10 @@ export default function AppLayout({ title, children }: Props) {
                 </div>
             </nav>
 
-            <div className="border-t border-white/10 p-3 sm:p-4">
+            <div className="relative shrink-0 border-t border-white/10 p-3 sm:p-4">
+                <img src={talibonAssets.sidebarIllustration} alt="" className="pointer-events-none absolute inset-0 h-full w-full object-cover opacity-15" />
+                <div className="relative mb-3 text-sm font-bold">One Talibon.<span className="mt-0.5 block text-[10px] font-normal text-blue-200">People. Process. Progress. Together.</span></div>
+                <div className="relative">
                 <AppearanceControl />
                 <div className="mt-3 border-t border-white/10 pt-3">
                     <div className="truncate text-[13px] font-semibold sm:text-sm">{user?.name}</div>
@@ -182,6 +187,7 @@ export default function AppLayout({ title, children }: Props) {
                         <LogOut size={15} aria-hidden="true" /> Sign out
                     </button>
                 </div>
+                </div>
             </div>
         </div>
     );
@@ -192,7 +198,8 @@ export default function AppLayout({ title, children }: Props) {
     return (
         <>
             <Head title={title} />
-            <div className="min-h-screen bg-[#f4f7fb] text-slate-900 transition-colors dark:bg-[#0d1624] dark:text-slate-100 lg:grid lg:grid-cols-[260px_1fr]">
+            <a href="#portal-content" className="sr-only z-[80] rounded bg-white p-3 text-blue-900 focus:not-sr-only focus:fixed focus:left-4 focus:top-4">Skip to content</a>
+            <div className="min-h-screen bg-[#edf3f8] text-slate-900 transition-colors dark:bg-[#0d1624] dark:text-slate-100 lg:grid lg:grid-cols-[248px_minmax(0,1fr)]">
                 <aside className="hidden h-screen lg:sticky lg:top-0 lg:block">{sidebar}</aside>
 
                 {mobileOpen && (
@@ -210,18 +217,20 @@ export default function AppLayout({ title, children }: Props) {
                 )}
 
                 <main className="min-w-0">
-                    <header className="sticky top-0 z-20 flex h-14 items-center justify-between border-b border-slate-200/80 bg-white/90 px-3 backdrop-blur transition-colors dark:border-slate-700/80 dark:bg-[#111d2d]/90 sm:h-16 sm:px-4 md:px-8">
+                    <header className="sticky top-0 z-20 flex min-h-20 items-center justify-between gap-4 border-b border-slate-200/80 bg-white/95 px-3 transition-colors dark:border-slate-700/80 dark:bg-[#111d2d]/95 sm:px-5">
                         <div className="flex min-w-0 items-center gap-2 sm:gap-3">
                             <button onClick={() => setMobileOpen(true)} className="shrink-0 rounded-lg p-2 text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800 lg:hidden" aria-label="Open navigation">
                                 <Menu size={20} />
                             </button>
                             <div className="min-w-0">
-                                <div className="truncate text-[13px] font-semibold text-slate-950 dark:text-slate-100 sm:text-sm">{title}</div>
-                                <div className="hidden text-xs text-slate-500 dark:text-slate-400 sm:block">{user?.employee?.department?.short_name || user?.employee?.department?.name}</div>
+                                <div className="text-xl font-extrabold tracking-tight text-[#0b2852] dark:text-white sm:text-2xl">One <span className="text-[#0876cd] dark:text-blue-400">Talibon</span></div>
+                                <div className="text-[8px] font-semibold uppercase tracking-[.18em] sm:text-[9px]">LGU Intra-Office Portal</div>
+                                <div className="mt-1 truncate text-[10px] text-slate-500 dark:text-slate-400">{title}</div>
                             </div>
                         </div>
 
-                        <div className="flex items-center gap-2 sm:gap-3">
+                        {navigationGroups.some((group) => group.items.some((item) => item.key === 'records')) && <RecordsSearch />}
+                        <div className="flex shrink-0 items-center gap-1 sm:gap-2">
                             <div className="relative">
                                 <button
                                     onClick={() => { setNotificationsOpen((open) => !open); setUnseenWorkflowCount(0); }}
@@ -259,7 +268,8 @@ export default function AppLayout({ title, children }: Props) {
                                     </div>
                                 )}
                             </div>
-                            <div className="hidden rounded-full bg-blue-50 px-3 py-1.5 text-xs font-semibold uppercase tracking-wide text-blue-800 dark:bg-blue-950/50 dark:text-blue-200 sm:block">{user?.role?.replaceAll('_', ' ')}</div>
+                            <PortalLauncher groups={navigationGroups} />
+                            <PortalIdentity user={user} />
                         </div>
                     </header>
 
@@ -268,7 +278,8 @@ export default function AppLayout({ title, children }: Props) {
                             {flash.success || flash.error}
                         </div>
                     )}
-                    <div className="p-3 sm:p-4 md:p-8">{children}</div>
+                    <div id="portal-content" tabIndex={-1} className="p-3 sm:p-5">{children}</div>
+                    <footer className="mx-3 flex flex-wrap justify-between gap-2 border-t border-slate-200 py-4 text-[10px] text-slate-500 dark:border-slate-700 dark:text-slate-400 sm:mx-5"><span>Municipality of Talibon · Province of Bohol</span><span>One Talibon · Intra-Office Portal</span></footer>
                 </main>
             </div>
 
