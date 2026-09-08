@@ -1052,3 +1052,11 @@ This append records the completed Approved Travel Orders wave. Earlier entries t
 - Schema/migrations: none. Existing authorization, data contracts and workflows retained.
 - Verification: TypeScript PASS; production build PASS; targeted public, dashboard, drawer, menu and changed-surface browser checks observed.
 - Gaps/next: approved municipal assets and consolidated real-role QA remain pending; continue the visual polish pass.
+
+### 2026-09-08 — Core Portal frontend polish: fix: recompose public landing around municipal reference density
+
+- Intent: Correct the rejected public composition: 108px desktop masthead with larger municipal identity, connected compact hero and bordered action ribbon, side-by-side services and facts, three lower information panels, compact advisory rail and footer. Scope styling to the public portal. Use three service columns from 1200px, two on mobile; stack rail below 1200px. Preserve sample-content truth and existing assets/routes; move About anchor into municipal footer rather than retain an extra oversized panel. Supersedes the prior handoff assessment of public composition.
+- Files: resources/css/app.css, resources/css/public-portal.css, resources/js/pages/Public/Home.tsx, resources/js/components/public/PublicHeader.tsx, resources/js/components/public/PublicHero.tsx, resources/js/components/public/PublicPanel.tsx, resources/js/components/public/PublicServices.tsx, resources/js/components/public/PublicGlance.tsx, resources/js/components/public/PublicUpdates.tsx, resources/js/components/public/PublicNewsRail.tsx, resources/js/components/public/PublicFooter.tsx.
+- Schema/migrations: none. Existing authorization, data contracts and workflows retained.
+- Verification: TypeScript PASS after TSX changes; production build PASS after final CSS correction. Browser viewed at 1366x768, 1440x900, 390x844 light/dark and 1024x800 boundary. No horizontal overflow observed at 1366, 390 or corrected 1024. Desktop services/facts share top 432px; mobile header 69px. Approved photography/seal and real-role QA remain separate.
+- Gaps/next: approved municipal assets and consolidated real-role QA remain pending; continue the visual polish pass.

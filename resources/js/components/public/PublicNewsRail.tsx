@@ -12,14 +12,14 @@ function Notice({ item }: { item: NewsItem }) {
 export default function PublicNewsRail({ content }: { content: PublicContent }) {
     const advisories = content.news.filter((item) => item.type.toLowerCase() === 'advisory');
     const events = content.news.filter((item) => item.type.toLowerCase() === 'event');
-    return <aside className="min-w-0 space-y-4" aria-label="Public advisories and events">
+    return <aside className="public-news-rail" aria-label="Public advisories and events">
         <PublicPanel title="Municipal Advisories" icon={TriangleAlert}>
-            <p className="mb-3 text-xs font-semibold text-amber-800 dark:text-amber-300">Sample content</p>
+
             <div className="space-y-2">{advisories.map((item) => <Notice key={item.title} item={item} />)}{!advisories.length && <p className="text-xs text-slate-500 dark:text-slate-400">No advisory entries available.</p>}</div>
             <a href="#news" className="municipal-link mt-3 inline-block">All news and notices →</a>
         </PublicPanel>
         <PublicPanel title="Upcoming Events" icon={CalendarDays}>
-            <p className="mb-3 text-xs font-semibold text-amber-800 dark:text-amber-300">Sample content</p>
+
             <div className="space-y-2">{events.map((item) => <Notice key={item.title} item={item} />)}{!events.length && <p className="text-xs text-slate-500 dark:text-slate-400">No event entries available.</p>}</div>
             <a href="#news" className="municipal-link mt-3 inline-block">View news and events →</a>
         </PublicPanel>

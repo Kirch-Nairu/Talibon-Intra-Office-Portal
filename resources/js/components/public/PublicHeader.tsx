@@ -22,9 +22,9 @@ export default function PublicHeader({ authenticated }: Props) {
         window.addEventListener('keydown', escape);
         return () => window.removeEventListener('keydown', escape);
     }, [open]);
-    return <header className="sticky top-0 z-50 border-b border-slate-200 bg-white text-slate-900 dark:border-slate-700 dark:bg-[#111d2d] dark:text-slate-100">
-        <div className="mx-auto flex max-w-[1600px] items-center justify-between gap-2 px-4 py-3 sm:px-6">
-            <a href="#home" aria-label="One Talibon home"><MunicipalBrand publicPortal /></a>
+    return <header className="public-header sticky top-0 z-50 border-b border-slate-200 bg-white text-slate-900 dark:border-slate-700 dark:bg-[#111d2d] dark:text-slate-100">
+        <div className="public-masthead">
+            <a href="#home" aria-label="One Talibon home" className="public-brand"><MunicipalBrand publicPortal /><span className="public-brand-caption">Municipality of Talibon, Bohol</span></a>
             <button ref={trigger} type="button" onClick={() => setOpen(!open)} className="order-3 flex h-11 w-11 shrink-0 items-center justify-center rounded-lg lg:hidden" aria-label={open ? 'Close menu' : 'Open menu'} aria-expanded={open} aria-controls="public-navigation">{open ? <X size={21} /> : <Menu size={21} />}</button>
             <div className="ml-auto flex items-center gap-3">
                 <div className="hidden lg:block"><AppearanceControl publicSurface /></div>
