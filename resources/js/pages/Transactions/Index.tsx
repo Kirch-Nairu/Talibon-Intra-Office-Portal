@@ -85,7 +85,7 @@ export default function Index({ records, filters, scopeGroups, filterOptions, ex
                 <PageHeader
                     eyebrow="Daily work queues"
                     title="My Work"
-                    description="Review work that needs attention, assignments, deadlines, office accountability, and the next action available to you."
+                    description="Review your assignments, deadlines and work requiring action."
                     icon={BriefcaseBusiness}
                     aside={(
                         <Link

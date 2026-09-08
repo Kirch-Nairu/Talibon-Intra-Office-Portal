@@ -1,7 +1,8 @@
 import { Link } from '@inertiajs/react';
-import { AlertTriangle, ArrowRight, Building2, Radio, RotateCcw } from 'lucide-react';
+import { AlertTriangle, ArrowRight, Building2, RotateCcw } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import AppLayout from '../layouts/AppLayout';
+import PageHeader from '../components/PageHeader';
 import { useVisiblePolling } from '../hooks/useVisiblePolling';
 
 type Office = { name: string; short_name?: string | null };
@@ -18,13 +19,9 @@ export default function MayorOffice(initial:Props) {
     const cards=[['Executive queue',stats.total],['Municipal open work',stats.municipalityOpen],['Municipal overdue',stats.municipalityOverdue],['Returned / info',stats.returnedOrInfoRequested]];
     const surface='rounded-xl border border-slate-200 bg-white  transition-colors dark:border-slate-700 dark:bg-[#142236]';
 
-    return <AppLayout title="Mayor's Office"><div className="mx-auto max-w-7xl space-y-4 sm:space-y-5">
-        <header className="rounded-xl bg-[#0b2852] p-5 text-white shadow-lg sm:rounded-xl sm:p-7">
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-                <div className="min-w-0"><div className="flex items-center gap-2 text-blue-200"><Building2 size={18}/><span className="text-xs font-bold uppercase tracking-[0.2em] sm:text-xs">Executive attention</span></div><h1 className="mt-2 break-words text-2xl font-bold sm:text-3xl">Municipality-wide accountability</h1><p className="mt-2 max-w-3xl text-[13px] leading-5 text-blue-100 sm:text-sm sm:leading-6">Executive decisions, overdue municipal work, unresolved returns, and office bottlenecks within existing executive authorization.</p></div>
-                <div className="inline-flex w-fit shrink-0 items-center gap-2 rounded-full border border-emerald-300/25 bg-emerald-300/10 px-3 py-2 text-xs font-semibold text-emerald-100 sm:text-xs"><Radio size={14} className="animate-pulse"/>Live operational view</div>
-            </div>
-        </header>
+    return <AppLayout title="For Decision"><div className="mx-auto max-w-7xl space-y-4 sm:space-y-5">
+        <PageHeader eyebrow="Executive attention" title="For Decision" icon={Building2}
+            description="Review executive decisions, overdue work and items returned for clarification." />
 
         <section aria-label="Executive workload summary" className="grid grid-cols-2 gap-2 lg:grid-cols-4">{cards.map(([label,value])=><div key={String(label)} className={`${surface} min-w-0 p-3 sm:p-4`}><div className="break-words text-xs font-bold uppercase tracking-wide text-slate-500 dark:text-slate-400 sm:text-xs">{label}</div><div className="mt-1.5 text-xl font-bold text-slate-950 dark:text-slate-100 sm:text-2xl">{value}</div></div>)}</section>
 

@@ -104,7 +104,7 @@ export default function CorrespondenceIndex({ records, filters, filterOptions, w
                 <PageHeader
                     eyebrow="Municipal inbox and routing"
                     title="Correspondence"
-                    description={`Review incoming correspondence visible to ${workspace.departmentName}, its current routing position, responsibility, and whether action is required.`}
+                    description={`Review incoming correspondence and routing for ${workspace.departmentName}.`}
                     icon={Inbox}
                     aside={(
                         <div className="border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-600 dark:border-slate-600 dark:bg-[#0f1c2e] dark:text-slate-300 sm:text-xs">
