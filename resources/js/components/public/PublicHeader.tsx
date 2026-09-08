@@ -33,7 +33,7 @@ export default function PublicHeader({ authenticated }: Props) {
         </div>
         <nav id="public-navigation" aria-label="Public navigation" className={`${open ? 'block' : 'hidden'} max-h-[70dvh] overflow-y-auto border-t border-slate-100 dark:border-slate-700 lg:block`}>
             <div className="mx-auto flex max-w-[1600px] flex-col gap-1 px-4 py-1.5 lg:flex-row lg:items-center lg:justify-center lg:gap-2 sm:px-6">
-                {publicLinks.map(([label, href], index) => <a key={href} href={href} onClick={() => setOpen(false)} className={`inline-flex min-h-10 items-center gap-2 rounded-md px-3 whitespace-nowrap text-[13px] font-medium transition-colors duration-150 ${index === 0 ? 'bg-[#0b2852] text-white' : 'text-slate-600 hover:bg-blue-50 hover:text-blue-900 dark:text-slate-300 dark:hover:bg-slate-800'}`}>{index === 0 && <Home size={15} aria-hidden="true" />}{label}</a>)}
+                {publicLinks.map(([label, href], index) => <a key={href} href={href} onClick={() => setOpen(false)} className={`inline-flex min-h-11 items-center gap-2 rounded-md px-3 whitespace-nowrap text-[13px] font-medium transition-colors duration-150 ${index === 0 ? 'bg-[#0b2852] text-white' : 'text-slate-600 hover:bg-blue-50 hover:text-blue-900 dark:text-slate-300 dark:hover:bg-slate-800'}`}>{index === 0 && <Home size={15} aria-hidden="true" />}{label}</a>)}
             </div>
             <div className="border-t border-slate-200 px-4 py-3 dark:border-slate-700 lg:hidden"><AppearanceControl publicSurface /></div>
         </nav>

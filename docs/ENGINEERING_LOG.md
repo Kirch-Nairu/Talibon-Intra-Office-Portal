@@ -1036,3 +1036,11 @@ This append records the completed Approved Travel Orders wave. Earlier entries t
 - Schema/migrations: none. Existing authorization, data contracts and workflows retained.
 - Verification: Source diff reviewed; compilation and visual verification pending the next checkpoint.
 - Gaps/next: approved municipal assets and consolidated real-role QA remain pending; continue the visual polish pass.
+
+### 2026-09-08 — Core Portal frontend polish: fix: finish mobile navigation touch targets
+
+- Intent: Give the authenticated drawer close control and public navigation links consistent 44px touch targets; retain existing disclosure, focus and dismissal behavior.
+- Files: resources/js/components/shell/MobileNavigation.tsx, resources/js/components/public/PublicHeader.tsx.
+- Schema/migrations: none. Existing authorization, data contracts and workflows retained.
+- Verification: Source diff reviewed; compilation and visual verification pending the next checkpoint.
+- Gaps/next: approved municipal assets and consolidated real-role QA remain pending; continue the visual polish pass.
