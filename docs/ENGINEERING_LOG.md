@@ -852,3 +852,11 @@ This append records the completed Approved Travel Orders wave. Earlier entries t
 - Schema/migrations: none. Existing authorization, data contracts and workflows retained.
 - Verification: Source diff reviewed; compilation and visual verification pending the next checkpoint.
 - Gaps/next: approved municipal assets and consolidated real-role QA remain pending; continue the visual polish pass.
+
+### 2026-09-08 — Core Portal frontend polish: fix: improve footer reading and touch targets
+
+- Intent: Keep municipal contact and footer navigation readable on phones with 44px link targets and restrained gold branding.
+- Files: resources/js/components/public/PublicFooter.tsx.
+- Schema/migrations: none. Existing authorization, data contracts and workflows retained.
+- Verification: Source diff reviewed; compilation and visual verification pending the next checkpoint.
+- Gaps/next: approved municipal assets and consolidated real-role QA remain pending; continue the visual polish pass.
