@@ -1,5 +1,6 @@
 @import 'tailwindcss';
 @import './municipal.css';
+@import './municipal-controls.css';
 @custom-variant dark (&:where(.dark, .dark *));
 
 :root {

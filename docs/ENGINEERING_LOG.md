@@ -940,3 +940,11 @@ This append records the completed Approved Travel Orders wave. Earlier entries t
 - Schema/migrations: none. Existing authorization, data contracts and workflows retained.
 - Verification: Source diff reviewed; compilation and visual verification pending the next checkpoint.
 - Gaps/next: approved municipal assets and consolidated real-role QA remain pending; continue the visual polish pass.
+
+### 2026-09-08 — Core Portal frontend polish: refactor: normalize page headings and operational controls
+
+- Intent: Remove the card around every page heading, normalize control height/radius and focus, improve dark filters and respect reduced motion.
+- Files: resources/js/components/PageHeader.tsx, resources/js/components/filters/ProgressiveFilterBar.tsx, resources/css/municipal-controls.css, resources/css/app.css.
+- Schema/migrations: none. Existing authorization, data contracts and workflows retained.
+- Verification: Source diff reviewed; compilation and visual verification pending the next checkpoint.
+- Gaps/next: approved municipal assets and consolidated real-role QA remain pending; continue the visual polish pass.
