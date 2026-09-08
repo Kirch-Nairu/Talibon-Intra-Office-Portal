@@ -1012,3 +1012,11 @@ This append records the completed Approved Travel Orders wave. Earlier entries t
 - Schema/migrations: none. Existing authorization, data contracts and workflows retained.
 - Verification: Source diff reviewed; compilation and visual verification pending the next checkpoint.
 - Gaps/next: approved municipal assets and consolidated real-role QA remain pending; continue the visual polish pass.
+
+### 2026-09-08 — Core Portal frontend polish: fix: close legacy dark surface gaps in core portal pages
+
+- Intent: Browser review found white Records rows in dark mode. Add missing dark surfaces, borders and text to current Core Portal page literals, retain existing explicit dark treatments, and remove duplicate sidebar/overview labels. No workflow expressions or request handlers changed.
+- Files: resources/js/pages/Transactions/Create.tsx, resources/js/pages/Transactions/Index.tsx, resources/js/pages/Transactions/Show.tsx, resources/js/pages/Records/Index.tsx, resources/js/pages/Reports/Index.tsx, resources/js/pages/TravelOrders/Create.tsx, resources/js/pages/TravelOrders/Index.tsx, resources/js/pages/TravelOrders/Show.tsx, resources/js/pages/Correspondence/Index.tsx, resources/js/pages/Correspondence/Show.tsx, resources/js/pages/Departments/Index.tsx, resources/js/pages/Departments/Workspace.tsx, resources/js/pages/Admin/Index.tsx, resources/js/pages/Audit/Index.tsx, resources/js/pages/Memoranda/Create.tsx, resources/js/pages/Memoranda/Index.tsx, resources/js/pages/Memoranda/Show.tsx, resources/js/components/work-queue/StaffWorkloadTable.tsx, resources/js/components/work-queue/WorkItemList.tsx, resources/js/components/work-queue/WorkScopeTabs.tsx, resources/js/layouts/AppLayout.tsx, resources/js/components/dashboard/OfficeOverview.tsx, resources/js/components/dashboard/ExecutiveOverview.tsx.
+- Schema/migrations: none. Existing authorization, data contracts and workflows retained.
+- Verification: Source diff reviewed; compilation and visual verification pending the next checkpoint.
+- Gaps/next: approved municipal assets and consolidated real-role QA remain pending; continue the visual polish pass.

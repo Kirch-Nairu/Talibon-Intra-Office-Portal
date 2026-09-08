@@ -9,7 +9,7 @@ export default function OfficeOverview({ overview }: { overview: OfficeOverviewD
         <section className="space-y-3.5" aria-labelledby="dashboard-office-overview">
             <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
                 <div>
-                    <h2 id="dashboard-office-overview" className="mt-1 text-lg font-bold text-slate-950 dark:text-slate-100 sm:text-lg">Office workload</h2>
+                    <h2 id="dashboard-office-overview" className="mt-1 text-lg font-bold text-slate-950 dark:text-slate-100 sm:text-lg">Staff and follow-up</h2>
                     <p className="mt-1 text-xs text-slate-500 dark:text-slate-400 sm:text-xs">Staff assignments and work requiring follow-up.</p>
                 </div>
                 <Link href="/transactions?view=office_queue" className="inline-flex w-fit items-center gap-1 text-xs font-semibold text-blue-700 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 dark:text-blue-300 sm:text-xs">Open office work <ArrowRight size={13} aria-hidden="true" /></Link>

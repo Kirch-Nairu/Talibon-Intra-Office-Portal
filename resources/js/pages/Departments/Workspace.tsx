@@ -50,7 +50,7 @@ export default function Workspace({ department, metrics, statusOverview, staffWo
 
     return <AppLayout title="Department Workspace">
         <div className="mx-auto max-w-7xl space-y-6">
-            <header className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-[#142236] p-5  sm:p-7">
+            <header className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-[#142236] p-5 sm:p-7">
                 <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                     <div>
                         <div className="text-xs font-bold uppercase tracking-wider text-blue-700">Office workload</div>
@@ -72,10 +72,10 @@ export default function Workspace({ department, metrics, statusOverview, staffWo
                 <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
                     {metricEntries.map((metric, index) => {
                         const Icon = metricIcons[index % metricIcons.length];
-                        return <a key={metric.label} href={metric.link} className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-[#142236] p-4  transition hover:border-blue-300">
+                        return <a key={metric.label} href={metric.link} className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-[#142236] p-4 transition hover:border-blue-300">
                             <Icon size={18} className="text-blue-800" />
                             <div className="mt-3 text-2xl font-bold text-slate-950 dark:text-slate-100">{metric.value}</div>
-                            <div className="mt-1 text-xs font-semibold text-slate-600">{metric.label}</div>
+                            <div className="mt-1 text-xs font-semibold text-slate-600 dark:text-slate-300">{metric.label}</div>
                         </a>;
                     })}
                 </div>
@@ -95,27 +95,27 @@ export default function Workspace({ department, metrics, statusOverview, staffWo
                     </div>
                 </section>
 
-                <section className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-[#142236] p-5  sm:p-6">
+                <section className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-[#142236] p-5 sm:p-6">
                     <div className="text-xs font-bold uppercase tracking-wider text-blue-700">Status distribution</div>
                     <div className="mt-4 space-y-2">
-                        {statusOverview.map((row) => <div key={row.status} className="flex items-center justify-between rounded-xl bg-slate-50 dark:bg-slate-900/40 px-4 py-3"><span className="text-sm font-semibold text-slate-700 dark:text-slate-300">{pretty(row.status)}</span><span className="rounded-full bg-white dark:bg-[#142236] px-2.5 py-1 text-xs font-bold text-slate-900">{row.count}</span></div>)}
+                        {statusOverview.map((row) => <div key={row.status} className="flex items-center justify-between rounded-xl bg-slate-50 dark:bg-slate-900/40 px-4 py-3"><span className="text-sm font-semibold text-slate-700 dark:text-slate-300">{pretty(row.status)}</span><span className="rounded-full bg-white dark:bg-[#142236] px-2.5 py-1 text-xs font-bold text-slate-900 dark:text-slate-100">{row.count}</span></div>)}
                         {statusOverview.length === 0 && <div className="rounded-xl bg-slate-50 dark:bg-slate-900/40 px-4 py-6 text-center text-sm text-slate-500 dark:text-slate-400">No active status groups.</div>}
                     </div>
                 </section>
             </div>
 
-            <section className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-[#142236] p-5  sm:p-6">
-                <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between"><div><div className="text-xs font-bold uppercase tracking-wider text-blue-700">Recent office activity</div><h2 className="mt-1 text-xl font-bold text-slate-950 dark:text-slate-100">Latest authoritative workflow events</h2></div><div className="text-xs text-slate-400">Latest {activityLimit} maximum</div></div>
+            <section className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-[#142236] p-5 sm:p-6">
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between"><div><div className="text-xs font-bold uppercase tracking-wider text-blue-700">Recent office activity</div><h2 className="mt-1 text-xl font-bold text-slate-950 dark:text-slate-100">Latest authoritative workflow events</h2></div><div className="text-xs text-slate-400 dark:text-slate-400">Latest {activityLimit} maximum</div></div>
                 <div className="mt-4 divide-y divide-slate-100 dark:divide-slate-700">
                     {recentActivity.map((item) => <div key={item.id} className="flex flex-col gap-2 py-4 sm:flex-row sm:items-start sm:justify-between">
                         <div className="min-w-0"><div className="text-xs font-bold uppercase tracking-wide text-blue-700">{item.actionLabel}</div><div className="mt-1 truncate text-sm font-semibold text-slate-950 dark:text-slate-100">{item.reference || 'Workflow'} · {item.title || 'Untitled work item'}</div><div className="mt-1 text-xs text-slate-500 dark:text-slate-400">{item.fromOffice || '—'} → {item.toOffice || '—'} · {pretty(item.status)}{item.actor ? ` · ${item.actor}` : ''}</div></div>
-                        <div className="flex shrink-0 items-center gap-3"><span className="text-xs text-slate-400">{when(item.createdAt)}</span>{item.detailUrl && <a href={item.detailUrl} className="text-xs font-semibold text-blue-800">Open</a>}</div>
+                        <div className="flex shrink-0 items-center gap-3"><span className="text-xs text-slate-400 dark:text-slate-400">{when(item.createdAt)}</span>{item.detailUrl && <a href={item.detailUrl} className="text-xs font-semibold text-blue-800">Open</a>}</div>
                     </div>)}
                     {recentActivity.length === 0 && <div className="py-8 text-center text-sm text-slate-500 dark:text-slate-400">No recent office workflow events.</div>}
                 </div>
             </section>
 
-            <section className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-[#142236] p-5  sm:p-6">
+            <section className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-[#142236] p-5 sm:p-6">
                 <div className="text-xs font-bold uppercase tracking-wider text-blue-700">Oldest unresolved</div>
                 <div className="mt-4 grid gap-3 lg:grid-cols-2">
                     {oldestUnresolved.map((item) => <a key={item.detailUrl} href={item.detailUrl} className="rounded-xl border border-slate-200 dark:border-slate-700 p-4 hover:border-blue-300"><div className="text-xs font-bold text-blue-700">{item.reference}</div><div className="mt-1 text-sm font-semibold text-slate-950 dark:text-slate-100">{item.title}</div><div className="mt-2 flex flex-wrap gap-2 text-xs text-slate-500 dark:text-slate-400"><span>{pretty(item.status)}</span><span>·</span><span>{pretty(item.priority)}</span>{item.assignedEmployee && <><span>·</span><span>{item.assignedEmployee.name}</span></>}</div></a>)}

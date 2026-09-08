@@ -110,26 +110,26 @@ export default function Index({ records, filters, scopeGroups, filterOptions, ex
                         activeFilters={activeFilters}
                         primary={(
                             <label className="block">
-                                <span className="mb-1 block text-xs font-bold uppercase tracking-wide text-slate-400 sm:text-xs">Search work</span>
+                                <span className="mb-1 block text-xs font-bold uppercase tracking-wide text-slate-400 sm:text-xs dark:text-slate-400">Search work</span>
                                 <div className="relative">
-                                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={15} aria-hidden="true" />
-                                    <input value={search} onChange={(event) => setSearch(event.target.value)} className="w-full rounded-xl border border-slate-300 bg-white py-2.5 pl-9 pr-3 text-[13px] text-slate-900 outline-none focus:border-blue-700 focus:ring-2 focus:ring-blue-100 sm:text-sm" placeholder="Reference, title, office, assignee…" />
+                                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-400" size={15} aria-hidden="true" />
+                                    <input value={search} onChange={(event) => setSearch(event.target.value)} className="w-full rounded-xl border border-slate-300 bg-white py-2.5 pl-9 pr-3 text-[13px] text-slate-900 outline-none focus:border-blue-700 focus:ring-2 focus:ring-blue-100 sm:text-sm dark:bg-[#142236] dark:text-slate-100 dark:border-slate-700" placeholder="Reference, title, office, assignee…" />
                                 </div>
                             </label>
                         )}
                         common={(
                             <>
-                                <label className="block lg:min-w-40"><span className="mb-1 block text-xs font-bold uppercase tracking-wide text-slate-400 sm:text-xs">Status</span><select value={status} onChange={(event) => setStatus(event.target.value)} className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-[13px] text-slate-900 sm:text-sm"><option value="">All statuses</option>{filterOptions.statuses.map((value) => <option key={value} value={value}>{humanize(value)}</option>)}</select></label>
-                                <label className="block lg:min-w-40"><span className="mb-1 block text-xs font-bold uppercase tracking-wide text-slate-400 sm:text-xs">Priority</span><select value={priority} onChange={(event) => setPriority(event.target.value)} className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-[13px] text-slate-900 sm:text-sm"><option value="">All priorities</option>{filterOptions.priorities.map((value) => <option key={value} value={value}>{humanize(value)}</option>)}</select></label>
+                                <label className="block lg:min-w-40"><span className="mb-1 block text-xs font-bold uppercase tracking-wide text-slate-400 sm:text-xs dark:text-slate-400">Status</span><select value={status} onChange={(event) => setStatus(event.target.value)} className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-[13px] text-slate-900 sm:text-sm dark:bg-[#142236] dark:text-slate-100 dark:border-slate-700"><option value="">All statuses</option>{filterOptions.statuses.map((value) => <option key={value} value={value}>{humanize(value)}</option>)}</select></label>
+                                <label className="block lg:min-w-40"><span className="mb-1 block text-xs font-bold uppercase tracking-wide text-slate-400 sm:text-xs dark:text-slate-400">Priority</span><select value={priority} onChange={(event) => setPriority(event.target.value)} className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-[13px] text-slate-900 sm:text-sm dark:bg-[#142236] dark:text-slate-100 dark:border-slate-700"><option value="">All priorities</option>{filterOptions.priorities.map((value) => <option key={value} value={value}>{humanize(value)}</option>)}</select></label>
                             </>
                         )}
                         advanced={(
-                            <label className="block"><span className="mb-1 block text-xs font-bold uppercase tracking-wide text-slate-400 sm:text-xs">Current office</span><select value={officeId} onChange={(event) => setOfficeId(event.target.value)} className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-[13px] text-slate-900 sm:text-sm"><option value="">All authorized current offices</option>{filterOptions.offices.map((office) => <option key={office.id} value={office.id}>{office.shortName || office.name}</option>)}</select></label>
+                            <label className="block"><span className="mb-1 block text-xs font-bold uppercase tracking-wide text-slate-400 sm:text-xs dark:text-slate-400">Current office</span><select value={officeId} onChange={(event) => setOfficeId(event.target.value)} className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-[13px] text-slate-900 sm:text-sm dark:bg-[#142236] dark:text-slate-100 dark:border-slate-700"><option value="">All authorized current offices</option>{filterOptions.offices.map((office) => <option key={office.id} value={office.id}>{office.shortName || office.name}</option>)}</select></label>
                         )}
                         actions={(
                             <>
                                 <button className="rounded-xl bg-blue-900 px-4 py-2.5 text-[13px] font-bold text-white sm:text-xs">Apply</button>
-                                <button type="button" onClick={clearFilters} className="inline-flex items-center justify-center rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-slate-500 hover:bg-slate-50" aria-label="Clear filters"><X size={15} aria-hidden="true" /></button>
+                                <button type="button" onClick={clearFilters} className="inline-flex items-center justify-center rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-slate-500 hover:bg-slate-50 dark:bg-[#142236] dark:text-slate-400 dark:border-slate-700" aria-label="Clear filters"><X size={15} aria-hidden="true" /></button>
                             </>
                         )}
                     />

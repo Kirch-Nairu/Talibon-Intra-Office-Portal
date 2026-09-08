@@ -8,7 +8,6 @@ export default function ExecutiveOverview({ overview }: { overview: ExecutiveOve
         <section className="space-y-3.5" aria-labelledby="dashboard-executive-overview">
             <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
                 <div>
-                    <div className="text-xs font-bold text-blue-700 dark:text-blue-300 sm:text-xs">Executive attention</div>
                     <h2 id="dashboard-executive-overview" className="mt-1 text-base font-bold text-slate-950 dark:text-slate-100 sm:text-lg">Municipal attention</h2>
                     <p className="mt-1 text-xs text-slate-500 dark:text-slate-400 sm:text-xs">Office workload and unresolved transactions for municipal follow-up.</p>
                 </div>

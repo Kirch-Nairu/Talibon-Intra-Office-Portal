@@ -150,7 +150,7 @@ export default function AppLayout({ title, children }: Props) {
         <div className="flex h-full flex-col bg-[#0b2852] text-white">
             <div className="border-b border-white/10 px-5 py-6">
                 <MunicipalBrand inverse compact />
-                <div className="mt-3 text-xs font-semibold uppercase tracking-[.18em] text-blue-200">Intra-Office Portal · Prototype</div>
+                <div className="mt-3 text-xs text-blue-200">Prototype preview</div>
             </div>
 
             <nav className="min-h-0 flex-1 overflow-y-auto px-3 py-4" aria-label="Primary navigation">

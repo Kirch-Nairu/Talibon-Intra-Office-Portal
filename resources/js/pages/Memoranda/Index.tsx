@@ -22,7 +22,7 @@ export default function Index({ memoranda, canPublish }: { memoranda: Memo[]; ca
                 <div className="flex flex-wrap items-center gap-3">
                     <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold uppercase text-slate-700 dark:bg-slate-800 dark:text-slate-200">{memo.classification}</span>
                     {canPublish && <span className="text-xs text-slate-500 dark:text-slate-400">{memo.recipients_count} recipients</span>}
-                    <ArrowRight size={17} className="text-slate-400" aria-hidden="true" />
+                    <ArrowRight size={17} className="text-slate-400 dark:text-slate-400" aria-hidden="true" />
                 </div>
             </Link>)}
             {memoranda.length === 0 && <div className="px-5 py-10 text-center text-sm text-slate-500 dark:text-slate-400">No memoranda available.</div>}
