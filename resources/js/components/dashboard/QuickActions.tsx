@@ -14,9 +14,13 @@ const tileColors = [
 
 export default function QuickActions({ actions }: { actions: DashboardExperience['quickActions'] }) {
     if (!actions.length) return null;
+    const columns = actions.length <= 2 ? 'grid-cols-2'
+        : actions.length === 3 ? 'grid-cols-2 @min-[540px]:grid-cols-3'
+        : actions.length === 4 ? 'grid-cols-2 @min-[650px]:grid-cols-4'
+        : 'grid-cols-2 @min-[540px]:grid-cols-3 @min-[800px]:grid-cols-6';
     return <section className="municipal-panel p-4" aria-labelledby="dashboard-quick-actions">
         <h2 id="dashboard-quick-actions" className="municipal-panel-title"><LayoutGrid size={17} className="text-blue-800 dark:text-blue-300" />Quick Access</h2>
-        <div className="mt-3 grid grid-cols-2 gap-2 @min-[540px]:grid-cols-3 @min-[800px]:grid-cols-6">
+        <div className={`mt-3 grid gap-2 ${columns}`}>
             {actions.map((action, index) => {
                 const Icon = Object.values(portalDestinations).find((item) => action.url.split('?')[0] === item.href)?.icon || ShieldCheck;
                 return <Link key={action.url} href={action.url} className={`group flex min-w-0 flex-col items-center rounded-lg px-3 py-4 text-center transition hover:ring-1 hover:ring-blue-300 ${tileColors[index % tileColors.length]}`}>

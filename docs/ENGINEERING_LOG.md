@@ -759,3 +759,9 @@ This append records the completed Approved Travel Orders wave. Earlier entries t
 - Files: shell/MobileNavigation.tsx. Schema/migration impact: none.
 - Verification: final browser check proved Escape focus restoration to Open navigation; opening focus issue observed and corrected here. TypeScript/build and focused final check next.
 - Gap/next: consolidated real-role QA remains deferred.
+
+## 2026-09-08 — Quick Access density for shorter role menus
+- Slice/intent: let two-, three- and four-action role menus fill their available panel width instead of reserving six columns.
+- Files: dashboard/QuickActions.tsx. Schema/migration impact: none; action count and destinations remain server-provided.
+- Verification: synthetic System Admin screenshot exposed unnecessary empty tile columns; Executive desktop composition also rendered without horizontal overflow. Final compile/build follows this correction.
+- Gap/next: approved municipal artwork and real-role consolidated QA still required; handoff next.
