@@ -711,3 +711,10 @@ This append records the completed Approved Travel Orders wave. Earlier entries t
 - Schema/migration impact: none. Same-tab and cross-tab appearance synchronization added; public content type retains existing config contract.
 - Verification: source inspection. Intermediate Home still awaits prop/composition integration; compile checkpoint after that cluster.
 - Gap/next: raw seal placeholder remains; public hero and dense content composition next.
+
+## 2026-09-08 — Public hero, action ribbon and municipal information panels
+- Slice/intent: image 1 composition using coastal placeholder, strong Talibon title, four working destinations, service guidance tiles, sample glance cards and advisory/events rail.
+- Files: PublicHero, PublicServices, PublicGlance, PublicNewsRail.
+- Schema/migration impact: none; data from existing public content contract only. Sample labels retained; no official metrics, weather, events or service workflows invented.
+- Verification: source inspection; components await Home integration for compile and rendering checkpoint.
+- Gap/next: final municipal photography required; lower public sections and footer next.
