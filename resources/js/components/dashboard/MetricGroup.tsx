@@ -1,22 +1,18 @@
 import { Link } from '@inertiajs/react';
-import { ArrowRight } from 'lucide-react';
+import { ArrowUpRight } from 'lucide-react';
 import { metricPresentation } from './metricPresentation';
 import type { MetricGroupData } from './types';
 
 export default function MetricGroup({ group }: { group: MetricGroupData }) {
-    return <section aria-labelledby={`dashboard-${group.key}-metrics`}>
-        <h2 id={`dashboard-${group.key}-metrics`} className="mb-2 text-xs font-semibold text-slate-600 dark:text-slate-300">{group.title}</h2>
-        <div className="grid grid-cols-2 gap-3 @min-[650px]:grid-cols-4">
-            {group.metrics.map((metric) => {
-                const { icon: Icon, surface, badge } = metricPresentation(metric.label);
-                return <Link key={`${group.key}-${metric.label}`} href={metric.link} aria-label={`${metric.label}: ${metric.value}. Open related work.`} className={`group flex min-w-0 flex-col rounded-xl border p-3 transition hover:shadow-md sm:p-4 ${surface}`}>
-                    <div className="flex flex-wrap items-start gap-3">
-                        <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full ${badge}`}><Icon size={22} aria-hidden="true" /></span>
-                        <div className="min-w-0 flex-1"><div className="text-3xl font-bold leading-none tracking-tight tabular-nums">{metric.value.toLocaleString()}</div><div className="mt-2 text-xs leading-4">{metric.label}</div></div>
-                    </div>
-                    <span className="mt-auto flex items-center gap-1 pt-4 text-[10px] font-medium">View details <ArrowRight size={12} aria-hidden="true" /></span>
-                </Link>;
-            })}
+    const title = ({ personal: 'My work', office: 'Office workload', executive: 'Municipal workload', system: 'Accounts and security' } as Record<string, string>)[group.key] || group.title;
+    return <section aria-labelledby={'dashboard-' + group.key + '-metrics'}>
+        <h2 id={'dashboard-' + group.key + '-metrics'} className="mb-3 text-lg font-bold">{title}</h2>
+        <div className="grid grid-cols-2 gap-3 @min-[650px]:grid-cols-3 @min-[950px]:grid-cols-4">
+            {group.metrics.map((metric) => <Link key={metric.label} href={metric.link} aria-label={metric.label + ': ' + metric.value + '. Open related work.'} className="municipal-panel group relative flex min-w-0 flex-col gap-2 p-4 transition-colors duration-150 hover:border-[#1769aa]">
+                <div className={'text-[28px] font-bold leading-none tracking-tight tabular-nums ' + metricPresentation(metric.label)}>{metric.value.toLocaleString()}</div>
+                <div className="pr-3 text-[13px] leading-5 text-slate-600 dark:text-slate-300">{metric.label}</div>
+                <ArrowUpRight size={14} className="absolute right-3 top-4 text-slate-400 group-hover:text-[#1769aa] dark:group-hover:text-blue-300" aria-hidden="true" />
+            </Link>)}
         </div>
     </section>;
 }

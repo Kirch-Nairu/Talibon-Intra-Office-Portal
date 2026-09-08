@@ -868,3 +868,11 @@ This append records the completed Approved Travel Orders wave. Earlier entries t
 - Schema/migrations: none. Existing authorization, data contracts and workflows retained.
 - Verification: Source diff reviewed; compilation and visual verification pending the next checkpoint.
 - Gaps/next: approved municipal assets and consolidated real-role QA remain pending; continue the visual polish pass.
+
+### 2026-09-08 — Core Portal frontend polish: fix: simplify dashboard metrics and status accents
+
+- Intent: Replace pastel metric cards, icon circles and repeated detail footers with compact neutral metrics. Preserve all counts and server-provided links. Inactive accounts are no longer painted as danger by default.
+- Files: resources/js/components/dashboard/MetricGroup.tsx, resources/js/components/dashboard/metricPresentation.ts.
+- Schema/migrations: none. Existing authorization, data contracts and workflows retained.
+- Verification: Source diff reviewed; compilation and visual verification pending the next checkpoint.
+- Gaps/next: approved municipal assets and consolidated real-role QA remain pending; continue the visual polish pass.
