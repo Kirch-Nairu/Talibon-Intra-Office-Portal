@@ -1068,3 +1068,12 @@ This append records the completed Approved Travel Orders wave. Earlier entries t
 - Schema/migrations: none. Existing authorization, data contracts and workflows retained.
 - Verification: TypeScript PASS; production build PASS. Actual public page reviewed at 1366x768 and 390x844 in light and dark modes, including lower desktop updates/footer. No horizontal overflow observed. All public fragment links resolve to existing IDs. Mobile menu appearance selection and Escape dismissal observed. Approved imagery/content and consolidated QA remain separate.
 - Gaps/next: approved municipal assets and consolidated real-role QA remain pending; continue the visual polish pass.
+
+### 2026-09-08 — Frontend Design V2: fix: refine public portal responsive composition
+
+- Current TOR requirement / slice: One Talibon public prototype presentation — responsive precision pass.
+- Intent: preserve the accepted public V2 composition while recomposing the hero and About Talibon at tablet widths, tightening 1024–1199px masthead/navigation/hero spacing, quieting the prototype disclosure, preserving 44px mobile controls, arranging mobile destinations as one primary row plus a paired secondary row where space permits, and slightly reducing footer density.
+- Files/modules changed: `resources/css/public-portal.css`; this log.
+- Schema/migration impact: **none**. Public routes, content contract, prototype-data boundary, hero asset and section structure are unchanged.
+- Verification actually observed before commit: source diff inspection, `git diff --check`, and diff/stat review. TypeScript and production build are deferred to the combined two-slice verification checkpoint; browser QA is not claimed.
+- Known gaps/risks: approved municipal assets/content and consolidated real-role QA remain separate; authenticated Dashboard V2 composition is the next local slice.

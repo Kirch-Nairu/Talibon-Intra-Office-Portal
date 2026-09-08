@@ -10,12 +10,13 @@
     align-items: flex-start;
     gap: 8px;
     padding: 10px 0 12px;
-    color: #80611f;
-    font-size: 12px;
+    color: var(--municipal-muted);
+    font-size: 11px;
     line-height: 18px;
 }
 
-.dark .public-disclosure { color: #e5c478; }
+.public-disclosure svg { opacity: .7; }
+.dark .public-disclosure { color: #93a6bb; }
 
 .public-primary {
     display: grid;
@@ -765,6 +766,26 @@
     .public-footer-bottom { padding-inline: 22px; }
 }
 
+@media (min-width: 1024px) and (max-width: 1199px) {
+    .public-masthead { gap: 18px; padding: 11px 22px 10px; }
+    .public-brand { gap: 14px; }
+    .public-brand-caption { max-width: 172px; padding-left: 14px; }
+    .public-nav-inner { gap: 19px; padding-inline: 22px; }
+    .public-hero-intro { grid-template-columns: minmax(0, 1.15fr) minmax(330px, .85fr); min-height: 400px; }
+    .public-hero-copy { padding: 42px 44px 40px; }
+    .public-hero-actions { margin-top: 22px; }
+}
+
+@media (min-width: 768px) and (max-width: 900px) {
+    .public-hero-intro { grid-template-columns: 1fr; min-height: 0; }
+    .public-hero-copy { padding: 42px 44px 40px; }
+    .public-hero-landscape { min-height: 290px; aspect-ratio: 16 / 7; }
+
+    .public-about { grid-template-columns: 1fr; }
+    .public-about-visual { min-height: 250px; aspect-ratio: 16 / 7; }
+    .public-about-copy { padding: 30px 34px 28px; }
+}
+
 @media (max-width: 767px) {
     .public-content { padding: 0 16px 40px; }
     .public-disclosure { padding: 9px 0 10px; font-size: 12px; line-height: 17px; }
@@ -776,8 +797,8 @@
     .public-brand .municipal-brand .font-extrabold { font-size: 18px; }
     .public-brand .municipal-brand .uppercase { font-size: 9px; letter-spacing: .08em; }
     .public-header-actions { gap: 6px; }
-    .public-login-link { min-height: 40px; padding: 0 11px; font-size: 12px; }
-    .public-menu-button { width: 40px; min-height: 40px; }
+    .public-login-link { min-height: 44px; padding: 0 11px; font-size: 12px; }
+    .public-menu-button { width: 44px; min-height: 44px; }
 
     .public-hero-intro { grid-template-columns: 1fr; min-height: 0; }
     .public-hero-copy { padding: 32px 24px 30px; }
@@ -791,9 +812,11 @@
     .public-hero-landscape { display: block; min-height: 210px; aspect-ratio: 16 / 9; }
     .public-hero-landscape figcaption { right: 14px; bottom: 12px; font-size: 11px; }
 
-    .public-destinations { grid-template-columns: 1fr; }
+    .public-destinations { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .public-destinations a:first-child { grid-column: 1 / -1; }
     .public-destinations a { min-height: 62px; padding: 12px 18px; }
-    .public-destinations a + a { border-left: 0; border-top: 1px solid var(--municipal-border); }
+    .public-destinations a + a { border-top: 1px solid var(--municipal-border); }
+    .public-destinations a:nth-child(2) { border-left: 0; }
 
     .public-services { padding: 36px 0 40px; }
     .public-section-heading { align-items: flex-start; flex-direction: column; gap: 10px; margin-bottom: 18px; }
@@ -828,7 +851,7 @@
     .public-update-column > header { padding-bottom: 12px; }
     .public-update-news .public-update-feature h3 { font-size: 17px; }
 
-    .public-footer-grid { grid-template-columns: 1fr; gap: 30px; padding: 34px 16px 28px; }
+    .public-footer-grid { grid-template-columns: 1fr; gap: 26px; padding: 30px 16px 24px; }
     .public-footer-links { border-top: 1px solid rgba(255, 255, 255, .14); padding-top: 24px; }
     .public-footer-links a { min-height: 38px; }
     .public-footer-access { grid-column: auto; border-top: 1px solid rgba(255, 255, 255, .14); padding-top: 24px; }
@@ -844,4 +867,7 @@
     .public-login-link { padding-inline: 10px; }
     .public-hero-copy { padding-inline: 21px; }
     .public-hero-title { font-size: 34px; }
+    .public-destinations { grid-template-columns: 1fr; }
+    .public-destinations a:first-child { grid-column: auto; }
+    .public-destinations a + a { border-left: 0; }
 }
