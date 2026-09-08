@@ -11,24 +11,28 @@ import type { DashboardProps } from '../components/dashboard/types';
 import AppLayout from '../layouts/AppLayout';
 
 export default function Dashboard({ experience, metricGroups, correspondenceOverview, recentWork, officeOverview, executiveOverview, systemOverview }: DashboardProps) {
+    const primaryKey = { employee: 'personal', department_head: 'office', executive_oversight: 'executive', system_administration: 'system' }[experience.key];
+    const primaryGroups = metricGroups.filter((group) => group.key === primaryKey);
+    const secondaryGroups = metricGroups.filter((group) => group.key !== primaryKey);
     const isSystem = experience.key === 'system_administration';
     return <AppLayout title="Dashboard">
         <div className="mx-auto max-w-[1600px] space-y-4">
             <DashboardHeader experience={experience} />
             <div className="grid items-start gap-4 xl:grid-cols-[minmax(0,1fr)_300px]">
                 <div className="@container min-w-0 space-y-4">
-                    {metricGroups.map((group) => <MetricGroup key={group.key} group={group} />)}
-                    <QuickActions actions={experience.quickActions} />
+                    {primaryGroups.map((group) => <MetricGroup key={group.key} group={group} />)}
                     {experience.key === 'department_head' && officeOverview && <OfficeOverview overview={officeOverview} />}
                     {experience.key === 'executive_oversight' && executiveOverview && <ExecutiveOverview overview={executiveOverview} />}
                     {isSystem && systemOverview && <SystemOverview overview={systemOverview} />}
+                    {secondaryGroups.map((group) => <MetricGroup key={group.key} group={group} />)}
                     {!isSystem && (experience.key !== 'executive_oversight' || recentWork.length > 0) && <RecentWorkList
-                        title="Recently updated personal work"
-                        description="Your assigned and initiated transactions, with the latest updates."
+                        title="Recent work"
+                        description="Latest updates to your assigned and initiated work."
                         items={recentWork}
-                        emptyMessage="No recent personal work is waiting in this view."
+                        emptyMessage="No recent work to show."
                     />}
                     {!isSystem && correspondenceOverview && <CorrespondenceOverview overview={correspondenceOverview} />}
+                    <QuickActions actions={experience.quickActions} />
                 </div>
                 <ActivityRail correspondence={isSystem ? undefined : correspondenceOverview} system={isSystem ? systemOverview : undefined} />
             </div>
