@@ -900,3 +900,11 @@ This append records the completed Approved Travel Orders wave. Earlier entries t
 - Schema/migrations: none. Existing authorization, data contracts and workflows retained.
 - Verification: Source diff reviewed; compilation and visual verification pending the next checkpoint.
 - Gaps/next: approved municipal assets and consolidated real-role QA remain pending; continue the visual polish pass.
+
+### 2026-09-08 — Core Portal frontend polish: fix: put executive follow-up ahead of office breakdown
+
+- Intent: Place unresolved municipal work before the office workload table and completed work after it; remove technical scope prose from the client view.
+- Files: resources/js/components/dashboard/ExecutiveOverview.tsx.
+- Schema/migrations: none. Existing authorization, data contracts and workflows retained.
+- Verification: Source diff reviewed; compilation and visual verification pending the next checkpoint.
+- Gaps/next: approved municipal assets and consolidated real-role QA remain pending; continue the visual polish pass.
