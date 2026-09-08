@@ -1044,3 +1044,11 @@ This append records the completed Approved Travel Orders wave. Earlier entries t
 - Schema/migrations: none. Existing authorization, data contracts and workflows retained.
 - Verification: Source diff reviewed; compilation and visual verification pending the next checkpoint.
 - Gaps/next: approved municipal assets and consolidated real-role QA remain pending; continue the visual polish pass.
+
+### 2026-09-08 — Core Portal frontend polish: docs: close Talibon surgical frontend polish sprint
+
+- Intent: Record final source stamp, targeted visual checks, compile results and remaining asset/real-role QA boundaries. Stop the polish sprint.
+- Files: docs/TALIBON_FRONTEND_POLISH_HANDOFF_2026-09-08.md.
+- Schema/migrations: none. Existing authorization, data contracts and workflows retained.
+- Verification: TypeScript PASS; production build PASS; targeted public, dashboard, drawer, menu and changed-surface browser checks observed.
+- Gaps/next: approved municipal assets and consolidated real-role QA remain pending; continue the visual polish pass.
