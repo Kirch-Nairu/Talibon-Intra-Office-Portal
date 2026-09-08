@@ -1,29 +1,43 @@
 import { Link } from '@inertiajs/react';
-import { Landmark, MapPin } from 'lucide-react';
+import { ArrowRight, Landmark, MapPin } from 'lucide-react';
 import MunicipalBrand from '../MunicipalBrand';
 import type { PublicContent } from './types';
 
 export default function PublicFooter({ content, authenticated }: { content: PublicContent; authenticated: boolean }) {
-    return <footer id="contact" className="border-t-2 border-[#e5b63a] bg-[#0b2852] text-white">
+    return <footer id="contact" className="public-footer">
         <div className="public-footer-grid">
-            <div>
-                <h2 className="text-sm font-bold">{content.contact.heading}</h2>
-                <p className="mt-3 flex items-start gap-2 text-xs leading-5 text-blue-100"><MapPin size={15} className="mt-0.5 shrink-0" />{content.contact.location}</p>
-                <p className="mt-2 max-w-md text-sm leading-5 text-blue-200">{content.contact.description}</p>
-            </div>
-            <nav aria-label="Footer links" className="border-white/20 sm:border-l sm:pl-6">
-                <h2 className="text-sm font-semibold">Quick Links</h2>
-                <div className="mt-2 grid grid-cols-2 gap-x-4 gap-y-1 text-xs text-blue-100">
-                    <a href="#services" className="flex min-h-8 items-center hover:underline">Services</a><a href="#transparency" className="flex min-h-8 items-center hover:underline">Transparency</a>
-                    <a href="#news" className="flex min-h-8 items-center hover:underline">News & Events</a><a href="#about" className="flex min-h-8 items-center hover:underline">About Talibon</a>
-                    <Link href={authenticated ? '/dashboard' : '/login'} className="col-span-2 flex min-h-8 items-center hover:underline">{authenticated ? 'Employee Portal' : 'Employee Login'} →</Link>
-                </div>
-            </nav>
-            <div className="sm:col-span-2 xl:col-span-1 xl:border-l xl:border-white/20 xl:pl-6">
+            <div className="public-footer-identity">
                 <MunicipalBrand inverse publicPortal />
-                <div className="mt-2 flex items-center gap-2 text-xs text-blue-200"><Landmark size={14} />{content.municipality}</div>
-                <p className="mt-2 text-xs text-blue-200">Public prototype presentation</p>
+                <p className="public-footer-municipality"><Landmark size={15} aria-hidden="true" />{content.municipality}</p>
+                <p className="public-footer-location"><MapPin size={15} aria-hidden="true" />{content.contact.location}</p>
+                <p className="public-footer-note">Public prototype presentation. Official municipal content and final photography remain subject to LGU confirmation.</p>
             </div>
+
+            <nav aria-label="Footer public information links" className="public-footer-links">
+                <h2>Public Information</h2>
+                <a href="#services">Municipal Services</a>
+                <a href="#news">News &amp; Notices</a>
+                <a href="#transparency">Public Documents</a>
+                <a href="#projects">Projects &amp; Programs</a>
+                <a href="#about">About Talibon</a>
+            </nav>
+
+            <div className="public-footer-access">
+                <h2>Employee Access</h2>
+                <p>Municipal employees use the secure intra-office portal for authorized internal work.</p>
+                <Link href={authenticated ? '/dashboard' : '/login'} className="public-footer-login">
+                    {authenticated ? 'Open Employee Portal' : 'Employee Login'}
+                    <ArrowRight size={15} aria-hidden="true" />
+                </Link>
+                <div className="public-footer-contact">
+                    <h3>Contact</h3>
+                    <p>{content.contact.description}</p>
+                </div>
+            </div>
+        </div>
+        <div className="public-footer-bottom">
+            <span>One Talibon · Municipality of Talibon, Bohol</span>
+            <span>Digital Portal</span>
         </div>
     </footer>;
 }
