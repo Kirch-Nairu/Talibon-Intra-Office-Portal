@@ -704,3 +704,10 @@ This append records the completed Approved Travel Orders wave. Earlier entries t
 - Schema/migration impact: none. Existing role-specific data retained; security counts use existing props.
 - Verification: source inspection; TypeScript/build checkpoint next. No full PHP/Browser gate executed.
 - Gap/next: desktop/mobile visual review pending; build public reference composition next.
+
+## 2026-09-08 — Public municipal masthead and shared appearance
+- Slice/intent: One Talibon identity, horizontal public navigation, responsive menu and persistent Employee Login; public surface shares System/Light/Dark preference with authenticated controls.
+- Files: PublicHeader, PublicPanel, public/types, AppearanceControl, theme/appearance and useAppearance.
+- Schema/migration impact: none. Same-tab and cross-tab appearance synchronization added; public content type retains existing config contract.
+- Verification: source inspection. Intermediate Home still awaits prop/composition integration; compile checkpoint after that cluster.
+- Gap/next: raw seal placeholder remains; public hero and dense content composition next.

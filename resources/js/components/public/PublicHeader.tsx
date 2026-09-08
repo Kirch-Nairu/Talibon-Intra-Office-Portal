@@ -1,61 +1,41 @@
 import { Link } from '@inertiajs/react';
-import { Building2, Menu, Moon, Sun, X } from 'lucide-react';
-import { useState } from 'react';
+import { Home, LogIn, Menu, X } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
+import AppearanceControl from '../AppearanceControl';
+import MunicipalBrand from '../MunicipalBrand';
 
-type Props = {
-    authenticated: boolean;
-    dark: boolean;
-    onToggleDark: () => void;
-};
-
-const links = [
-    ['Home', '#home'],
-    ['Services', '#services'],
-    ['Transparency', '#transparency'],
-    ['Projects', '#projects'],
-    ['Dashboards', '#dashboards'],
-    ['News & Events', '#news'],
-    ['About', '#about'],
-    ['Contact', '#contact'],
+type Props = { authenticated: boolean };
+export const publicLinks = [
+    ['Home', '#home'], ['Services', '#services'], ['Transparency', '#transparency'],
+    ['Projects', '#projects'], ['Municipal Information', '#dashboards'],
+    ['News & Events', '#news'], ['About Talibon', '#about'], ['Contact', '#contact'],
 ] as const;
 
-export default function PublicHeader({ authenticated, dark, onToggleDark }: Props) {
+export default function PublicHeader({ authenticated }: Props) {
     const [open, setOpen] = useState(false);
-
-    return (
-        <header className={`sticky top-0 z-50 border-b backdrop-blur ${dark ? 'border-white/10 bg-slate-950/90' : 'border-slate-200/80 bg-white/90'}`}>
-            <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
-                <a href="#home" className="flex min-w-0 items-center gap-3">
-                    <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${dark ? 'bg-blue-500/15 text-blue-200' : 'bg-blue-50 text-blue-900'}`}><Building2 size={21} /></span>
-                    <span className="min-w-0">
-                        <span className={`block text-[10px] font-bold uppercase tracking-[0.18em] ${dark ? 'text-blue-300' : 'text-blue-700'}`}>Municipality of Talibon</span>
-                        <span className={`block truncate text-lg font-black tracking-tight ${dark ? 'text-white' : 'text-slate-950'}`}>ONE TALIBON</span>
-                    </span>
-                </a>
-
-                <nav className="hidden items-center gap-5 xl:flex">
-                    {links.map(([label, href]) => <a key={href} href={href} className={`text-sm font-medium transition ${dark ? 'text-slate-300 hover:text-white' : 'text-slate-600 hover:text-blue-900'}`}>{label}</a>)}
-                </nav>
-
-                <div className="flex items-center gap-2">
-                    <button onClick={onToggleDark} className={`rounded-xl p-2.5 transition ${dark ? 'bg-white/10 text-slate-200 hover:bg-white/15' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'}`} aria-label="Toggle dark mode">
-                        {dark ? <Sun size={18} /> : <Moon size={18} />}
-                    </button>
-                    <Link href={authenticated ? '/dashboard' : '/login'} className="hidden rounded-xl bg-[#0b2852] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#10396f] sm:inline-flex">
-                        {authenticated ? 'Open Employee Portal' : 'Employee Login'}
-                    </Link>
-                    <button onClick={() => setOpen(!open)} className={`rounded-xl p-2.5 xl:hidden ${dark ? 'text-white' : 'text-slate-700'}`} aria-label="Open menu">{open ? <X size={20} /> : <Menu size={20} />}</button>
-                </div>
+    const trigger = useRef<HTMLButtonElement>(null);
+    useEffect(() => {
+        if (!open) return;
+        const escape = (event: KeyboardEvent) => {
+            if (event.key === 'Escape') { setOpen(false); trigger.current?.focus(); }
+        };
+        window.addEventListener('keydown', escape);
+        return () => window.removeEventListener('keydown', escape);
+    }, [open]);
+    return <header className="sticky top-0 z-50 border-b border-slate-200 bg-white text-slate-900 shadow-sm dark:border-slate-700 dark:bg-[#111d2d] dark:text-slate-100">
+        <div className="mx-auto flex max-w-[1600px] flex-wrap items-center justify-between gap-x-4 gap-y-3 px-4 py-3 sm:px-6">
+            <a href="#home" aria-label="One Talibon home"><MunicipalBrand publicPortal /></a>
+            <p className="hidden max-w-48 text-right text-xs italic leading-5 text-blue-900 dark:text-blue-200 2xl:block">People. Process. Progress.<br />Together, One Talibon.</p>
+            <button ref={trigger} type="button" onClick={() => setOpen(!open)} className="rounded-lg p-2.5 lg:hidden" aria-label={open ? 'Close menu' : 'Open menu'} aria-expanded={open} aria-controls="public-navigation">{open ? <X size={21} /> : <Menu size={21} />}</button>
+            <div className="flex w-full items-center justify-between gap-3 sm:w-auto">
+                <AppearanceControl publicSurface />
+                <Link href={authenticated ? '/dashboard' : '/login'} className="inline-flex min-h-11 items-center gap-2 rounded-md bg-[#0b2852] px-4 text-xs font-semibold text-white hover:bg-blue-900 dark:bg-blue-700"><LogIn size={16} aria-hidden="true" />{authenticated ? 'Employee Portal' : 'Employee Login'}</Link>
             </div>
-
-            {open && (
-                <div className={`border-t px-4 py-4 xl:hidden ${dark ? 'border-white/10 bg-slate-950' : 'border-slate-200 bg-white'}`}>
-                    <div className="mx-auto grid max-w-7xl gap-1">
-                        {links.map(([label, href]) => <a key={href} onClick={() => setOpen(false)} href={href} className={`rounded-lg px-3 py-2 text-sm font-medium ${dark ? 'text-slate-200 hover:bg-white/10' : 'text-slate-700 hover:bg-slate-100'}`}>{label}</a>)}
-                        <Link href={authenticated ? '/dashboard' : '/login'} className="mt-2 rounded-xl bg-[#0b2852] px-4 py-3 text-center text-sm font-semibold text-white">{authenticated ? 'Open Employee Portal' : 'Employee Login'}</Link>
-                    </div>
-                </div>
-            )}
-        </header>
-    );
+        </div>
+        <nav id="public-navigation" aria-label="Public navigation" className={`${open ? 'block' : 'hidden'} max-h-[55vh] overflow-y-auto border-t border-slate-100 dark:border-slate-700 lg:block`}>
+            <div className="mx-auto flex max-w-[1600px] flex-col gap-1 px-4 py-1.5 lg:flex-row lg:items-center lg:justify-end lg:gap-2 sm:px-6">
+                {publicLinks.map(([label, href], index) => <a key={href} href={href} onClick={() => setOpen(false)} className={`inline-flex min-h-10 items-center gap-2 rounded-md px-3 text-[11px] font-semibold uppercase tracking-wide transition ${index === 0 ? 'bg-[#0b2852] text-white' : 'text-slate-600 hover:bg-blue-50 hover:text-blue-900 dark:text-slate-300 dark:hover:bg-slate-800'}`}>{index === 0 && <Home size={15} aria-hidden="true" />}{label}</a>)}
+            </div>
+        </nav>
+    </header>;
 }
