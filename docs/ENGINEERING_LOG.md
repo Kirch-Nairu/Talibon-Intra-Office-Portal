@@ -972,3 +972,11 @@ This append records the completed Approved Travel Orders wave. Earlier entries t
 - Schema/migrations: none. Existing authorization, data contracts and workflows retained.
 - Verification: Source diff reviewed; compilation and visual verification pending the next checkpoint.
 - Gaps/next: approved municipal assets and consolidated real-role QA remain pending; continue the visual polish pass.
+
+### 2026-09-08 — Core Portal frontend polish: fix: align office executive and security surfaces
+
+- Intent: Normalize existing Core Portal lists to readable metadata and restrained card radius; remove repeated surface shadows. Existing mobile list transformations, filters and actions are unchanged.
+- Files: resources/js/pages/Departments/Index.tsx, resources/js/pages/Departments/Workspace.tsx, resources/js/pages/MayorOffice.tsx, resources/js/pages/Admin/Index.tsx, resources/js/pages/Audit/Index.tsx.
+- Schema/migrations: none. Existing authorization, data contracts and workflows retained.
+- Verification: Source diff reviewed; compilation and visual verification pending the next checkpoint.
+- Gaps/next: approved municipal assets and consolidated real-role QA remain pending; continue the visual polish pass.
