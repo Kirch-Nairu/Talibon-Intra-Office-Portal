@@ -14,8 +14,6 @@ export default function ExecutiveOverview({ overview }: { overview: ExecutiveOve
                 <Link href="/mayor-office" className="inline-flex w-fit items-center gap-1 text-xs font-semibold text-blue-700 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 dark:text-blue-300 sm:text-xs">For Decision <ArrowRight size={13} aria-hidden="true" /></Link>
             </div>
 
-            <RecentWorkList title="Oldest unresolved work" description="Municipal work awaiting completion." items={overview.oldestUnresolved} />
-
             <div className="overflow-hidden rounded-xl border border-slate-200 bg-white dark:border-slate-700 dark:bg-[#142236]">
                 <div className="flex flex-col gap-1 border-b border-slate-100 px-4 py-3 dark:border-slate-700 sm:flex-row sm:items-center sm:justify-between sm:px-5">
                     <div className="flex items-center gap-2"><Building2 size={16} className="text-blue-700 dark:text-blue-300" aria-hidden="true" /><h3 className="text-sm font-bold text-slate-950 dark:text-slate-100">Office workload</h3></div>
@@ -38,10 +36,11 @@ export default function ExecutiveOverview({ overview }: { overview: ExecutiveOve
                 </div>
             </div>
 
+            <RecentWorkList title="Oldest unresolved work" description="Municipal work awaiting completion." items={overview.oldestUnresolved} />
+
             <div className="space-y-4">
                 <RecentWorkList title="Recently completed" description="Latest completed municipal work." items={overview.recentlyCompleted} emptyMessage="No recently completed work in this view." />
             </div>
         </section>
     );
 }
-

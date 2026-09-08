@@ -1077,3 +1077,13 @@ This append records the completed Approved Travel Orders wave. Earlier entries t
 - Schema/migration impact: **none**. Public routes, content contract, prototype-data boundary, hero asset and section structure are unchanged.
 - Verification actually observed before commit: source diff inspection, `git diff --check`, and diff/stat review. TypeScript and production build are deferred to the combined two-slice verification checkpoint; browser QA is not claimed.
 - Known gaps/risks: approved municipal assets/content and consolidated real-role QA remain separate; authenticated Dashboard V2 composition is the next local slice.
+
+### 2026-09-08 — Frontend Design V2: feat: refine authenticated dashboard operational composition
+
+- Current TOR requirement / slice: authenticated Core Portal Dashboard V2 composition for Employee, Department Head, Executive and System Admin experiences.
+- Intent: replace the permanent activity rail and repeated floating-card pattern with one in-flow operational workspace; group metric families as ledgers, consolidate correspondence attention/status/recent movement, present Quick Access as one directory, reduce recent-work decoration, retain Department Head staff workload as a table/list surface, and give each server-resolved experience its own information order.
+- Files/modules changed: `resources/js/pages/Dashboard.tsx`; `resources/js/components/dashboard/DashboardHeader.tsx`; `MetricGroup.tsx`; `ActivityRail.tsx`; `QuickActions.tsx`; `CorrespondenceOverview.tsx`; `OfficeOverview.tsx`; `RecentWorkList.tsx`; `ExecutiveOverview.tsx`; `SystemOverview.tsx`; this log.
+- Authorization/data boundary: existing `DashboardExperienceResolver`, `DashboardWorkspaceQuery`, server-authoritative props, permissions, roles, routes, queries, workflow/correspondence states and MFA behavior are unchanged. React continues to use the resolved experience key for composition only and adds no authorization rule.
+- Schema/migration impact: **none**. No backend, route, report, travel, database or workflow change.
+- Verification actually observed before commit: source diff inspection and TypeScript `npm run types:check` **PASS**. `git diff --check` and diff/stat review complete the commit gate; combined exact-HEAD `npm run types:check` and `npm run build` follow both local commits. Browser QA, Platform CI and historical matrices are not claimed.
+- Known gaps/risks: approved municipal imagery and consolidated real-role/browser QA remain separate. This frontend implementation does not claim production, UAT or Department Head acceptance.

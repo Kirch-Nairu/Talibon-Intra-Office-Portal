@@ -15,8 +15,8 @@ export default function OfficeOverview({ overview }: { overview: OfficeOverviewD
                 <Link href="/transactions?view=office_queue" className="inline-flex w-fit items-center gap-1 text-xs font-semibold text-blue-700 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 dark:text-blue-300 sm:text-xs">Open office work <ArrowRight size={13} aria-hidden="true" /></Link>
             </div>
 
-            <div className="grid gap-3 @min-[900px]:grid-cols-[1.2fr_0.8fr]">
-                <div className="overflow-hidden rounded-xl border border-slate-200 bg-white dark:border-slate-700 dark:bg-[#142236]">
+            <div className="grid overflow-hidden rounded-xl border border-slate-200 bg-white dark:border-slate-700 dark:bg-[#142236] @min-[900px]:grid-cols-[1.35fr_0.65fr]">
+                <div className="min-w-0">
                     <div className="flex items-center gap-2 border-b border-slate-100 px-4 py-3 dark:border-slate-700 sm:px-5"><Users size={16} className="text-blue-700 dark:text-blue-300" aria-hidden="true" /><h3 className="text-sm font-bold text-slate-950 dark:text-slate-100">Staff workload</h3></div>
                     <div className="hidden grid-cols-[minmax(0,1fr)_75px_75px_90px] gap-3 border-b border-slate-100 bg-slate-50 px-5 py-2 text-xs font-bold uppercase tracking-wide text-slate-500 dark:text-slate-400 dark:border-slate-700 dark:bg-slate-900/40 @min-[600px]:grid">
                         <div>Employee</div><div>Active</div><div>Overdue</div><div>Action</div>
@@ -34,13 +34,13 @@ export default function OfficeOverview({ overview }: { overview: OfficeOverviewD
                     </div>
                 </div>
 
-                <div className="overflow-hidden rounded-xl border border-slate-200 bg-white dark:border-slate-700 dark:bg-[#142236]">
+                <div className="min-w-0 border-t border-slate-200 dark:border-slate-700 @min-[900px]:border-l @min-[900px]:border-t-0">
                     <div className="flex items-center gap-2 border-b border-slate-100 px-4 py-3 dark:border-slate-700 sm:px-5"><AlertTriangle size={16} className="text-amber-700 dark:text-amber-300" aria-hidden="true" /><h3 className="text-sm font-bold text-slate-950 dark:text-slate-100">Active status mix</h3></div>
                     <div className="divide-y divide-slate-100 px-4 dark:divide-slate-700 sm:px-5">
                         {overview.statusOverview.map((row) => (
                             <div key={row.status} className="flex items-center justify-between gap-3 py-2.5">
                                 <div className="text-xs font-semibold text-slate-600 dark:text-slate-300 sm:text-xs">{humanize(row.status)}</div>
-                                <div className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-bold text-slate-800 dark:bg-slate-800 dark:text-slate-100">{row.count}</div>
+                                <div className="font-bold tabular-nums text-slate-950 dark:text-slate-100">{row.count}</div>
                             </div>
                         ))}
                         {overview.statusOverview.length === 0 ? <div className="py-7 text-center text-sm text-slate-500 dark:text-slate-400">No active office status rows.</div> : null}
@@ -52,4 +52,3 @@ export default function OfficeOverview({ overview }: { overview: OfficeOverviewD
         </section>
     );
 }
-

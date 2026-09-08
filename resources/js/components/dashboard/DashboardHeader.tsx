@@ -15,10 +15,9 @@ export default function DashboardHeader({ experience }: { experience: DashboardE
     const { auth } = usePage<SharedProps>().props;
     const name = auth.user?.name.trim().replace(/^(?:(?:Engr|Dr|Atty|Mr|Mrs|Ms)\.?\s+)+/i, '').split(/\s+/)[0];
     return <div className="space-y-3">
-        <header className="relative isolate flex min-h-40 min-w-0 items-center overflow-hidden rounded-2xl bg-[#0b2852] text-white sm:min-h-44">
-            <img src={talibonAssets.internalHero} alt="" className="municipal-photo -z-20 opacity-25" />
-            <div className="absolute inset-0 -z-10 bg-gradient-to-r from-[#071e3d] to-[#0b2852]/40" />
-            <div className="w-full px-5 py-6 sm:px-6">
+        <header className="relative isolate flex min-h-36 min-w-0 items-center overflow-hidden rounded-xl bg-[#0b2852] text-white sm:min-h-40">
+            <img src={talibonAssets.internalHero} alt="" className="municipal-photo -z-10 opacity-[.18]" />
+            <div className="flex w-full self-stretch flex-col justify-center bg-[#071e3d]/45 px-5 py-6 sm:px-7">
                 <h1 className="break-words text-[26px] font-bold leading-tight tracking-tight sm:text-[32px]">Welcome{name ? ', ' + name : ''}</h1>
                 <p className="mt-2 max-w-2xl text-sm leading-6 text-blue-50">{profileCopy[experience.key]}</p>
                 <p className="mt-3 text-xs text-blue-100">{experience.department.name}</p>
