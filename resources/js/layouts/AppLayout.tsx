@@ -4,6 +4,7 @@ import { type PropsWithChildren, useEffect, useRef, useState } from 'react';
 import AppearanceControl from '../components/AppearanceControl';
 import MunicipalBrand from '../components/MunicipalBrand';
 import { NotificationContext } from '../components/shell/NotificationContext';
+import MobileNavigation from '../components/shell/MobileNavigation';
 import { PortalIdentity, PortalLauncher, RecordsSearch } from '../components/shell/PortalTools';
 import { talibonAssets } from '../branding/talibonAssets';
 import { useVisiblePolling } from '../hooks/useVisiblePolling';
@@ -49,6 +50,8 @@ export default function AppLayout({ title, children }: Props) {
     const [unseenWorkflowCount, setUnseenWorkflowCount] = useState(0);
     const knownNotificationKeys = useRef<Set<string>>(new Set());
     const notificationsInitialized = useRef(false);
+    const notificationsPanel = useRef<HTMLDivElement>(null);
+    const notificationsButton = useRef<HTMLButtonElement>(null);
     const user = auth.user;
     const { pendingMemo, unreadMemoCount, notifications } = feed;
     const navigation = pageProps.permissions.navigation;
@@ -58,6 +61,22 @@ export default function AppLayout({ title, children }: Props) {
         navigation,
         canViewReports,
     );
+
+    useEffect(() => {
+        if (!notificationsOpen) return;
+        const escape = (event: KeyboardEvent) => {
+            if (event.key === 'Escape') { setNotificationsOpen(false); notificationsButton.current?.focus(); }
+        };
+        const outside = (event: PointerEvent) => {
+            if (!notificationsPanel.current?.contains(event.target as Node)) setNotificationsOpen(false);
+        };
+        document.addEventListener('keydown', escape);
+        document.addEventListener('pointerdown', outside);
+        return () => {
+            document.removeEventListener('keydown', escape);
+            document.removeEventListener('pointerdown', outside);
+        };
+    }, [notificationsOpen]);
 
     useEffect(() => {
         setFeed({
@@ -203,19 +222,7 @@ export default function AppLayout({ title, children }: Props) {
             <div className="min-h-screen bg-[#edf3f8] text-slate-900 transition-colors dark:bg-[#0d1624] dark:text-slate-100 lg:grid lg:grid-cols-[248px_minmax(0,1fr)]">
                 <aside className="hidden h-screen lg:sticky lg:top-0 lg:block">{sidebar}</aside>
 
-                {mobileOpen && (
-                    <div className="fixed inset-0 z-50 lg:hidden">
-                        <button className="absolute inset-0 bg-slate-950/55" onClick={() => setMobileOpen(false)} aria-label="Close navigation" />
-                        <aside className="relative h-full w-[84%] max-w-[290px] shadow-2xl">{sidebar}</aside>
-                        <button
-                            onClick={() => setMobileOpen(false)}
-                            className="absolute right-3 top-3 rounded-full bg-white p-2 text-slate-900 shadow dark:bg-slate-800 dark:text-slate-100"
-                            aria-label="Close navigation"
-                        >
-                            <X size={18} />
-                        </button>
-                    </div>
-                )}
+                {mobileOpen && <MobileNavigation onClose={() => setMobileOpen(false)}>{sidebar}</MobileNavigation>}
 
                 <main className="min-w-0">
                     <header className="sticky top-0 z-20 flex min-h-20 items-center justify-between gap-4 border-b border-slate-200/80 bg-white/95 px-3 transition-colors dark:border-slate-700/80 dark:bg-[#111d2d]/95 sm:px-5">
@@ -232,18 +239,21 @@ export default function AppLayout({ title, children }: Props) {
 
                         {navigationGroups.some((group) => group.items.some((item) => item.key === 'records')) && <RecordsSearch />}
                         <div className="flex shrink-0 items-center gap-1 sm:gap-2">
-                            <div className="relative">
+                            <div ref={notificationsPanel} className="relative">
                                 <button
+                                    ref={notificationsButton}
                                     onClick={() => { setNotificationsOpen((open) => !open); setUnseenWorkflowCount(0); }}
                                     className="relative rounded-full p-2 text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"
                                     aria-label="Open notifications"
+                                    aria-expanded={notificationsOpen}
+                                    aria-controls="portal-notifications"
                                 >
                                     <Bell size={18} />
                                     {bellCount > 0 && <span className="absolute -right-0.5 -top-0.5 min-w-4 rounded-full bg-rose-600 px-1 text-center text-[9px] font-bold text-white sm:text-[10px]">{bellCount > 9 ? '9+' : bellCount}</span>}
                                 </button>
 
                                 {notificationsOpen && (
-                                    <div className="absolute right-0 top-10 z-50 w-[min(350px,calc(100vw-24px))] overflow-hidden rounded-xl border border-slate-200 bg-white shadow-2xl dark:border-slate-700 dark:bg-[#142236]">
+                                    <div id="portal-notifications" className="fixed left-3 right-3 top-20 z-50 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-2xl dark:border-slate-700 dark:bg-[#142236] sm:absolute sm:left-auto sm:right-0 sm:top-10 sm:w-[350px]">
                                         <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3 dark:border-slate-700">
                                             <div>
                                                 <div className="text-[12px] font-bold text-slate-950 dark:text-slate-100 sm:text-sm">Recent activity</div>

@@ -3,12 +3,13 @@ export type ResolvedAppearance = 'light' | 'dark';
 
 const STORAGE_KEY = 'talibon.appearance';
 const validPreferences: AppearancePreference[] = ['system', 'light', 'dark'];
+let memoryPreference: AppearancePreference = 'system';
 
 export function readAppearance(): AppearancePreference {
     if (typeof window === 'undefined') return 'system';
 
     let stored: string | null = null;
-    try { stored = window.localStorage.getItem(STORAGE_KEY); } catch { return 'system'; }
+    try { stored = window.localStorage.getItem(STORAGE_KEY); } catch { return memoryPreference; }
     return validPreferences.includes(stored as AppearancePreference)
         ? stored as AppearancePreference
         : 'system';
@@ -32,6 +33,7 @@ export function applyAppearance(preference: AppearancePreference): void {
 }
 
 export function saveAppearance(preference: AppearancePreference): void {
+    memoryPreference = preference;
     if (typeof window !== 'undefined') {
         try { window.localStorage.setItem(STORAGE_KEY, preference); } catch { /* Appearance still applies when storage is unavailable. */ }
     }

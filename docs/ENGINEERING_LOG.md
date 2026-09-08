@@ -739,3 +739,10 @@ This append records the completed Approved Travel Orders wave. Earlier entries t
 - Schema/migration impact: none. Existing search/filter/publish/record permissions and links unchanged; memo timestamps rendered in Philippine time.
 - Verification: source inspection; final TypeScript/build checkpoint pending after focused visual corrections.
 - Gap/next: page-specific acceptance deferred; isolated authenticated visual preview and final handoff next.
+
+## 2026-09-08 — Mobile navigation and notification usability
+- Slice/intent: native modal navigation drawer with focus containment/Escape and body-scroll lock; viewport-safe mobile notifications with Escape/outside dismissal; appearance fallback when browser storage is unavailable.
+- Files: MobileNavigation, AppLayout, theme/appearance.
+- Schema/migration impact: none. Existing feeds and action semantics unchanged.
+- Verification: synthetic Department Head dashboard observed at 1440x900 light/dark and 390x844 light with no console errors; final interactive recheck pending after build.
+- Gap/next: no real-role workflow acceptance claimed. Final compile, bounded responsive checks and asset handoff next.
