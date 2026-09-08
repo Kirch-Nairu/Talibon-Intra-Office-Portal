@@ -160,7 +160,7 @@ export default function Index({ records, filters, filterOptions }: Props) {
                         activeFilters={activeFilters}
                         primary={(
                             <label className="block">
-                                <span className="mb-1 block text-[9px] font-bold uppercase tracking-wide text-slate-400 sm:text-[10px]">Search records</span>
+                                <span className="mb-1 block text-xs font-bold uppercase tracking-wide text-slate-400 sm:text-xs">Search records</span>
                                 <div className="relative">
                                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={17} />
                                     <input
@@ -175,14 +175,14 @@ export default function Index({ records, filters, filterOptions }: Props) {
                         common={(
                             <>
                                 <label className="block lg:min-w-40">
-                                    <span className="mb-1 block text-[9px] font-bold uppercase tracking-wide text-slate-400 sm:text-[10px]">Record Type</span>
+                                    <span className="mb-1 block text-xs font-bold uppercase tracking-wide text-slate-400 sm:text-xs">Record Type</span>
                                     <select
                                         value={recordType}
                                         onChange={(event) => {
                                             setRecordType(event.target.value);
                                             setState('');
                                         }}
-                                        className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-[11px] text-slate-900 sm:text-sm"
+                                        className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-[13px] text-slate-900 sm:text-sm"
                                     >
                                         {filterOptions.recordTypes.map((option) => (
                                             <option key={option.value} value={option.value}>{option.label}</option>
@@ -190,11 +190,11 @@ export default function Index({ records, filters, filterOptions }: Props) {
                                     </select>
                                 </label>
                                 <label className="block lg:min-w-44">
-                                    <span className="mb-1 block text-[9px] font-bold uppercase tracking-wide text-slate-400 sm:text-[10px]">Status / Lifecycle</span>
+                                    <span className="mb-1 block text-xs font-bold uppercase tracking-wide text-slate-400 sm:text-xs">Status / Lifecycle</span>
                                     <select
                                         value={state}
                                         onChange={(event) => setState(event.target.value)}
-                                        className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-[11px] text-slate-900 sm:text-sm"
+                                        className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-[13px] text-slate-900 sm:text-sm"
                                     >
                                         <option value="">All states</option>
                                         {filterOptions.states.map((option) => (
@@ -207,32 +207,32 @@ export default function Index({ records, filters, filterOptions }: Props) {
                         advanced={(
                             <>
                                 <label>
-                                    <span className="mb-1 block text-[9px] font-bold uppercase tracking-wide text-slate-400 sm:text-[10px]">Current / Responsible Office</span>
-                                    <select value={officeId} onChange={(event) => setOfficeId(event.target.value)} className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-[11px] text-slate-900 sm:text-sm">
+                                    <span className="mb-1 block text-xs font-bold uppercase tracking-wide text-slate-400 sm:text-xs">Current / Responsible Office</span>
+                                    <select value={officeId} onChange={(event) => setOfficeId(event.target.value)} className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-[13px] text-slate-900 sm:text-sm">
                                         <option value="">All authorized offices</option>
                                         {filterOptions.offices.map((office) => <option key={office.id} value={office.id}>{office.shortName || office.name}</option>)}
                                     </select>
                                 </label>
-                                <label><span className="mb-1 block text-[9px] font-bold uppercase tracking-wide text-slate-400 sm:text-[10px]">From</span><input type="date" value={dateFrom} onChange={(event) => setDateFrom(event.target.value)} className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-[11px] text-slate-900 sm:text-sm" /></label>
-                                <label><span className="mb-1 block text-[9px] font-bold uppercase tracking-wide text-slate-400 sm:text-[10px]">To</span><input type="date" value={dateTo} onChange={(event) => setDateTo(event.target.value)} className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-[11px] text-slate-900 sm:text-sm" /></label>
+                                <label><span className="mb-1 block text-xs font-bold uppercase tracking-wide text-slate-400 sm:text-xs">From</span><input type="date" value={dateFrom} onChange={(event) => setDateFrom(event.target.value)} className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-[13px] text-slate-900 sm:text-sm" /></label>
+                                <label><span className="mb-1 block text-xs font-bold uppercase tracking-wide text-slate-400 sm:text-xs">To</span><input type="date" value={dateTo} onChange={(event) => setDateTo(event.target.value)} className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-[13px] text-slate-900 sm:text-sm" /></label>
                             </>
                         )}
                         actions={(
                             <>
-                                <button className="rounded-xl bg-[#0b2852] px-4 py-2.5 text-[11px] font-bold text-white sm:text-xs">Search</button>
+                                <button className="rounded-xl bg-[#0b2852] px-4 py-2.5 text-[13px] font-bold text-white sm:text-xs">Search</button>
                                 <button type="button" onClick={clearFilters} className="inline-flex items-center justify-center rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-slate-500 hover:bg-slate-50" aria-label="Clear records filters"><X size={15} /></button>
                             </>
                         )}
                     />
                 </form>
 
-                <section aria-label="Records registry" className="overflow-hidden rounded-2xl border border-slate-200 bg-white text-slate-900 shadow-sm">
+                <section aria-label="Records registry" className="overflow-hidden rounded-xl border border-slate-200 bg-white text-slate-900 ">
                     <div className="flex flex-col gap-1 border-b border-slate-100 bg-slate-50 px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-5">
-                        <div className="flex items-center gap-2 text-[11px] font-bold text-slate-800 sm:text-sm">
+                        <div className="flex items-center gap-2 text-[13px] font-bold text-slate-800 sm:text-sm">
                             <FileSearch size={15} />
                             Records Registry
                         </div>
-                        <div className="text-[9px] text-slate-500 sm:text-xs">
+                        <div className="text-xs text-slate-500 sm:text-xs">
                             {records.total === 0 ? 'No matching records' : `Showing ${records.from || 1}–${records.to || records.data.length} of ${records.total}`}
                         </div>
                     </div>
@@ -243,43 +243,43 @@ export default function Index({ records, filters, filterOptions }: Props) {
                                 <div className="grid gap-4 lg:grid-cols-[minmax(0,1.25fr)_minmax(420px,1fr)_auto] lg:items-start">
                                     <div className="min-w-0">
                                         <div className="flex flex-wrap items-center gap-1.5">
-                                            <span className="rounded-full bg-slate-100 px-2 py-1 text-[8px] font-bold uppercase tracking-wide text-slate-700 sm:text-[9px]">
+                                            <span className="rounded-full bg-slate-100 px-2 py-1 text-xs font-bold uppercase tracking-wide text-slate-700 sm:text-xs">
                                                 {recordTypeLabel(record.recordType)}
                                             </span>
-                                            <span className="rounded-full border border-slate-200 bg-white px-2 py-1 text-[8px] font-bold uppercase tracking-wide text-slate-600 sm:text-[9px]">
+                                            <span className="rounded-full border border-slate-200 bg-white px-2 py-1 text-xs font-bold uppercase tracking-wide text-slate-600 sm:text-xs">
                                                 {humanize(record.state)}
                                             </span>
                                             {record.classification && (
-                                                <span className="text-[9px] font-semibold text-slate-500 sm:text-[10px]">{humanize(record.classification)}</span>
+                                                <span className="text-xs font-semibold text-slate-500 sm:text-xs">{humanize(record.classification)}</span>
                                             )}
                                         </div>
-                                        <Link href={record.detailUrl} className="mt-2 block w-fit max-w-full text-[10px] font-bold uppercase tracking-[0.08em] text-blue-700 hover:underline sm:text-xs">
+                                        <Link href={record.detailUrl} className="mt-2 block w-fit max-w-full text-xs font-bold uppercase tracking-[0.08em] text-blue-700 hover:underline sm:text-xs">
                                             {record.reference || 'Reference pending'}
                                         </Link>
                                         <h2 className="mt-1 break-words text-[13px] font-semibold leading-5 text-slate-950 sm:text-sm">{record.title}</h2>
-                                        <p className="mt-1 break-words text-[10px] leading-4 text-slate-500 sm:text-xs">{record.source}</p>
+                                        <p className="mt-1 break-words text-xs leading-4 text-slate-500 sm:text-xs">{record.source}</p>
                                         {record.originOffice && (
-                                            <p className="mt-1.5 text-[9px] font-medium text-slate-500 sm:text-[10px]">Origin: {officeLabel(record.originOffice)}</p>
+                                            <p className="mt-1.5 text-xs font-medium text-slate-500 sm:text-xs">Origin: {officeLabel(record.originOffice)}</p>
                                         )}
                                     </div>
 
                                     <dl className="grid grid-cols-2 gap-x-4 gap-y-3 sm:grid-cols-3 lg:grid-cols-2 xl:grid-cols-3">
                                         <div className="min-w-0">
-                                            <dt className="text-[8px] font-bold uppercase tracking-[0.12em] text-slate-400 sm:text-[9px]">Current office</dt>
-                                            <dd className="mt-1 flex items-start gap-1.5 break-words text-[10px] font-semibold text-slate-700 sm:text-xs"><Building2 size={12} className="mt-0.5 shrink-0 text-slate-400" />{officeLabel(record.currentOffice)}</dd>
+                                            <dt className="text-xs font-bold uppercase tracking-[0.12em] text-slate-400 sm:text-xs">Current office</dt>
+                                            <dd className="mt-1 flex items-start gap-1.5 break-words text-xs font-semibold text-slate-700 sm:text-xs"><Building2 size={12} className="mt-0.5 shrink-0 text-slate-400" />{officeLabel(record.currentOffice)}</dd>
                                         </div>
                                         <div className="min-w-0">
-                                            <dt className="text-[8px] font-bold uppercase tracking-[0.12em] text-slate-400 sm:text-[9px]">Responsible</dt>
-                                            <dd className="mt-1 flex items-start gap-1.5 break-words text-[10px] font-semibold text-slate-700 sm:text-xs"><UserRound size={12} className="mt-0.5 shrink-0 text-slate-400" />{record.recordType === 'travel_order' ? 'Issued personnel on detail' : (record.assignedEmployee?.name || 'Unassigned')}</dd>
-                                            {record.assignedEmployee?.position && <dd className="mt-1 pl-[18px] text-[9px] text-slate-500 sm:text-[10px]">{record.assignedEmployee.position}</dd>}
+                                            <dt className="text-xs font-bold uppercase tracking-[0.12em] text-slate-400 sm:text-xs">Responsible</dt>
+                                            <dd className="mt-1 flex items-start gap-1.5 break-words text-xs font-semibold text-slate-700 sm:text-xs"><UserRound size={12} className="mt-0.5 shrink-0 text-slate-400" />{record.recordType === 'travel_order' ? 'Issued personnel on detail' : (record.assignedEmployee?.name || 'Unassigned')}</dd>
+                                            {record.assignedEmployee?.position && <dd className="mt-1 pl-[18px] text-xs text-slate-500 sm:text-xs">{record.assignedEmployee.position}</dd>}
                                         </div>
                                         <div className="col-span-2 min-w-0 sm:col-span-1 lg:col-span-2 xl:col-span-1">
-                                            <dt className="text-[8px] font-bold uppercase tracking-[0.12em] text-slate-400 sm:text-[9px]">Record date</dt>
-                                            <dd className="mt-1 flex items-start gap-1.5 text-[10px] font-semibold text-slate-700 sm:text-xs"><CalendarDays size={12} className="mt-0.5 shrink-0 text-slate-400" />{formatDate(record.recordDate)}</dd>
+                                            <dt className="text-xs font-bold uppercase tracking-[0.12em] text-slate-400 sm:text-xs">Record date</dt>
+                                            <dd className="mt-1 flex items-start gap-1.5 text-xs font-semibold text-slate-700 sm:text-xs"><CalendarDays size={12} className="mt-0.5 shrink-0 text-slate-400" />{formatDate(record.recordDate)}</dd>
                                         </div>
                                     </dl>
 
-                                    <Link href={record.detailUrl} aria-label={`Open record ${record.reference || record.title}`} className="inline-flex w-fit items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3 py-2 text-[10px] font-bold text-slate-700 hover:bg-slate-50 sm:text-xs lg:justify-self-end">
+                                    <Link href={record.detailUrl} aria-label={`Open record ${record.reference || record.title}`} className="inline-flex w-fit items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50 sm:text-xs lg:justify-self-end">
                                         Open record <ArrowRight size={14} />
                                     </Link>
                                 </div>
@@ -291,9 +291,9 @@ export default function Index({ records, filters, filterOptions }: Props) {
 
                     {records.last_page > 1 && (
                         <div className="flex items-center justify-between gap-3 border-t border-slate-100 px-4 py-3 sm:px-5">
-                            <Link href={records.prev_page_url || '#'} preserveScroll className={`rounded-lg border px-3 py-2 text-[10px] font-semibold sm:text-xs ${records.prev_page_url ? 'border-slate-300 text-slate-700 hover:bg-slate-50' : 'pointer-events-none border-slate-100 text-slate-300'}`}>Previous</Link>
-                            <div className="text-[9px] text-slate-500 sm:text-xs">Page {records.current_page} of {records.last_page}</div>
-                            <Link href={records.next_page_url || '#'} preserveScroll className={`rounded-lg border px-3 py-2 text-[10px] font-semibold sm:text-xs ${records.next_page_url ? 'border-slate-300 text-slate-700 hover:bg-slate-50' : 'pointer-events-none border-slate-100 text-slate-300'}`}>Next</Link>
+                            <Link href={records.prev_page_url || '#'} preserveScroll className={`rounded-lg border px-3 py-2 text-xs font-semibold sm:text-xs ${records.prev_page_url ? 'border-slate-300 text-slate-700 hover:bg-slate-50' : 'pointer-events-none border-slate-100 text-slate-300'}`}>Previous</Link>
+                            <div className="text-xs text-slate-500 sm:text-xs">Page {records.current_page} of {records.last_page}</div>
+                            <Link href={records.next_page_url || '#'} preserveScroll className={`rounded-lg border px-3 py-2 text-xs font-semibold sm:text-xs ${records.next_page_url ? 'border-slate-300 text-slate-700 hover:bg-slate-50' : 'pointer-events-none border-slate-100 text-slate-300'}`}>Next</Link>
                         </div>
                     )}
                 </section>

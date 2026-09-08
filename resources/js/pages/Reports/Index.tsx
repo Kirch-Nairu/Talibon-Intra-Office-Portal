@@ -109,7 +109,7 @@ export default function ReportsIndex({ catalog, activeReport, filters, filterOpt
             <PageHeader eyebrow="Municipal operational reporting" title="Operational Reports" icon={FileBarChart}
                 description="Operational evidence from current transactions and incoming correspondence."
                 aside={
-                <label className="block min-w-64 text-[10px] font-bold uppercase tracking-wide text-slate-500 dark:text-slate-300 sm:text-xs">Report
+                <label className="block min-w-64 text-xs font-bold uppercase tracking-wide text-slate-500 dark:text-slate-300 sm:text-xs">Report
                     <select value={activeReport} onChange={(event) => selectReport(event.target.value)} className="mt-1.5 w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm normal-case tracking-normal text-slate-900">
                         {catalog.map((item) => <option key={item.key} value={item.key}>{item.label}</option>)}
                     </select>
@@ -128,8 +128,8 @@ export default function ReportsIndex({ catalog, activeReport, filters, filterOpt
                     activeFilters={activeFilters}
                     primary={(
                         <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5">
-                            <div className="text-[9px] font-bold uppercase tracking-[0.14em] text-blue-700 sm:text-[10px]">Current report scope</div>
-                            <div className="mt-0.5 text-[11px] font-semibold text-slate-800 sm:text-xs">{report.label}</div>
+                            <div className="text-xs font-bold uppercase tracking-[0.14em] text-blue-700 sm:text-xs">Current report scope</div>
+                            <div className="mt-0.5 text-[13px] font-semibold text-slate-800 sm:text-xs">{report.label}</div>
                         </div>
                     )}
                     common={hasCommonFilters ? (
@@ -157,13 +157,13 @@ export default function ReportsIndex({ catalog, activeReport, filters, filterOpt
                 />
             </form>
 
-            <section aria-label={`${report.label} results`} className="overflow-hidden rounded-2xl border border-slate-200 bg-white text-slate-900 shadow-sm">
+            <section aria-label={`${report.label} results`} className="overflow-hidden rounded-xl border border-slate-200 bg-white text-slate-900 ">
                 <div className="flex flex-col gap-1 border-b border-slate-200 bg-slate-50 px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-5">
                     <div>
-                        <div className="text-[11px] font-bold text-slate-800 sm:text-sm">{report.kind === 'aggregate' ? 'Office summary' : 'Detailed results'}</div>
-                        <div className="mt-0.5 text-[9px] text-slate-500 sm:text-[10px]">{report.label}</div>
+                        <div className="text-[13px] font-bold text-slate-800 sm:text-sm">{report.kind === 'aggregate' ? 'Office summary' : 'Detailed results'}</div>
+                        <div className="mt-0.5 text-xs text-slate-500 sm:text-xs">{report.label}</div>
                     </div>
-                    <span className="text-[9px] font-semibold text-slate-500 sm:text-xs">{result.total.toLocaleString()} {result.total === 1 ? 'result' : 'results'}</span>
+                    <span className="text-xs font-semibold text-slate-500 sm:text-xs">{result.total.toLocaleString()} {result.total === 1 ? 'result' : 'results'}</span>
                 </div>
 
                 {result.data.length === 0 ? (
@@ -192,15 +192,15 @@ function ReportResultList({ report, rows }: { report: Report; rows: Row[] }) {
                 <div className="grid gap-4 lg:grid-cols-[minmax(220px,0.8fr)_minmax(0,2.2fr)_auto] lg:items-start">
                     <div className="min-w-0">
                         {primary && <>
-                            <div className="text-[8px] font-bold uppercase tracking-[0.12em] text-slate-400 sm:text-[9px]">{primary.label}</div>
+                            <div className="text-xs font-bold uppercase tracking-[0.12em] text-slate-400 sm:text-xs">{primary.label}</div>
                             {row.detailUrl ? (
-                                <Link href={row.detailUrl} className="mt-1 block w-fit max-w-full break-words text-[10px] font-bold text-blue-700 hover:underline sm:text-xs">{display(row[primary.key])}</Link>
+                                <Link href={row.detailUrl} className="mt-1 block w-fit max-w-full break-words text-xs font-bold text-blue-700 hover:underline sm:text-xs">{display(row[primary.key])}</Link>
                             ) : (
                                 <div className="mt-1 break-words text-[12px] font-bold text-slate-900 sm:text-sm">{display(row[primary.key])}</div>
                             )}
                         </>}
                         {secondary && <>
-                            <div className="mt-2 text-[8px] font-bold uppercase tracking-[0.12em] text-slate-400 sm:text-[9px]">{secondary.label}</div>
+                            <div className="mt-2 text-xs font-bold uppercase tracking-[0.12em] text-slate-400 sm:text-xs">{secondary.label}</div>
                             <h3 className="mt-1 break-words text-[12px] font-semibold leading-5 text-slate-950 sm:text-sm">{display(row[secondary.key])}</h3>
                         </>}
                     </div>
@@ -208,8 +208,8 @@ function ReportResultList({ report, rows }: { report: Report; rows: Row[] }) {
                     <dl className="grid grid-cols-2 gap-x-4 gap-y-3 sm:grid-cols-3 xl:grid-cols-4">
                         {metaColumns.map((column) => (
                             <div key={column.key} className="min-w-0">
-                                <dt className="text-[8px] font-bold uppercase tracking-[0.12em] text-slate-400 sm:text-[9px]">{column.label}</dt>
-                                <dd className="mt-1 break-words text-[10px] font-medium leading-4 text-slate-700 sm:text-xs">
+                                <dt className="text-xs font-bold uppercase tracking-[0.12em] text-slate-400 sm:text-xs">{column.label}</dt>
+                                <dd className="mt-1 break-words text-xs font-medium leading-4 text-slate-700 sm:text-xs">
                                     {emphasisKeys.has(column.key) ? (
                                         <span className={resultEmphasisClass(column.key, row[column.key])}>{display(row[column.key])}</span>
                                     ) : display(row[column.key])}
@@ -219,7 +219,7 @@ function ReportResultList({ report, rows }: { report: Report; rows: Row[] }) {
                     </dl>
 
                     {row.detailUrl && (
-                        <Link href={row.detailUrl} aria-label={`Open ${report.label} result ${display(row[primary?.key ?? 'id'])}`} className="inline-flex w-fit items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3 py-2 text-[10px] font-bold text-slate-700 hover:bg-slate-50 sm:text-xs lg:justify-self-end">
+                        <Link href={row.detailUrl} aria-label={`Open ${report.label} result ${display(row[primary?.key ?? 'id'])}`} className="inline-flex w-fit items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50 sm:text-xs lg:justify-self-end">
                             Open <ArrowRight size={14} />
                         </Link>
                     )}
@@ -231,7 +231,7 @@ function ReportResultList({ report, rows }: { report: Report; rows: Row[] }) {
 
 function resultEmphasisClass(key: string, value: string | number | null | undefined) {
     const overdue = key === 'dueState' && String(value).toLowerCase() === 'overdue';
-    return `inline-flex max-w-full rounded-md border px-1.5 py-0.5 text-[9px] font-bold sm:text-[10px] ${overdue ? 'border-rose-200 bg-rose-50 text-rose-700' : 'border-slate-200 bg-slate-50 text-slate-700'}`;
+    return `inline-flex max-w-full rounded-md border px-1.5 py-0.5 text-xs font-bold sm:text-xs ${overdue ? 'border-rose-200 bg-rose-50 text-rose-700' : 'border-slate-200 bg-slate-50 text-slate-700'}`;
 }
 
 function display(value: string | number | null | undefined) {
@@ -239,7 +239,7 @@ function display(value: string | number | null | undefined) {
 }
 
 function Field({ label, error, children }: { label: string; error?: string; children: ReactNode }) {
-    return <label className="block min-w-40 text-xs font-semibold text-slate-600">{label}{children}{error && <span className="mt-1 block text-[10px] text-rose-700">{error}</span>}</label>;
+    return <label className="block min-w-40 text-xs font-semibold text-slate-600">{label}{children}{error && <span className="mt-1 block text-xs text-rose-700">{error}</span>}</label>;
 }
 
 function Choice({ label, value, values, onChange, error }: { label: string; value: string; values: string[]; onChange: (value: string) => void; error?: string }) {
