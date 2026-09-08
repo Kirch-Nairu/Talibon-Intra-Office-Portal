@@ -9,7 +9,7 @@ export default function PublicHero({ content, authenticated }: { content: Public
             <div className="public-hero-copy">
                 <p className="public-welcome">Municipality of Talibon · Province of Bohol</p>
                 <h1 id="public-hero-title" className="public-hero-title">{content.hero.title}</h1>
-                <p className="public-hero-lead">Municipal information, public notices, service guidance, and secure employee access in one official portal.</p>
+                <p className="public-hero-lead">Municipal information, public notices, service guidance, and secure employee access in one municipal portal.</p>
                 <p className="public-hero-description">{content.hero.description}</p>
                 <div className="public-hero-actions">
                     <Link href={authenticated ? '/dashboard' : '/login'} className="public-primary-action">
