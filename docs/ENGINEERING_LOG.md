@@ -697,3 +697,10 @@ This append records the completed Approved Travel Orders wave. Earlier entries t
 - Schema/migration impact: none. Activity consumes the shell's existing polling feed with no duplicate polling; System Admin rail consumes existing security events.
 - Verification: source inspection; compile checkpoint follows responsive panel integration.
 - Gap/next: consolidate nested dashboard widths and duplicate security presentation; browser acceptance deferred.
+
+## 2026-09-08 — Operational dashboard panel refinement
+- Slice/intent: compact recent-work rows with all existing metadata; office/executive grids respond to available panel width; remove duplicated correspondence counts and security events now shown in the rail.
+- Files: RecentWorkList, OfficeOverview, ExecutiveOverview, SystemOverview, CorrespondenceOverview.
+- Schema/migration impact: none. Existing role-specific data retained; security counts use existing props.
+- Verification: source inspection; TypeScript/build checkpoint next. No full PHP/Browser gate executed.
+- Gap/next: desktop/mobile visual review pending; build public reference composition next.

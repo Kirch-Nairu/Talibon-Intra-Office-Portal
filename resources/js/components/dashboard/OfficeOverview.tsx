@@ -16,26 +16,26 @@ export default function OfficeOverview({ overview }: { overview: OfficeOverviewD
                 <Link href="/transactions?view=office_queue" className="inline-flex w-fit items-center gap-1 text-[10px] font-semibold text-blue-700 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 dark:text-blue-300 sm:text-xs">Open office work <ArrowRight size={13} aria-hidden="true" /></Link>
             </div>
 
-            <div className="grid gap-3 xl:grid-cols-[1.2fr_0.8fr]">
-                <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-[#142236]">
+            <div className="grid gap-3 @min-[900px]:grid-cols-[1.2fr_0.8fr]">
+                <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-[#142236]">
                     <div className="flex items-center gap-2 border-b border-slate-100 px-4 py-3 dark:border-slate-700 sm:px-5"><Users size={16} className="text-blue-700 dark:text-blue-300" aria-hidden="true" /><h3 className="text-sm font-bold text-slate-950 dark:text-slate-100">Staff workload</h3></div>
-                    <div className="hidden grid-cols-[minmax(0,1fr)_75px_75px_90px] gap-3 border-b border-slate-100 bg-slate-50 px-5 py-2 text-[9px] font-bold uppercase tracking-wide text-slate-400 dark:border-slate-700 dark:bg-slate-900/40 sm:grid">
+                    <div className="hidden grid-cols-[minmax(0,1fr)_75px_75px_90px] gap-3 border-b border-slate-100 bg-slate-50 px-5 py-2 text-[9px] font-bold uppercase tracking-wide text-slate-400 dark:border-slate-700 dark:bg-slate-900/40 @min-[600px]:grid">
                         <div>Employee</div><div>Active</div><div>Overdue</div><div>Action</div>
                     </div>
                     <div className="divide-y divide-slate-100 dark:divide-slate-700">
                         {overview.staffWorkload.map((row) => (
-                            <article key={`${row.employee}-${row.position || ''}`} className="grid gap-2 px-4 py-3 sm:grid-cols-[minmax(0,1fr)_75px_75px_90px] sm:items-center sm:px-5">
+                            <article key={`${row.employee}-${row.position || ''}`} className="grid gap-2 px-4 py-3 @min-[600px]:grid-cols-[minmax(0,1fr)_75px_75px_90px] sm:items-center sm:px-5">
                                 <div className="min-w-0"><div className="break-words text-[11px] font-semibold text-slate-800 dark:text-slate-100 sm:text-xs">{row.employee}</div><div className="mt-0.5 break-words text-[9px] text-slate-400">{row.position || 'Position not recorded'}</div></div>
-                                <div className="text-[10px] text-slate-600 dark:text-slate-300 sm:text-xs"><span className="font-bold text-slate-950 dark:text-slate-100">{row.active}</span> <span className="sm:hidden">active</span></div>
-                                <div className="text-[10px] text-slate-600 dark:text-slate-300 sm:text-xs"><span className={row.overdue > 0 ? 'font-bold text-rose-700 dark:text-rose-300' : 'font-bold text-slate-950 dark:text-slate-100'}>{row.overdue}</span> <span className="sm:hidden">overdue</span></div>
-                                <div className="text-[10px] text-slate-600 dark:text-slate-300 sm:text-xs"><span className="font-bold text-blue-800 dark:text-blue-300">{row.requiresAction}</span> <span className="sm:hidden">need action</span></div>
+                                <div className="text-[10px] text-slate-600 dark:text-slate-300 sm:text-xs"><span className="font-bold text-slate-950 dark:text-slate-100">{row.active}</span> <span className="@min-[600px]:hidden">active</span></div>
+                                <div className="text-[10px] text-slate-600 dark:text-slate-300 sm:text-xs"><span className={row.overdue > 0 ? 'font-bold text-rose-700 dark:text-rose-300' : 'font-bold text-slate-950 dark:text-slate-100'}>{row.overdue}</span> <span className="@min-[600px]:hidden">overdue</span></div>
+                                <div className="text-[10px] text-slate-600 dark:text-slate-300 sm:text-xs"><span className="font-bold text-blue-800 dark:text-blue-300">{row.requiresAction}</span> <span className="@min-[600px]:hidden">need action</span></div>
                             </article>
                         ))}
                         {overview.staffWorkload.length === 0 ? <div className="px-5 py-7 text-center text-[11px] text-slate-500 dark:text-slate-400">No active assigned office work.</div> : null}
                     </div>
                 </div>
 
-                <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-[#142236]">
+                <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-[#142236]">
                     <div className="flex items-center gap-2 border-b border-slate-100 px-4 py-3 dark:border-slate-700 sm:px-5"><AlertTriangle size={16} className="text-amber-700 dark:text-amber-300" aria-hidden="true" /><h3 className="text-sm font-bold text-slate-950 dark:text-slate-100">Active status mix</h3></div>
                     <div className="divide-y divide-slate-100 px-4 dark:divide-slate-700 sm:px-5">
                         {overview.statusOverview.map((row) => (
@@ -53,3 +53,4 @@ export default function OfficeOverview({ overview }: { overview: OfficeOverviewD
         </section>
     );
 }
+
