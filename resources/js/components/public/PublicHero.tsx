@@ -23,10 +23,10 @@ export default function PublicHero({ content, authenticated }: { content: Public
             </div>
             <span className="absolute bottom-2 right-3 text-[8px] font-semibold uppercase tracking-wider text-[#123b51] dark:text-blue-100">Illustrative landscape</span>
         </div>
-        <div id="quick-access" className="grid grid-cols-1 gap-2 border-t-4 border-[#e3bf45] p-3 min-[420px]:grid-cols-2 xl:grid-cols-4">
+        <div id="quick-access" className="grid grid-cols-2 gap-2 border-t-4 border-[#e3bf45] p-3 xl:grid-cols-4">
             {actions.map(({ title, detail, href, icon: Icon, tone }) => {
                 const children = <><Icon size={28} className="shrink-0" aria-hidden="true" /><div className="min-w-0 flex-1"><div className="text-xs font-bold uppercase leading-4">{title}</div><p className="mt-1 text-[10px] leading-4 text-white/90">{detail}</p></div><ArrowRight size={17} className="shrink-0" aria-hidden="true" /></>;
-                const className = `flex min-h-24 items-center gap-3 rounded-lg border border-white/50 px-3 py-4 text-white transition hover:brightness-110 ${tone}`;
+                const className = `flex min-h-24 flex-wrap items-center gap-2 rounded-lg border border-white/50 px-3 py-4 text-white transition hover:brightness-110 sm:flex-nowrap sm:gap-3 ${tone}`;
                 return href.startsWith('#') ? <a key={href} href={href} className={className}>{children}</a> : <Link key={href} href={href} className={className}>{children}</Link>;
             })}
         </div>

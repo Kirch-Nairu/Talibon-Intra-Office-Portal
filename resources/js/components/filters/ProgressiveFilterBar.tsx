@@ -32,7 +32,7 @@ export default function ProgressiveFilterBar({
     }, [expanded]);
 
     return (
-        <div className="rounded-2xl border border-slate-200 bg-white p-3 text-slate-900 shadow-sm sm:rounded-3xl sm:p-4">
+        <div className="municipal-panel p-3 text-slate-900 dark:text-slate-100 sm:p-4">
             <div className="flex flex-col gap-3 lg:flex-row lg:items-end">
                 <div className="min-w-0 flex-1">{primary}</div>
 

@@ -725,3 +725,10 @@ This append records the completed Approved Travel Orders wave. Earlier entries t
 - Schema/migration impact: none. No public routes, publication systems, contact values, protected props or fake document downloads added.
 - Verification: dashboard cluster TypeScript check observed PASS before this public cluster; full current frontend compile/build follows.
 - Gap/next: raw assets and consolidated QA remain; responsive/appearance and current-page normalization next.
+
+## 2026-09-08 — Shared operational page rhythm and public responsive polish
+- Slice/intent: municipal panel/page heading treatment for all PageHeader consumers, consistent frame/filter surfaces, compact desktop public masthead and two-column mobile action ribbon.
+- Files: PageHeader, PageFrame, ProgressiveFilterBar, PublicHero, PublicHeader.
+- Schema/migration impact: none; filtering and workflow semantics untouched.
+- Verification: pre-polish TypeScript and Vite build PASS. Public page observed locally at 1440x900 light, default desktop dark, and 390x844 light; zero console errors/broken images and no desktop horizontal overflow in observed state. Final recheck pending after polish.
+- Gap/next: complete Records/Travel/Reports/Memoranda header alignment and isolated synthetic authenticated visual check; full acceptance deferred.
