@@ -20,3 +20,10 @@
 @media (prefers-reduced-motion: reduce) {
     *, *::before, *::after { scroll-behavior: auto !important; transition-duration: 0ms !important; animation-duration: 0ms !important; }
 }
+
+.dark #portal-content :where(input:not([type="checkbox"]):not([type="radio"]):not([type="hidden"]), select, textarea) {
+    color: var(--municipal-text);
+    background-color: var(--municipal-canvas);
+    border-color: var(--municipal-border);
+}
+.dark #portal-content :where(input, textarea)::placeholder { color: var(--municipal-muted); }

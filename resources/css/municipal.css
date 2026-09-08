@@ -68,3 +68,16 @@
 
 /* Keep the temporary landscape quiet; approved photography uses the same asset slot. */
 .public-landscape { height: 160%; object-position: center top; filter: saturate(.45); opacity: .75; }
+
+@theme {
+    --color-blue-500: #2d8bc3;
+    --color-blue-600: #1769aa;
+    --color-blue-700: #1769aa;
+    --color-blue-800: #0b2852;
+    --color-blue-900: #0b2852;
+    --color-emerald-600: #2f7d45;
+    --color-emerald-700: #2f7d45;
+    --color-amber-600: #c98616;
+    --color-rose-600: #c83d4e;
+    --color-rose-700: #ac3040;
+}
