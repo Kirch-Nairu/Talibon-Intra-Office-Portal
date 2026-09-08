@@ -683,3 +683,10 @@ This append records the completed Approved Travel Orders wave. Earlier entries t
 - Schema/migration impact: none. No avatar backend or universal search introduced.
 - Verification: source inspection; TypeScript/build pending at next cluster checkpoint.
 - Gap/next: visual browser review pending; dashboard hero and role composition next.
+
+## 2026-09-08 — Dashboard welcome and operational tiles
+- Slice/intent: personalized coastal welcome, Philippine local date/context, semantic metric colors and compact authorized Quick Access tiles.
+- Files: DashboardHeader, MunicipalContext, MetricGroup, metricPresentation, QuickActions.
+- Schema/migration impact: none; server counts/actions/scopes preserved. No mock statistics or weather.
+- Verification: source inspection; compile checkpoint pending after dashboard composition.
+- Gap/next: final photography and browser acceptance pending; integrate real information rail next.

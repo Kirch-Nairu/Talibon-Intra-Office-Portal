@@ -1,53 +1,39 @@
+import { usePage } from '@inertiajs/react';
 import { Building2, Landmark, ShieldCheck, UserRound } from 'lucide-react';
+import { talibonAssets } from '../../branding/talibonAssets';
+import type { SharedProps } from '../../types';
+import MunicipalContext from './MunicipalContext';
 import type { DashboardExperience } from './types';
 
-const profileCopy: Record<DashboardExperience['key'], string> = {
-    employee: 'Assigned work, deadlines, correspondence, and recent activity prioritized for daily execution.',
-    department_head: 'Office workload, staff accountability, unresolved work, and personal responsibilities within your approved scope.',
-    executive_oversight: 'Municipal workload, bottlenecks, executive attention items, and completed work within existing executive visibility.',
-    system_administration: 'Account, MFA, office identity, security, and platform-governance status without widening municipal content access.',
+const profileCopy = {
+    employee: 'Your work, your next steps. A more connected working day.',
+    department_head: 'Keep your office moving. Coordinate people, priorities, and follow-ups.',
+    executive_oversight: 'A clear view of municipal priorities. Turn attention into action.',
+    system_administration: 'Support the people behind the portal. Manage identity, access, and security.',
 };
-
-const profileIcon = {
-    employee: UserRound,
-    department_head: Building2,
-    executive_oversight: Landmark,
-    system_administration: ShieldCheck,
-};
-
-const scopeLabels: Record<keyof DashboardExperience['scopes'], string> = {
-    personal: 'Personal work',
-    office: 'Office accountability',
-    municipal: 'Municipal oversight',
-    system: 'System governance',
-};
+const profileIcon = { employee: UserRound, department_head: Building2, executive_oversight: Landmark, system_administration: ShieldCheck };
+const scopeLabels = { personal: 'Personal work', office: 'Office accountability', municipal: 'Municipal oversight', system: 'System governance' };
 
 export default function DashboardHeader({ experience }: { experience: DashboardExperience }) {
+    const { auth } = usePage<SharedProps>().props;
     const Icon = profileIcon[experience.key];
-    const visibleScopes = Object.entries(experience.scopes).filter(([, visible]) => visible) as Array<[keyof DashboardExperience['scopes'], boolean]>;
-
-    return (
-        <header className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition-colors dark:border-slate-700 dark:bg-[#142236] sm:rounded-3xl">
-            <div className="grid gap-4 p-4 sm:p-6 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end lg:gap-6">
-                <div className="min-w-0">
-                    <div className="inline-flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.18em] text-blue-700 dark:text-blue-300 sm:text-xs">
-                        <Icon size={15} aria-hidden="true" /> {experience.label}
+    const name = auth.user?.name.trim();
+    return <div className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_300px]">
+        <header className="relative isolate flex min-h-56 min-w-0 items-end overflow-hidden rounded-xl bg-[#0b2852] text-white sm:min-h-60">
+            <img src={talibonAssets.internalHero} alt="" className="municipal-photo -z-20" />
+            <div className="absolute inset-0 -z-10 bg-gradient-to-r from-[#082d4d]/95 via-[#083950]/80 to-[#0b2852]/30" />
+            <div className="w-full px-5 py-6 sm:px-7">
+                <div className="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[.16em] text-blue-100"><Icon size={15} />{experience.label}</div>
+                <h1 className="mt-3 break-words text-2xl font-bold tracking-tight sm:text-4xl">Welcome{name ? `, ${name}` : ''}!</h1>
+                <p className="mt-2 max-w-xl text-xs leading-5 text-blue-50 sm:text-sm">{profileCopy[experience.key]}</p>
+                <div className="mt-4 border-t border-amber-200/70 pt-3">
+                    <div className="text-xs font-semibold">{experience.department.name}</div>
+                    <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-[9px] uppercase tracking-widest text-blue-100" aria-label="Dashboard visibility scopes">
+                        {Object.entries(experience.scopes).filter(([, visible]) => visible).map(([key]) => <span key={key}>{scopeLabels[key as keyof typeof scopeLabels]}</span>)}
                     </div>
-                    <h1 className="mt-1.5 break-words text-2xl font-bold tracking-tight text-slate-950 dark:text-slate-100 sm:text-3xl">
-                        {experience.department.name}
-                    </h1>
-                    <p className="mt-1.5 max-w-3xl text-[11px] leading-5 text-slate-600 dark:text-slate-300 sm:text-sm sm:leading-6">
-                        {profileCopy[experience.key]}
-                    </p>
-                </div>
-                <div className="flex flex-wrap gap-1.5 lg:max-w-sm lg:justify-end" aria-label="Dashboard visibility scopes">
-                    {visibleScopes.map(([scope]) => (
-                        <span key={scope} className="rounded-full border border-blue-100 bg-blue-50 px-2.5 py-1 text-[9px] font-bold uppercase tracking-wide text-blue-800 dark:border-blue-900 dark:bg-blue-950/40 dark:text-blue-200 sm:text-[10px]">
-                            {scopeLabels[scope]}
-                        </span>
-                    ))}
                 </div>
             </div>
         </header>
-    );
+        <MunicipalContext />
+    </div>;
 }

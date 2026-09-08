@@ -1,30 +1,22 @@
 import { Link } from '@inertiajs/react';
-import { ArrowUpRight } from 'lucide-react';
+import { ArrowRight } from 'lucide-react';
+import { metricPresentation } from './metricPresentation';
 import type { MetricGroupData } from './types';
 
 export default function MetricGroup({ group }: { group: MetricGroupData }) {
-    return (
-        <section aria-labelledby={`dashboard-${group.key}-metrics`}>
-            <div className="mb-2.5">
-                <div className="text-[9px] font-bold uppercase tracking-[0.18em] text-blue-700 dark:text-blue-300 sm:text-[10px]">Operational status</div>
-                <h2 id={`dashboard-${group.key}-metrics`} className="mt-1 text-base font-bold text-slate-950 dark:text-slate-100 sm:text-lg">{group.title}</h2>
-            </div>
-            <div className="grid grid-cols-2 gap-2 sm:gap-3 lg:grid-cols-3 xl:grid-cols-4">
-                {group.metrics.map((metric) => (
-                    <Link
-                        key={`${group.key}-${metric.label}`}
-                        href={metric.link}
-                        aria-label={`${metric.label}: ${metric.value}. Open related work.`}
-                        className="group min-w-0 rounded-xl border border-slate-200 bg-white p-3 shadow-sm transition-colors hover:border-blue-300 hover:bg-blue-50/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 dark:border-slate-700 dark:bg-[#142236] dark:hover:border-blue-700 dark:hover:bg-blue-950/30 sm:rounded-2xl sm:p-4"
-                    >
-                        <div className="flex items-start justify-between gap-2">
-                            <div className="text-xl font-bold text-slate-950 dark:text-slate-100 sm:text-2xl">{metric.value}</div>
-                            <ArrowUpRight size={14} className="shrink-0 text-slate-300 transition group-hover:text-blue-700 dark:text-slate-600 dark:group-hover:text-blue-300" aria-hidden="true" />
-                        </div>
-                        <div className="mt-2 break-words text-[9px] font-bold uppercase leading-4 tracking-wide text-slate-500 dark:text-slate-400 sm:text-[10px]">{metric.label}</div>
-                    </Link>
-                ))}
-            </div>
-        </section>
-    );
+    return <section aria-labelledby={`dashboard-${group.key}-metrics`}>
+        <h2 id={`dashboard-${group.key}-metrics`} className="mb-2 text-xs font-semibold text-slate-600 dark:text-slate-300">{group.title}</h2>
+        <div className="grid grid-cols-2 gap-3 @min-[650px]:grid-cols-4">
+            {group.metrics.map((metric) => {
+                const { icon: Icon, surface, badge } = metricPresentation(metric.label);
+                return <Link key={`${group.key}-${metric.label}`} href={metric.link} aria-label={`${metric.label}: ${metric.value}. Open related work.`} className={`group flex min-w-0 flex-col rounded-xl border p-3 transition hover:shadow-md sm:p-4 ${surface}`}>
+                    <div className="flex flex-wrap items-start gap-3">
+                        <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full ${badge}`}><Icon size={22} aria-hidden="true" /></span>
+                        <div className="min-w-0 flex-1"><div className="text-3xl font-bold leading-none tracking-tight tabular-nums">{metric.value.toLocaleString()}</div><div className="mt-2 text-xs leading-4">{metric.label}</div></div>
+                    </div>
+                    <span className="mt-auto flex items-center gap-1 pt-4 text-[10px] font-medium">View details <ArrowRight size={12} aria-hidden="true" /></span>
+                </Link>;
+            })}
+        </div>
+    </section>;
 }
