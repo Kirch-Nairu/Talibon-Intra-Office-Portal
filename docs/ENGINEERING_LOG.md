@@ -980,3 +980,11 @@ This append records the completed Approved Travel Orders wave. Earlier entries t
 - Schema/migrations: none. Existing authorization, data contracts and workflows retained.
 - Verification: Source diff reviewed; compilation and visual verification pending the next checkpoint.
 - Gaps/next: approved municipal assets and consolidated real-role QA remain pending; continue the visual polish pass.
+
+### 2026-09-08 — Core Portal frontend polish: fix: use concrete public wording and quieter hero artwork
+
+- Intent: Replace generated-sounding public copy with brief municipal descriptions, preserve all sample-data truth, and mute/crop the existing placeholder through CSS. Fix the announcements empty state after separating advisory and event content.
+- Files: config/public_portal.php, resources/js/components/public/PublicHero.tsx, resources/css/municipal.css, resources/js/components/public/PublicUpdates.tsx.
+- Schema/migrations: none. Existing authorization, data contracts and workflows retained.
+- Verification: TypeScript and Vite build passed before this slice; final recheck pending.
+- Gaps/next: approved municipal assets and consolidated real-role QA remain pending; continue the visual polish pass.

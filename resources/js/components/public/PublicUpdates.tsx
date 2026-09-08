@@ -3,14 +3,15 @@ import PublicPanel from './PublicPanel';
 import type { PublicContent } from './types';
 
 export default function PublicUpdates({ content }: { content: PublicContent }) {
+    const announcements = content.news.filter((item) => !['advisory', 'event'].includes(item.type.toLowerCase()));
     return <div className="grid items-start gap-4 @min-[900px]:grid-cols-2">
         <PublicPanel id="news" title="Announcements" icon={Megaphone}>
             <div className="mb-2 text-xs font-semibold text-amber-800 dark:text-amber-300">Sample content</div>
-            <div className="divide-y divide-slate-200 dark:divide-slate-700">{content.news.filter((item) => !['advisory', 'event'].includes(item.type.toLowerCase())).map((item) => <article key={`${item.type}-${item.title}`} className="py-3 first:pt-1">
+            <div className="divide-y divide-slate-200 dark:divide-slate-700">{announcements.map((item) => <article key={`${item.type}-${item.title}`} className="py-3 first:pt-1">
                 <div className="text-xs font-semibold text-blue-700 dark:text-blue-300">{item.type} · {item.date}</div>
                 <h3 className="mt-1 text-sm font-semibold leading-5">{item.title}</h3><p className="mt-1 text-sm leading-5 text-slate-600 dark:text-slate-400">{item.summary}</p>
             </article>)}</div>
-            {!content.news.length && <p className="text-xs text-slate-500 dark:text-slate-400">No announcement entries available.</p>}
+            {!announcements.length && <p className="text-xs text-slate-500 dark:text-slate-400">No announcement entries available.</p>}
         </PublicPanel>
         <PublicPanel id="projects" title="Projects & Programs" icon={Building2}>
             <div className="mb-2 text-xs font-semibold text-amber-800 dark:text-amber-300">Sample content</div>
