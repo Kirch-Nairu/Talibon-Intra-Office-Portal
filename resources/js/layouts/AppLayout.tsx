@@ -150,7 +150,7 @@ export default function AppLayout({ title, children }: Props) {
         <div className="flex h-full flex-col bg-[#0b2852] text-white">
             <div className="border-b border-white/10 px-5 py-6">
                 <MunicipalBrand inverse compact />
-                <div className="mt-3 text-[9px] font-semibold uppercase tracking-[.18em] text-blue-200">Intra-Office Portal · Prototype</div>
+                <div className="mt-3 text-xs font-semibold uppercase tracking-[.18em] text-blue-200">Intra-Office Portal · Prototype</div>
             </div>
 
             <nav className="min-h-0 flex-1 overflow-y-auto px-3 py-4" aria-label="Primary navigation">
@@ -160,7 +160,7 @@ export default function AppLayout({ title, children }: Props) {
 
                         return (
                             <section key={group.label} aria-label={group.label}>
-                                <div className={`px-2 text-[9px] font-bold uppercase tracking-[0.2em] ${groupActive ? 'text-white' : 'text-blue-300'}`}>
+                                <div className={`px-2 text-xs font-bold uppercase tracking-[0.2em] ${groupActive ? 'text-white' : 'text-blue-300'}`}>
                                     {group.label}
                                 </div>
                                 <div className="mt-1.5 space-y-0.5">
@@ -172,12 +172,12 @@ export default function AppLayout({ title, children }: Props) {
                                                 href={href}
                                                 onClick={() => setMobileOpen(false)}
                                                 aria-current={active ? 'page' : undefined}
-                                                className={`flex min-h-11 items-center gap-3 rounded-lg px-3 py-2 text-[13px] font-medium transition ${active ? 'bg-[#0876cd] text-white shadow-sm ring-1 ring-white/10' : 'text-blue-100 hover:bg-white/10 hover:text-white'}`}
+                                                className={`flex min-h-11 items-center gap-3 rounded-lg px-3 py-2 text-[13px] font-medium transition ${active ? 'bg-[#1769aa] text-white  ring-1 ring-white/10' : 'text-blue-100 hover:bg-white/10 hover:text-white'}`}
                                             >
-                                                <Icon size={19} aria-hidden="true" />
+                                                <Icon size={18} aria-hidden="true" />
                                                 <span className="min-w-0 flex-1 truncate">{label}</span>
                                                 {key === 'memoranda' && unreadMemoCount > 0 && (
-                                                    <span className={`rounded-full px-2 py-0.5 text-[9px] font-bold ${active ? 'bg-amber-100 text-amber-900' : 'bg-amber-400 text-slate-950'}`}>
+                                                    <span className={`rounded-full px-2 py-0.5 text-xs font-bold ${active ? 'bg-amber-100 text-amber-900' : 'bg-amber-400 text-slate-950'}`}>
                                                         {unreadMemoCount}
                                                     </span>
                                                 )}
@@ -193,13 +193,13 @@ export default function AppLayout({ title, children }: Props) {
 
             <div className="relative shrink-0 border-t border-white/10 p-3 sm:p-4">
                 <img src={talibonAssets.sidebarIllustration} alt="" className="pointer-events-none absolute inset-0 h-full w-full object-cover opacity-15" />
-                <div className="relative mb-3 text-sm font-bold">One Talibon.<span className="mt-0.5 block text-[10px] font-normal text-blue-200">People. Process. Progress. Together.</span></div>
+                <div className="relative mb-3 text-sm font-bold">One Talibon.<span className="mt-0.5 block text-xs font-normal text-blue-200">People. Process. Progress. Together.</span></div>
                 <div className="relative">
                 <AppearanceControl />
                 <div className="mt-3 border-t border-white/10 pt-3">
-                    <div className="truncate text-[13px] font-semibold sm:text-sm">{user?.name}</div>
-                    <div className="mt-1 truncate text-[10px] text-blue-200 sm:text-xs">{user?.employee?.department?.name}</div>
-                    <div className="truncate text-[10px] text-blue-300 sm:text-xs">{user?.employee?.position}</div>
+                    <div className="truncate text-sm font-semibold">{user?.name}</div>
+                    <div className="mt-1 truncate text-xs text-blue-200 sm:text-xs">{user?.employee?.department?.name}</div>
+                    <div className="truncate text-xs text-blue-300 sm:text-xs">{user?.employee?.position}</div>
                     <button
                         onClick={() => router.post('/logout')}
                         className="mt-2 flex min-h-10 w-full items-center gap-2 rounded-lg px-2 text-[13px] text-blue-100 hover:bg-white/10 sm:mt-3 sm:text-sm"
@@ -219,21 +219,21 @@ export default function AppLayout({ title, children }: Props) {
         <>
             <Head title={title} />
             <a href="#portal-content" className="sr-only z-[80] rounded bg-white p-3 text-blue-900 focus:not-sr-only focus:fixed focus:left-4 focus:top-4">Skip to content</a>
-            <div className="min-h-screen bg-[#edf3f8] text-slate-900 transition-colors dark:bg-[#0d1624] dark:text-slate-100 lg:grid lg:grid-cols-[248px_minmax(0,1fr)]">
+            <div className="min-h-screen bg-[var(--municipal-canvas)] text-slate-900 transition-colors dark:bg-[#0d1624] dark:text-slate-100 lg:grid lg:grid-cols-[248px_minmax(0,1fr)]">
                 <aside className="hidden h-screen lg:sticky lg:top-0 lg:block">{sidebar}</aside>
 
                 {mobileOpen && <MobileNavigation onClose={() => setMobileOpen(false)}>{sidebar}</MobileNavigation>}
 
                 <main className="min-w-0">
-                    <header className="sticky top-0 z-20 flex min-h-20 items-center justify-between gap-4 border-b border-slate-200/80 bg-white/95 px-3 transition-colors dark:border-slate-700/80 dark:bg-[#111d2d]/95 sm:px-5">
+                    <header className="sticky top-0 z-20 flex min-h-[72px] items-center justify-between gap-2 border-b border-slate-200/80 bg-white px-3 transition-colors dark:border-slate-700/80 dark:bg-[#142236] sm:px-5">
                         <div className="flex min-w-0 items-center gap-2 sm:gap-3">
-                            <button onClick={() => setMobileOpen(true)} className="shrink-0 rounded-lg p-2 text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800 lg:hidden" aria-label="Open navigation">
+                            <button onClick={() => setMobileOpen(true)} className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800 lg:hidden" aria-label="Open navigation">
                                 <Menu size={20} />
                             </button>
                             <div className="min-w-0">
-                                <div className="text-xl font-extrabold tracking-tight text-[#0b2852] dark:text-white sm:text-2xl">One <span className="text-[#0876cd] dark:text-blue-400">Talibon</span></div>
-                                <div className="text-[8px] font-semibold uppercase tracking-[.18em] sm:text-[9px]">LGU Intra-Office Portal</div>
-                                <div className="mt-1 truncate text-[10px] text-slate-500 dark:text-slate-400">{title}</div>
+                                <div className="whitespace-nowrap text-lg font-extrabold tracking-tight text-[#0b2852] dark:text-white sm:text-xl">One <span className="text-[#1769aa] dark:text-blue-400">Talibon</span></div>
+                                <div className="hidden text-[10px] font-semibold uppercase tracking-wider sm:block">LGU Intra-Office Portal</div>
+                                <div className="mt-1 truncate text-xs text-slate-500 dark:text-slate-400">{title}</div>
                             </div>
                         </div>
 
@@ -243,13 +243,13 @@ export default function AppLayout({ title, children }: Props) {
                                 <button
                                     ref={notificationsButton}
                                     onClick={() => { setNotificationsOpen((open) => !open); setUnseenWorkflowCount(0); }}
-                                    className="relative rounded-full p-2 text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"
+                                    className="relative flex h-11 w-11 items-center justify-center rounded-lg text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"
                                     aria-label="Open notifications"
                                     aria-expanded={notificationsOpen}
                                     aria-controls="portal-notifications"
                                 >
                                     <Bell size={18} />
-                                    {bellCount > 0 && <span className="absolute -right-0.5 -top-0.5 min-w-4 rounded-full bg-rose-600 px-1 text-center text-[9px] font-bold text-white sm:text-[10px]">{bellCount > 9 ? '9+' : bellCount}</span>}
+                                    {bellCount > 0 && <span className="absolute -right-0.5 -top-0.5 min-w-4 rounded-full bg-rose-600 px-1 text-center text-xs font-bold text-white sm:text-xs">{bellCount > 9 ? '9+' : bellCount}</span>}
                                 </button>
 
                                 {notificationsOpen && (
@@ -257,24 +257,24 @@ export default function AppLayout({ title, children }: Props) {
                                         <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3 dark:border-slate-700">
                                             <div>
                                                 <div className="text-[12px] font-bold text-slate-950 dark:text-slate-100 sm:text-sm">Recent activity</div>
-                                                <div className="text-[9px] text-slate-500 dark:text-slate-400 sm:text-xs">New office arrivals and unread memoranda</div>
+                                                <div className="text-xs text-slate-500 dark:text-slate-400 sm:text-xs">New office arrivals and unread memoranda</div>
                                             </div>
-                                            <button onClick={() => setNotificationsOpen(false)} className="rounded-full p-1 text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800" aria-label="Close notifications"><X size={16} /></button>
+                                            <button onClick={() => setNotificationsOpen(false)} className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800" aria-label="Close notifications"><X size={16} /></button>
                                         </div>
                                         <div className="max-h-[60vh] divide-y divide-slate-100 overflow-y-auto dark:divide-slate-700">
                                             {notifications.map((notification) => (
                                                 <Link key={notification.key} href={notification.url} onClick={() => setNotificationsOpen(false)} className="block px-4 py-3 transition hover:bg-slate-50 dark:hover:bg-slate-800/60">
                                                     <div className="flex items-start justify-between gap-3">
                                                         <div className="min-w-0">
-                                                            <div className="text-[10px] font-bold uppercase tracking-wide text-blue-700 dark:text-blue-300 sm:text-xs">{notification.title}</div>
-                                                            <div className="mt-1 text-[11px] leading-4 text-slate-700 dark:text-slate-200 sm:text-sm">{notification.message}</div>
-                                                            {notification.created_at && <div className="mt-1.5 text-[9px] text-slate-400 sm:text-[10px]">{relativeTime(notification.created_at)}</div>}
+                                                            <div className="text-xs font-bold uppercase tracking-wide text-blue-700 dark:text-blue-300 sm:text-xs">{notification.title}</div>
+                                                            <div className="mt-1 text-[13px] leading-4 text-slate-700 dark:text-slate-200 sm:text-sm">{notification.message}</div>
+                                                            {notification.created_at && <div className="mt-1.5 text-xs text-slate-400 sm:text-xs">{relativeTime(notification.created_at)}</div>}
                                                         </div>
-                                                        {notification.urgent && <span className="shrink-0 rounded-full bg-rose-50 px-2 py-1 text-[8px] font-bold uppercase text-rose-700 dark:bg-rose-950/40 dark:text-rose-300 sm:text-[9px]">Action</span>}
+                                                        {notification.urgent && <span className="shrink-0 rounded-full bg-rose-50 px-2 py-1 text-xs font-bold uppercase text-rose-700 dark:bg-rose-950/40 dark:text-rose-300 sm:text-xs">Action</span>}
                                                     </div>
                                                 </Link>
                                             ))}
-                                            {notifications.length === 0 && <div className="px-4 py-8 text-center text-[11px] text-slate-500 dark:text-slate-400 sm:text-sm">No recent notifications.</div>}
+                                            {notifications.length === 0 && <div className="px-4 py-8 text-center text-[13px] text-slate-500 dark:text-slate-400 sm:text-sm">No recent notifications.</div>}
                                         </div>
                                     </div>
                                 )}
@@ -289,8 +289,8 @@ export default function AppLayout({ title, children }: Props) {
                             {flash.success || flash.error}
                         </div>
                     )}
-                    <div id="portal-content" tabIndex={-1} className="p-3 sm:p-5"><NotificationContext.Provider value={notifications}>{children}</NotificationContext.Provider></div>
-                    <footer className="mx-3 flex flex-wrap justify-between gap-2 border-t border-slate-200 py-4 text-[10px] text-slate-500 dark:border-slate-700 dark:text-slate-400 sm:mx-5"><span>Municipality of Talibon · Province of Bohol</span><span>One Talibon · Intra-Office Portal</span></footer>
+                    <div id="portal-content" tabIndex={-1} className="p-4 sm:p-6"><NotificationContext.Provider value={notifications}>{children}</NotificationContext.Provider></div>
+                    <footer className="mx-3 flex flex-wrap justify-between gap-2 border-t border-slate-200 py-4 text-xs text-slate-500 dark:border-slate-700 dark:text-slate-400 sm:mx-5"><span>Municipality of Talibon · Province of Bohol</span><span>One Talibon · Intra-Office Portal</span></footer>
                 </main>
             </div>
 
@@ -301,13 +301,13 @@ export default function AppLayout({ title, children }: Props) {
                         <div className="p-4 sm:p-5">
                             <div className="flex items-start justify-between gap-3">
                                 <div className="min-w-0">
-                                    <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.16em] text-blue-700 dark:text-blue-300 sm:text-xs"><span className="h-2 w-2 animate-pulse rounded-full bg-emerald-500" /> {liveAlert.title}</div>
+                                    <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-blue-700 dark:text-blue-300 sm:text-xs"><span className="h-2 w-2 rounded-full bg-emerald-500" /> {liveAlert.title}</div>
                                     <div className="mt-2 text-[12px] font-semibold leading-5 text-slate-950 dark:text-slate-100 sm:text-sm">{liveAlert.message}</div>
-                                    <div className="mt-1 text-[9px] text-slate-400 sm:text-[10px]">{relativeTime(liveAlert.created_at)}</div>
+                                    <div className="mt-1 text-xs text-slate-400 sm:text-xs">{relativeTime(liveAlert.created_at)}</div>
                                 </div>
-                                <button onClick={() => setLiveAlert(null)} className="shrink-0 rounded-full p-1 text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800" aria-label="Dismiss notification"><X size={16} /></button>
+                                <button onClick={() => setLiveAlert(null)} className="shrink-0 flex h-11 w-11 shrink-0 items-center justify-center rounded-lg text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800" aria-label="Dismiss notification"><X size={16} /></button>
                             </div>
-                            <div className="mt-3 flex justify-end"><Link href={liveAlert.url} onClick={() => { setLiveAlert(null); setUnseenWorkflowCount(0); }} className="rounded-lg bg-[#0b2852] px-4 py-2 text-[11px] font-semibold text-white sm:text-xs">Open request</Link></div>
+                            <div className="mt-3 flex justify-end"><Link href={liveAlert.url} onClick={() => { setLiveAlert(null); setUnseenWorkflowCount(0); }} className="rounded-lg bg-[#0b2852] px-4 py-2 text-[13px] font-semibold text-white sm:text-xs">Open request</Link></div>
                         </div>
                     </div>
                 </div>
@@ -315,12 +315,12 @@ export default function AppLayout({ title, children }: Props) {
 
             {showMemo && (
                 <div className="fixed inset-0 z-[70] flex items-center justify-center bg-slate-950/55 p-3 backdrop-blur-sm sm:p-4">
-                    <div className="w-full max-w-lg rounded-2xl bg-white p-4 shadow-2xl dark:bg-[#142236] sm:p-6 md:p-8">
+                    <div className="w-full max-w-lg rounded-xl bg-white p-4 shadow-2xl dark:bg-[#142236] sm:p-6 md:p-8">
                         <div className="flex items-start justify-between gap-4">
                             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-50 text-blue-800 dark:bg-blue-950/50 dark:text-blue-200 sm:h-12 sm:w-12"><Bell size={19} /></div>
                             <button onClick={() => setDismissedMemoId(pendingMemo.id)} className="rounded-full p-1.5 text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 sm:p-2" aria-label="Dismiss memorandum"><X size={18} /></button>
                         </div>
-                        <div className="mt-4 text-[10px] font-bold uppercase tracking-[0.18em] text-blue-700 dark:text-blue-300 sm:mt-6 sm:text-xs">New Memorandum · {pendingMemo.memo_number}</div>
+                        <div className="mt-4 text-xs font-bold uppercase tracking-wider text-blue-700 dark:text-blue-300 sm:mt-6 sm:text-xs">New Memorandum · {pendingMemo.memo_number}</div>
                         <h2 className="mt-2 text-xl font-bold text-slate-950 dark:text-slate-100 sm:text-2xl">{pendingMemo.title}</h2>
                         <p className="mt-2 text-[12px] text-slate-500 dark:text-slate-300 sm:mt-3 sm:text-sm">Issued by {pendingMemo.department || pendingMemo.issuer || "Mayor's Office"}. {pendingMemo.requires_acknowledgement ? 'Acknowledgement is required.' : 'Please review this issuance.'}</p>
                         <div className="mt-5 flex justify-end gap-2 sm:mt-7 sm:gap-3">
