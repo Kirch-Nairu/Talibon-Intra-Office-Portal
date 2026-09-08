@@ -690,3 +690,10 @@ This append records the completed Approved Travel Orders wave. Earlier entries t
 - Schema/migration impact: none; server counts/actions/scopes preserved. No mock statistics or weather.
 - Verification: source inspection; compile checkpoint pending after dashboard composition.
 - Gap/next: final photography and browser acceptance pending; integrate real information rail next.
+
+## 2026-09-08 — Role-aware dashboard composition and activity rail
+- Slice/intent: reference-inspired primary workspace plus 300px information rail, stacking on smaller screens. Employee work, office accountability, executive oversight and system governance remain role-specific.
+- Files: Dashboard.tsx, ActivityRail.tsx, NotificationContext.ts, AppLayout.tsx.
+- Schema/migration impact: none. Activity consumes the shell's existing polling feed with no duplicate polling; System Admin rail consumes existing security events.
+- Verification: source inspection; compile checkpoint follows responsive panel integration.
+- Gap/next: consolidate nested dashboard widths and duplicate security presentation; browser acceptance deferred.

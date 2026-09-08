@@ -3,6 +3,7 @@ import { Bell, LogOut, Menu, X } from 'lucide-react';
 import { type PropsWithChildren, useEffect, useRef, useState } from 'react';
 import AppearanceControl from '../components/AppearanceControl';
 import MunicipalBrand from '../components/MunicipalBrand';
+import { NotificationContext } from '../components/shell/NotificationContext';
 import { PortalIdentity, PortalLauncher, RecordsSearch } from '../components/shell/PortalTools';
 import { talibonAssets } from '../branding/talibonAssets';
 import { useVisiblePolling } from '../hooks/useVisiblePolling';
@@ -278,7 +279,7 @@ export default function AppLayout({ title, children }: Props) {
                             {flash.success || flash.error}
                         </div>
                     )}
-                    <div id="portal-content" tabIndex={-1} className="p-3 sm:p-5">{children}</div>
+                    <div id="portal-content" tabIndex={-1} className="p-3 sm:p-5"><NotificationContext.Provider value={notifications}>{children}</NotificationContext.Provider></div>
                     <footer className="mx-3 flex flex-wrap justify-between gap-2 border-t border-slate-200 py-4 text-[10px] text-slate-500 dark:border-slate-700 dark:text-slate-400 sm:mx-5"><span>Municipality of Talibon · Province of Bohol</span><span>One Talibon · Intra-Office Portal</span></footer>
                 </main>
             </div>
