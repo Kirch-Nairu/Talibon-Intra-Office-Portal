@@ -780,3 +780,11 @@ This append records the completed Approved Travel Orders wave. Earlier entries t
 - Schema/migrations: none. Existing authorization, data contracts and workflows retained.
 - Verification: Source diff reviewed; compilation and visual verification pending the next checkpoint.
 - Gaps/next: approved municipal assets and consolidated real-role QA remain pending; continue the visual polish pass.
+
+### 2026-09-08 — Core Portal frontend polish: refactor: establish readable municipal typography
+
+- Intent: Keep a stable 16px root on phones, establish section and link sizes, restore body line height and remove decorative canvas gradients.
+- Files: resources/css/app.css, resources/css/municipal.css.
+- Schema/migrations: none. Existing authorization, data contracts and workflows retained.
+- Verification: Source diff reviewed; compilation and visual verification pending the next checkpoint.
+- Gaps/next: approved municipal assets and consolidated real-role QA remain pending; continue the visual polish pass.

@@ -34,13 +34,14 @@
         display: flex;
         align-items: center;
         gap: .6rem;
-        font-size: .875rem;
+        font-size: 1.125rem;
+        line-height: 1.3;
         font-weight: 750;
     }
     .municipal-kicker {
-        font-size: .625rem;
+        font-size: .6875rem;
         font-weight: 750;
-        letter-spacing: .14em;
+        letter-spacing: .08em;
         text-transform: uppercase;
     }
     .municipal-photo {
@@ -53,7 +54,7 @@
     }
     .municipal-link {
         color: var(--municipal-blue);
-        font-size: .75rem;
+        font-size: .8125rem;
         font-weight: 650;
     }
     .dark .municipal-link { color: #93c5fd; }
