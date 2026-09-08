@@ -828,3 +828,11 @@ This append records the completed Approved Travel Orders wave. Earlier entries t
 - Schema/migrations: none. Existing authorization, data contracts and workflows retained.
 - Verification: Source diff reviewed; compilation and visual verification pending the next checkpoint.
 - Gaps/next: approved municipal assets and consolidated real-role QA remain pending; continue the visual polish pass.
+
+### 2026-09-08 — Core Portal frontend polish: fix: restrain public information summary cards
+
+- Intent: Use neutral summaries with readable labels, one informational accent and explicit sample values rather than invented municipal statistics.
+- Files: resources/js/components/public/PublicGlance.tsx.
+- Schema/migrations: none. Existing authorization, data contracts and workflows retained.
+- Verification: Source diff reviewed; compilation and visual verification pending the next checkpoint.
+- Gaps/next: approved municipal assets and consolidated real-role QA remain pending; continue the visual polish pass.
