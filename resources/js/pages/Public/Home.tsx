@@ -16,17 +16,20 @@ export default function Home({ appName, authenticated, content }: Props) {
         <div className="public-portal min-h-screen bg-[var(--municipal-canvas)] text-slate-900 dark:bg-[#0d1624] dark:text-slate-100">
             <a href="#public-content" className="sr-only z-[80] rounded bg-white p-3 text-blue-900 focus:not-sr-only focus:fixed focus:left-4 focus:top-4">Skip to content</a>
             <PublicHeader authenticated={authenticated} />
-            <main id="public-content" tabIndex={-1} className="public-content">
-                <div className="public-disclosure">
-                    <Info size={14} className="mt-0.5 shrink-0" aria-hidden="true" /><p>Prototype preview — sample public content is shown for evaluation and does not represent official municipal reporting.</p>
-                </div>
-                <div className="public-primary">
-                    <PublicHero content={content} authenticated={authenticated} />
-                    <div className="public-summary">
-                        <div className="@container min-w-0"><PublicServices content={content} /></div>
-                        <PublicGlance content={content} />
+            <main id="public-content" tabIndex={-1}>
+                <div className="public-content">
+                    <div className="public-disclosure">
+                        <Info size={14} className="mt-0.5 shrink-0" aria-hidden="true" />
+                        <p>Prototype preview — sample public content is shown for evaluation and does not represent official municipal reporting.</p>
                     </div>
-                    <PublicUpdates content={content} />
+                    <div className="public-primary">
+                        <PublicHero content={content} authenticated={authenticated} />
+                        <PublicServices content={content} />
+                        <div className="public-information-zone">
+                            <PublicGlance content={content} />
+                            <PublicUpdates content={content} />
+                        </div>
+                    </div>
                 </div>
             </main>
             <PublicFooter content={content} authenticated={authenticated} />
