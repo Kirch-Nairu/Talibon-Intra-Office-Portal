@@ -746,3 +746,10 @@ This append records the completed Approved Travel Orders wave. Earlier entries t
 - Schema/migration impact: none. Existing feeds and action semantics unchanged.
 - Verification: synthetic Department Head dashboard observed at 1440x900 light/dark and 390x844 light with no console errors; final interactive recheck pending after build.
 - Gap/next: no real-role workflow acceptance claimed. Final compile, bounded responsive checks and asset handoff next.
+
+## 2026-09-08 — Drawer focus restoration and breakpoint handoff
+- Slice/intent: restore focus explicitly after modal unmount, focus visible close control on opening, and close mobile modal when the desktop breakpoint becomes active.
+- Files: shell/MobileNavigation.tsx.
+- Schema/migration impact: none.
+- Verification: 390x844 browser check observed working drawer and Escape dismissal; review identified missing focus return and resize lock risk addressed here. Final rebuild/recheck next.
+- Gap/next: final compile and bounded interaction recheck; full role workflow QA remains deferred.
