@@ -31,7 +31,7 @@ function CorrespondenceList({ title, items, dateKey }: {
                         </div>
                     </Link>
                 ))}
-                {items.length === 0 ? <div className="px-5 py-7 text-center text-[13px] text-slate-500 dark:text-slate-500 dark:text-slate-400">No recent correspondence.</div> : null}
+                {items.length === 0 ? <div className="px-5 py-7 text-center text-[13px] text-slate-500 dark:text-slate-400">No recent correspondence.</div> : null}
             </div>
         </div>
     );

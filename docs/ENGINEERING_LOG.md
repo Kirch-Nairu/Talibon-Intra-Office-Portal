@@ -988,3 +988,11 @@ This append records the completed Approved Travel Orders wave. Earlier entries t
 - Schema/migrations: none. Existing authorization, data contracts and workflows retained.
 - Verification: TypeScript and Vite build passed before this slice; final recheck pending.
 - Gaps/next: approved municipal assets and consolidated real-role QA remain pending; continue the visual polish pass.
+
+### 2026-09-08 — Core Portal frontend polish: fix: refine office and system dashboard reading order
+
+- Intent: Department correspondence now precedes personal work; system events follow office identities and precede quick access in one column. Clean conflicting text utilities from the readability pass.
+- Files: resources/js/pages/Dashboard.tsx, resources/js/components/dashboard/OfficeOverview.tsx, resources/js/components/dashboard/ExecutiveOverview.tsx, resources/js/components/dashboard/CorrespondenceOverview.tsx.
+- Schema/migrations: none. Existing authorization, data contracts and workflows retained.
+- Verification: Source diff reviewed; compilation and visual verification pending the next checkpoint.
+- Gaps/next: approved municipal assets and consolidated real-role QA remain pending; continue the visual polish pass.
