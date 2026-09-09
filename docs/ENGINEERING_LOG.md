@@ -78,3 +78,18 @@ This consolidated log is mandatory for the active Talibon build. Detailed earlie
 - Commercial architecture: `CONTRACT_PHASE_1_OPEN_GATES`
 
 Internal release-green and commercial Contract Phase 1 completion are separate decisions.
+
+## 2026-09-09 — V2-QA1 dedicated visual evidence harness
+
+### `test: add V2 visual acceptance harness`
+
+- Current TOR requirement / slice: **V2-QA1 — dedicated visual evidence harness only** for the accepted Frontend Design V2 baseline and forward corrections on `KIRCH-TALIBON-FRONTEND-DESIGN-V2`.
+- Intent: automate objective public/authenticated browser evidence without reusing historical F1-F8 presentation verdicts. The default-branch carrier is manual-only, preserves the harness outside the target checkout, hard-restricts execution to commit `74e628fc344ab1d0c15aed99bfa6da449372b205` or later commits on the current V2 branch lineage, then checks out and inspects that exact target SHA.
+- Files/modules changed: new `tests/Browser/v2-visual-acceptance.mjs`; new `.github/workflows/v2-visual-acceptance.yml`; this log.
+- Evidence contract: public screenshots at 1366x768, 768x1024 and 390x844; System Admin, Executive, Department Head and Employee dashboards at 1440x900 and 390x844 in Light and Dark; viewport/full-page evidence plus mobile drawer captures; workspace identity/V2 surface checks; horizontal-overflow/navigation-fit checks; public/authenticated menu behavior; page/console/application-request/5xx diagnostics; sanitized JSON and HTML reports.
+- Security/data boundary: fresh synthetic PostgreSQL only. GitHub QA generates and masks a random runtime `PROTOTYPE_DEMO_PASSWORD`; no universal local demo password is embedded. MFA setup/recovery material is remembered only in-process for masking and is never intentionally written to reports or screenshots. No production/live LGU data is used.
+- Verdict boundary: the automated state is limited to `AUTOMATED_CHECKS_PASS` or `AUTOMATED_CHECKS_FAIL`; every report remains `VISUAL_REVIEW_REQUIRED`. Mechanical browser success is not design GREEN, UAT, production acceptance, deployment approval or production readiness.
+- Schema/migration/backend/permission/workflow/design impact: **none**. Historical Browser harnesses, F1-F8 assertions, application routes, production frontend, authorization, workflow, seed definitions and V2 source are untouched by this carrier commit.
+- Verification actually observed before commit: required repository authority/scope and existing Browser/workflow machinery inspected; `node --check` PASS on the new 377-line harness; YAML structure parse PASS on the new manual workflow. Playwright runtime, GitHub Actions execution, screenshots and report verdict are **NOT OBSERVED** until the dispatcher runs on an allowed exact target.
+- Known gaps/risks: `workflow_dispatch` must be invoked after this carrier commit exists on default branch `main`; artifact review remains a required human step; visual/design acceptance is intentionally not automated.
+- Next action: manually dispatch this workflow against exact V2 head `74e628fc344ab1d0c15aed99bfa6da449372b205`, download one `talibon-v2-visual-*` artifact, inspect its JSON/HTML report and screenshots, then issue either V2 visual acceptance or narrowly scoped correction commits on the V2 branch.
