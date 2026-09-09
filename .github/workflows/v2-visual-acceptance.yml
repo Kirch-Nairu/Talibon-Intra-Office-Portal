@@ -1,7 +1,12 @@
 name: Talibon V2 Visual Acceptance
-run-name: V2 visual evidence · ${{ inputs.target_ref }}
+run-name: V2 visual evidence · ${{ inputs.target_ref || 'KIRCH-TALIBON-FRONTEND-DESIGN-V2' }}
 
 on:
+  push:
+    branches:
+      - main
+    paths:
+      - .github/workflows/v2-visual-acceptance.yml
   workflow_dispatch:
     inputs:
       target_ref:
@@ -14,7 +19,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: talibon-v2-visual-${{ inputs.target_ref }}
+  group: talibon-v2-visual-${{ inputs.target_ref || 'KIRCH-TALIBON-FRONTEND-DESIGN-V2' }}
   cancel-in-progress: false
 
 jobs:
@@ -52,7 +57,7 @@ jobs:
         id: target
         shell: bash
         env:
-          TARGET_REF: ${{ inputs.target_ref }}
+          TARGET_REF: ${{ inputs.target_ref || 'KIRCH-TALIBON-FRONTEND-DESIGN-V2' }}
           V2_BRANCH: KIRCH-TALIBON-FRONTEND-DESIGN-V2
           V2_ACCEPTANCE_BASE_SHA: 74e628fc344ab1d0c15aed99bfa6da449372b205
         run: |
@@ -132,7 +137,7 @@ jobs:
           sed -i "s/^PROTOTYPE_DEMO_PASSWORD=.*/PROTOTYPE_DEMO_PASSWORD=$DEMO_PASSWORD/" .env
           echo "QA_DEMO_PASSWORD=$DEMO_PASSWORD" >> "$GITHUB_ENV"
           echo "QA_BASE_URL=http://127.0.0.1:8000" >> "$GITHUB_ENV"
-          echo "QA_TARGET_REF=${{ inputs.target_ref }}" >> "$GITHUB_ENV"
+          echo "QA_TARGET_REF=${{ inputs.target_ref || 'KIRCH-TALIBON-FRONTEND-DESIGN-V2' }}" >> "$GITHUB_ENV"
           echo "QA_TARGET_SHA=${{ steps.target.outputs.target_sha }}" >> "$GITHUB_ENV"
 
       - name: Install PHP dependencies

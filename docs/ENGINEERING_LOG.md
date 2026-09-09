@@ -93,3 +93,15 @@ Internal release-green and commercial Contract Phase 1 completion are separate d
 - Verification actually observed before commit: required repository authority/scope and existing Browser/workflow machinery inspected; `node --check` PASS on the new 377-line harness; YAML structure parse PASS on the new manual workflow. Playwright runtime, GitHub Actions execution, screenshots and report verdict are **NOT OBSERVED** until the dispatcher runs on an allowed exact target.
 - Known gaps/risks: `workflow_dispatch` must be invoked after this carrier commit exists on default branch `main`; artifact review remains a required human step; visual/design acceptance is intentionally not automated.
 - Next action: manually dispatch this workflow against exact V2 head `74e628fc344ab1d0c15aed99bfa6da449372b205`, download one `talibon-v2-visual-*` artifact, inspect its JSON/HTML report and screenshots, then issue either V2 visual acceptance or narrowly scoped correction commits on the V2 branch.
+
+## 2026-09-09 — V2-QA1 automatic carrier trigger
+
+### `test: auto-trigger V2 visual acceptance`
+
+- Current TOR requirement / slice: **V2-QA1 harness execution automation only**. No application or design scope is reopened.
+- Intent: remove the one manual Actions click for this acceptance run while preserving the dedicated default-branch QA carrier. The workflow now retains `workflow_dispatch` and additionally listens only to `main` pushes that modify `.github/workflows/v2-visual-acceptance.yml`; non-dispatch executions default to `KIRCH-TALIBON-FRONTEND-DESIGN-V2` and keep the same lineage restriction before checking out the exact target SHA.
+- Files/modules changed: `.github/workflows/v2-visual-acceptance.yml`; this log.
+- Production/V2 impact: **none**. `KIRCH-TALIBON-FRONTEND-DESIGN-V2` remains unchanged; no historical Browser carrier is moved; no backend, frontend, route, authorization, schema, workflow, seed or production data is changed.
+- Security boundary: the generated/masked random GitHub QA password mechanism is unchanged. No local universal demo credential is introduced into GitHub QA.
+- Verification actually observed before commit: current `main` carrier SHA `8f3627db2fbde3856afca3a1cc6a43aa79a7a02c` and V2 target SHA `74e628fc344ab1d0c15aed99bfa6da449372b205` were rechecked; current workflow and harness source were inspected. The automatic Actions run, browser checks, screenshots and artifact are **NOT YET OBSERVED** and must not be represented as PASS until GitHub reports them.
+- Known gap / next action: advancing this forward-only carrier commit on `main` is expected to trigger one path-scoped V2 visual-evidence run. Observe that exact run, inspect its jobs and sanitized artifact, then issue `AUTOMATED_CHECKS_PASS` or classify/fix the reproduced defect; visual design remains `VISUAL_REVIEW_REQUIRED` until screenshot review.
