@@ -1,17 +1,17 @@
-import { Head, Link, router, usePage } from '@inertiajs/react';
-import { Bell, LogOut, Menu, X } from 'lucide-react';
+import { Head, Link, usePage } from '@inertiajs/react';
+import { Bell, Menu, X } from 'lucide-react';
 import { type PropsWithChildren, useEffect, useRef, useState } from 'react';
-import AppearanceControl from '../components/AppearanceControl';
-import MunicipalBrand from '../components/MunicipalBrand';
 import { NotificationContext } from '../components/shell/NotificationContext';
 import MobileNavigation from '../components/shell/MobileNavigation';
+import PortalSidebar from '../components/shell/PortalSidebar';
 import { PortalIdentity, PortalLauncher, RecordsSearch } from '../components/shell/PortalTools';
-import { talibonAssets } from '../branding/talibonAssets';
 import { useVisiblePolling } from '../hooks/useVisiblePolling';
-import { buildPortalNavigation, isPortalPathActive } from '../navigation/portalNavigation';
+import { buildPortalNavigation } from '../navigation/portalNavigation';
 import type { LiveNotification, NotificationFeed, SharedProps } from '../types';
 
 type Props = PropsWithChildren<{ title: string }>;
+
+const SIDEBAR_COLLAPSED_STORAGE_KEY = 'talibon.sidebar.collapsed';
 
 function relativeTime(value?: string | null): string {
     if (!value) return '';
@@ -44,6 +44,7 @@ export default function AppLayout({ title, children }: Props) {
         notificationCount: pageProps.notificationCount,
     }));
     const [mobileOpen, setMobileOpen] = useState(false);
+    const [desktopCollapsed, setDesktopCollapsed] = useState(false);
     const [notificationsOpen, setNotificationsOpen] = useState(false);
     const [dismissedMemoId, setDismissedMemoId] = useState<number | null>(null);
     const [liveAlert, setLiveAlert] = useState<LiveNotification | null>(null);
@@ -61,6 +62,28 @@ export default function AppLayout({ title, children }: Props) {
         navigation,
         canViewReports,
     );
+
+    useEffect(() => {
+        try {
+            setDesktopCollapsed(window.localStorage.getItem(SIDEBAR_COLLAPSED_STORAGE_KEY) === 'true');
+        } catch {
+            setDesktopCollapsed(false);
+        }
+    }, []);
+
+    const toggleDesktopSidebar = () => {
+        setDesktopCollapsed((collapsed) => {
+            const next = !collapsed;
+
+            try {
+                window.localStorage.setItem(SIDEBAR_COLLAPSED_STORAGE_KEY, String(next));
+            } catch {
+                // Keep the in-memory preference when browser storage is unavailable.
+            }
+
+            return next;
+        });
+    };
 
     useEffect(() => {
         if (!notificationsOpen) return;
@@ -146,70 +169,28 @@ export default function AppLayout({ title, children }: Props) {
         return () => window.clearTimeout(timer);
     }, [liveAlert]);
 
-    const sidebar = (
-        <div className="flex h-full flex-col bg-[#0b2852] text-white">
-            <div className="border-b border-white/10 px-5 py-6">
-                <MunicipalBrand inverse compact />
-                <div className="mt-3 text-xs text-blue-200">Prototype preview</div>
-            </div>
+    const sidebarProps = {
+        currentUrl: page.url,
+        navigationGroups,
+        unreadMemoCount,
+        user,
+    };
 
-            <nav className="min-h-0 flex-1 overflow-y-auto px-3 py-4" aria-label="Primary navigation">
-                <div className="space-y-4">
-                    {navigationGroups.map((group) => {
-                        const groupActive = group.items.some((item) => isPortalPathActive(page.url, item.href));
+    const desktopSidebar = (
+        <PortalSidebar
+            {...sidebarProps}
+            collapsed={desktopCollapsed}
+            onToggleCollapsed={toggleDesktopSidebar}
+        />
+    );
 
-                        return (
-                            <section key={group.label} aria-label={group.label}>
-                                <div className={`px-2 text-xs font-bold uppercase tracking-[0.2em] ${groupActive ? 'text-white' : 'text-blue-300'}`}>
-                                    {group.label}
-                                </div>
-                                <div className="mt-1.5 space-y-0.5">
-                                    {group.items.map(({ key, label, href, icon: Icon }) => {
-                                        const active = isPortalPathActive(page.url, href);
-                                        return (
-                                            <Link
-                                                key={key}
-                                                href={href}
-                                                onClick={() => setMobileOpen(false)}
-                                                aria-current={active ? 'page' : undefined}
-                                                className={`flex min-h-11 items-center gap-3 rounded-lg px-3 py-2 text-[13px] font-medium transition ${active ? 'bg-[#1769aa] text-white  ring-1 ring-white/10' : 'text-blue-100 hover:bg-white/10 hover:text-white'}`}
-                                            >
-                                                <Icon size={18} aria-hidden="true" />
-                                                <span className="min-w-0 flex-1 truncate">{label}</span>
-                                                {key === 'memoranda' && unreadMemoCount > 0 && (
-                                                    <span className={`rounded-full px-2 py-0.5 text-xs font-bold ${active ? 'bg-amber-100 text-amber-900' : 'bg-amber-400 text-slate-950'}`}>
-                                                        {unreadMemoCount}
-                                                    </span>
-                                                )}
-                                            </Link>
-                                        );
-                                    })}
-                                </div>
-                            </section>
-                        );
-                    })}
-                </div>
-            </nav>
-
-            <div className="relative shrink-0 border-t border-white/10 p-3 sm:p-4">
-                <img src={talibonAssets.sidebarIllustration} alt="" className="pointer-events-none absolute inset-0 h-full w-full object-cover opacity-15" />
-                <div className="relative mb-3 text-sm font-bold">One Talibon.<span className="mt-0.5 block text-xs font-normal text-blue-200">People. Process. Progress. Together.</span></div>
-                <div className="relative">
-                <AppearanceControl />
-                <div className="mt-3 border-t border-white/10 pt-3">
-                    <div className="truncate text-sm font-semibold">{user?.name}</div>
-                    <div className="mt-1 truncate text-xs text-blue-200 sm:text-xs">{user?.employee?.department?.name}</div>
-                    <div className="truncate text-xs text-blue-300 sm:text-xs">{user?.employee?.position}</div>
-                    <button
-                        onClick={() => router.post('/logout')}
-                        className="mt-2 flex min-h-10 w-full items-center gap-2 rounded-lg px-2 text-[13px] text-blue-100 hover:bg-white/10 sm:mt-3 sm:text-sm"
-                    >
-                        <LogOut size={15} aria-hidden="true" /> Sign out
-                    </button>
-                </div>
-                </div>
-            </div>
-        </div>
+    const mobileSidebar = (
+        <PortalSidebar
+            {...sidebarProps}
+            collapsed={false}
+            mobile
+            onNavigate={() => setMobileOpen(false)}
+        />
     );
 
     const showMemo = pendingMemo && dismissedMemoId !== pendingMemo.id;
@@ -219,10 +200,16 @@ export default function AppLayout({ title, children }: Props) {
         <>
             <Head title={title} />
             <a href="#portal-content" className="sr-only z-[80] rounded bg-white p-3 text-blue-900 focus:not-sr-only focus:fixed focus:left-4 focus:top-4">Skip to content</a>
-            <div className="min-h-screen bg-[var(--municipal-canvas)] text-slate-900 transition-colors dark:bg-[#0d1624] dark:text-slate-100 lg:grid lg:grid-cols-[248px_minmax(0,1fr)]">
-                <aside className="hidden h-screen lg:sticky lg:top-0 lg:block">{sidebar}</aside>
+            <div
+                className={`min-h-screen bg-[var(--municipal-canvas)] text-slate-900 transition-colors dark:bg-[#0d1624] dark:text-slate-100 lg:grid lg:transition-[grid-template-columns] lg:duration-150 lg:ease-out motion-reduce:transition-none ${
+                    desktopCollapsed
+                        ? 'lg:grid-cols-[72px_minmax(0,1fr)]'
+                        : 'lg:grid-cols-[248px_minmax(0,1fr)]'
+                }`}
+            >
+                <aside className="hidden h-screen lg:sticky lg:top-0 lg:block">{desktopSidebar}</aside>
 
-                {mobileOpen && <MobileNavigation onClose={() => setMobileOpen(false)}>{sidebar}</MobileNavigation>}
+                {mobileOpen && <MobileNavigation onClose={() => setMobileOpen(false)}>{mobileSidebar}</MobileNavigation>}
 
                 <main className="min-w-0">
                     <header className="sticky top-0 z-20 flex min-h-[72px] items-center justify-between gap-2 border-b border-slate-200/80 bg-white px-3 transition-colors dark:border-slate-700/80 dark:bg-[#142236] sm:px-5">
