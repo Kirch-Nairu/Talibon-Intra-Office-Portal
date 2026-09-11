@@ -120,7 +120,7 @@ jobs:
           count = text.count(stale)
           if count != 2:
               raise SystemExit(f'expected exactly 2 stale accepted-V2 assertions, found {count}')
-          path.write_text(text.replace(stale, 'Office workload'))
+          path.write_text(text.replace(stale, 'OFFICE WORKLOAD'))
           PY
           node tests/Browser/.demo-readiness-runtime.mjs
           rm -f tests/Browser/.demo-readiness-runtime.mjs
