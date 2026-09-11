@@ -220,8 +220,8 @@ async function verifyF1ShellAuthority(page) {
     return { height: element.getBoundingClientRect().height, position: style.position, top: style.top };
   });
   f2(
-    'F1 compact sticky utility header remains unchanged',
-    Math.abs(headerMetrics.height - 64) <= 1 && headerMetrics.position === 'sticky' && headerMetrics.top === '0px',
+    'S1 utility header remains 72px and sticky',
+    Math.abs(headerMetrics.height - 72) <= 1 && headerMetrics.position === 'sticky' && headerMetrics.top === '0px',
     JSON.stringify(headerMetrics),
     'P1',
   );
