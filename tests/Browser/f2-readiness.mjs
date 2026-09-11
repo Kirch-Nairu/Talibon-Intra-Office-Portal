@@ -398,16 +398,24 @@ async function darkHeaderContrast(page, target) {
     const header = h1.closest('header');
     const eyebrow = h1.previousElementSibling;
     const description = h1.nextElementSibling;
-    const background = header ? getComputedStyle(header).backgroundColor : null;
+    const headerBackground = header ? getComputedStyle(header).backgroundColor : null;
+    let effectiveBackground = null;
+    let surface = header;
+    while (surface && !effectiveBackground) {
+      const candidate = getComputedStyle(surface).backgroundColor;
+      if (toRgb(candidate)) effectiveBackground = candidate;
+      surface = surface.parentElement;
+    }
     const titleColor = getComputedStyle(h1).color;
     const eyebrowColor = eyebrow ? getComputedStyle(eyebrow).color : null;
     const descriptionColor = description ? getComputedStyle(description).color : null;
-    const bg = toRgb(background);
+    const bg = toRgb(effectiveBackground);
     const title = toRgb(titleColor);
     const eye = toRgb(eyebrowColor);
     const desc = toRgb(descriptionColor);
     return {
-      background,
+      headerBackground,
+      effectiveBackground,
       titleColor,
       eyebrowColor,
       descriptionColor,
@@ -418,8 +426,9 @@ async function darkHeaderContrast(page, target) {
   });
 
   f2(
-    `${target.key}: dark PageHeader title/context/copy remain readable`,
-    metrics.background === 'rgb(20, 34, 54)'
+    `${target.key}: dark PageHeader remains readable on the accepted V2 canvas`,
+    metrics.headerBackground === 'rgba(0, 0, 0, 0)'
+      && metrics.effectiveBackground === 'rgb(13, 22, 36)'
       && metrics.titleContrast >= 4.5
       && metrics.eyebrowContrast >= 4.5
       && metrics.descriptionContrast >= 4.5,
