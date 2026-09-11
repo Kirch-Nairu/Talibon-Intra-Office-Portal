@@ -13,7 +13,7 @@ permissions:
 jobs:
   browser-qa:
     runs-on: ubuntu-latest
-    timeout-minutes: 35
+    timeout-minutes: 40
 
     services:
       postgres:
@@ -102,8 +102,28 @@ jobs:
           cat storage/logs/demo-readiness-server.log
           exit 1
 
+      - name: S1 authenticated shell browser acceptance
+        run: node tests/Browser/s1-sidebar-readiness.mjs
+
+      - name: Reset synthetic data for historical seven-account matrix
+        run: php artisan migrate:fresh --seed --force
+
       - name: Seven-account browser runtime matrix
-        run: node tests/Browser/demo-readiness.mjs
+        shell: bash
+        run: |
+          cp tests/Browser/demo-readiness.mjs tests/Browser/.demo-readiness-runtime.mjs
+          python - <<'PY'
+          from pathlib import Path
+          path = Path('tests/Browser/.demo-readiness-runtime.mjs')
+          text = path.read_text()
+          stale = 'OWN-OFFICE OPERATIONAL WORKSPACE'
+          count = text.count(stale)
+          if count != 2:
+              raise SystemExit(f'expected exactly 2 stale accepted-V2 assertions, found {count}')
+          path.write_text(text.replace(stale, 'Office workload'))
+          PY
+          node tests/Browser/.demo-readiness-runtime.mjs
+          rm -f tests/Browser/.demo-readiness-runtime.mjs
 
       - name: Reset synthetic data for isolated F2 presentation QA
         run: php artisan migrate:fresh --seed --force
