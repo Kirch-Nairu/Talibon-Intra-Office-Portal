@@ -272,11 +272,10 @@ async function verifyTargetLight(page, target) {
 
   const snapshot = await pageFoundationSnapshot(page, target);
   f2(
-    `${target.key}: shared PageHeader grammar is present`,
+    `${target.key}: accepted V2 PageHeader grammar is present`,
     snapshot.headerTag === 'HEADER'
-      && snapshot.headerClass.includes('rounded-2xl')
-      && snapshot.headerClass.includes('border-slate-200')
-      && snapshot.headerClass.includes('dark:bg-[#142236]')
+      && snapshot.headerClass.includes('min-w-0')
+      && snapshot.wrapperFlexDirection === 'row'
       && snapshot.eyebrowText.length > 0
       && snapshot.descriptionText.length > 0,
     JSON.stringify(snapshot),
