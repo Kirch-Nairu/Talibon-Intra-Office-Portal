@@ -15,7 +15,7 @@ export function RecordsSearch() {
             <label className="relative block">
                 <span className="sr-only">Search records</span>
                 <Search size={16} className="pointer-events-none absolute left-3.5 top-3.5 text-slate-500" aria-hidden="true" />
-                <input type="search" name="search" placeholder="Search records…" className="h-11 w-full rounded-lg border border-slate-200 bg-slate-50 pl-10 pr-4 text-sm dark:border-slate-700 dark:bg-slate-800" />
+                <input type="search" name="search" placeholder="Search records…" className="h-11 w-full rounded-lg border border-slate-200 bg-slate-50 pl-10 pr-4 text-sm text-slate-900 placeholder:text-slate-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:placeholder:text-slate-400" />
             </label>
         </form>
     );
