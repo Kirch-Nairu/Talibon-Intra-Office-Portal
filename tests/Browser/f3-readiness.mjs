@@ -679,6 +679,38 @@ async function exerciseMobile(page, target) {
   await verifyNoRuntimeErrorsSince(`${target.key} mobile`, errorStart);
 }
 
+async function contrastMetrics(locator) {
+  return locator.evaluate((element) => {
+    const style = getComputedStyle(element);
+    const canvas = document.createElement('canvas');
+    canvas.width = 1;
+    canvas.height = 1;
+    const ctx = canvas.getContext('2d', { willReadFrequently: true });
+    const rgb = (value) => {
+      ctx.clearRect(0, 0, 1, 1);
+      ctx.fillStyle = '#000';
+      ctx.fillStyle = value;
+      ctx.fillRect(0, 0, 1, 1);
+      const data = ctx.getImageData(0, 0, 1, 1).data;
+      return [data[0], data[1], data[2]];
+    };
+    const luminance = ([r, g, b]) => {
+      const channel = (value) => {
+        const normalized = value / 255;
+        return normalized <= 0.04045 ? normalized / 12.92 : ((normalized + 0.055) / 1.055) ** 2.4;
+      };
+      return 0.2126 * channel(r) + 0.7152 * channel(g) + 0.0722 * channel(b);
+    };
+    const foreground = luminance(rgb(style.color));
+    const background = luminance(rgb(style.backgroundColor));
+    return {
+      color: style.color,
+      backgroundColor: style.backgroundColor,
+      ratio: (Math.max(foreground, background) + 0.05) / (Math.min(foreground, background) + 0.05),
+    };
+  });
+}
+
 async function verifyDarkContrastRegression(page) {
   checkpoint('F3 dark appearance contrast');
   const errorStart = runtimeErrors.length;
@@ -690,49 +722,20 @@ async function verifyDarkContrastRegression(page) {
   const form = await filterForm(page);
   const search = form.locator('input').first();
   const button = filterButton(page);
-  const metrics = await page.evaluate(({ searchSelector }) => {
-    const searchElement = document.querySelector(searchSelector);
-    const filterButton = Array.from(document.querySelectorAll('button')).find((item) => item.textContent?.trim()?.startsWith('Filters'));
-    const contrast = (element) => {
-      const style = getComputedStyle(element);
-      const canvas = document.createElement('canvas');
-      canvas.width = 1;
-      canvas.height = 1;
-      const ctx = canvas.getContext('2d', { willReadFrequently: true });
-      const rgb = (value) => {
-        ctx.clearRect(0, 0, 1, 1);
-        ctx.fillStyle = '#000';
-        ctx.fillStyle = value;
-        ctx.fillRect(0, 0, 1, 1);
-        const data = ctx.getImageData(0, 0, 1, 1).data;
-        return [data[0], data[1], data[2]];
-      };
-      const luminance = ([r, g, b]) => {
-        const channel = (value) => {
-          const normalized = value / 255;
-          return normalized <= 0.04045 ? normalized / 12.92 : ((normalized + 0.055) / 1.055) ** 2.4;
-        };
-        return 0.2126 * channel(r) + 0.7152 * channel(g) + 0.0722 * channel(b);
-      };
-      const foreground = luminance(rgb(style.color));
-      const background = luminance(rgb(style.backgroundColor));
-      return {
-        color: style.color,
-        backgroundColor: style.backgroundColor,
-        ratio: (Math.max(foreground, background) + 0.05) / (Math.min(foreground, background) + 0.05),
-      };
-    };
-    return {
-      rootDark: document.documentElement.classList.contains('dark'),
-      search: searchElement ? contrast(searchElement) : null,
-      filters: filterButton ? contrast(filterButton) : null,
-    };
-  }, { searchSelector: 'form input' });
+  const headerRecordsSearch = page.locator('main > header form[role="search"] input[name="search"]').first();
+  const [searchMetrics, filterMetrics, headerSearchMetrics, rootDark] = await Promise.all([
+    contrastMetrics(search),
+    contrastMetrics(button),
+    contrastMetrics(headerRecordsSearch),
+    page.evaluate(() => document.documentElement.classList.contains('dark')),
+  ]);
 
-  f3('Dark appearance is active on an F3 surface', metrics.rootDark === true, JSON.stringify(metrics), 'P1');
-  f3('Dark appearance preserves readable primary search contrast', metrics.search?.ratio >= 4.5, JSON.stringify(metrics.search), 'P1');
-  f3('Dark appearance preserves readable Filters control contrast', metrics.filters?.ratio >= 4.5, JSON.stringify(metrics.filters), 'P1');
+  f3('Dark appearance is active on an F3 surface', rootDark === true, `rootDark=${rootDark}`, 'P1');
+  f3('Dark appearance preserves readable primary search contrast', searchMetrics.ratio >= 4.5, JSON.stringify(searchMetrics), 'P1');
+  f3('Dark appearance preserves readable authenticated header records search contrast', headerSearchMetrics.ratio >= 4.5, JSON.stringify(headerSearchMetrics), 'P1');
+  f3('Dark appearance preserves readable Filters control contrast', filterMetrics.ratio >= 4.5, JSON.stringify(filterMetrics), 'P1');
   f3('Dark appearance leaves F3 primary search visible', await search.isVisible(), 'search hidden');
+  f3('Dark appearance leaves authenticated header records search visible', await headerRecordsSearch.isVisible(), 'header records search hidden');
   f3('Dark appearance leaves F3 Filters control visible', await button.isVisible(), 'Filters hidden');
   await verifyNoHorizontalOverflow(page, 'F3 dark appearance');
   await verifyNoRuntimeErrorsSince('F3 dark appearance', errorStart);
