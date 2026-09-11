@@ -208,8 +208,8 @@ async function verifyF1ShellAuthority(page) {
     return { width: rect.width, position: style.position, surface };
   });
   f2(
-    'F1 municipal sidebar remains 260px with the navy institutional surface',
-    Math.abs(shellMetrics.width - 260) <= 1 && shellMetrics.surface === 'rgb(11, 40, 82)',
+    'S1 expanded municipal sidebar remains 248px with the navy institutional surface',
+    Math.abs(shellMetrics.width - 248) <= 1 && shellMetrics.surface === 'rgb(11, 40, 82)',
     JSON.stringify(shellMetrics),
     'P0',
   );
