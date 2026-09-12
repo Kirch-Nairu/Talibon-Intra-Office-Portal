@@ -69,7 +69,7 @@ async function baselines() {
   check('historical/F1 baseline preserved',historical===174&&f1n===133,JSON.stringify(report.baseline));
   check('representative accounts and F1 screenshots preserved',f1.accounts.length===7&&f1.screenshots.length===7,JSON.stringify(report.baseline));
   check('F2 preserved',f2.completed===true&&f2.failure==null&&f2n===39&&failures(f2,'F2')===0&&f2.screenshots.length===5,JSON.stringify(report.baseline));
-  check('F3 preserved',f3.completed===true&&f3.failure==null&&f3n===313&&failures(f3,'F3')===0&&f3.targets.length===5&&f3.screenshots.length===7,JSON.stringify(report.baseline));
+  check('F3 preserved',f3.completed===true&&f3.failure==null&&f3n===315&&failures(f3,'F3')===0&&f3.targets.length===5&&f3.screenshots.length===7,JSON.stringify(report.baseline));
   check('F4 preserved',f4.completed===true&&f4.failure==null&&f4n===58&&failures(f4,'F4')===0&&f4.targets.length===2&&f4.screenshots.length===6,JSON.stringify(report.baseline));
 }
 async function login(page) {
