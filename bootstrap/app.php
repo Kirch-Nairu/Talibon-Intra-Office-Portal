@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Middleware\AssignIntegrationCorrelationId;
+use App\Http\Middleware\AssignRequestId;
 use App\Http\Middleware\AuditIntegrationRequest;
 use App\Http\Middleware\AuthenticateIntegrationClient;
 use App\Http\Middleware\ExecuteIdempotentIntegrationRequest;
@@ -11,9 +12,12 @@ use App\Http\Middleware\RequireIntegrationScope;
 use App\Http\Middleware\RequireMfaAssurance;
 use App\Http\Middleware\RequireMfaSubject;
 use App\Http\Middleware\ThrottleIntegrationClient;
+use App\Services\ApplicationErrorResponse;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
+use Illuminate\Http\Request;
+use Symfony\Component\HttpFoundation\Response;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -23,6 +27,7 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        $middleware->append(AssignRequestId::class);
         $middleware->web(append: [HandleInertiaRequests::class]);
         $middleware->alias([
             'active' => RequireActiveAccount::class,
@@ -38,4 +43,7 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
+        $exceptions->respond(function (Response $response, Throwable $exception, Request $request): Response {
+            return app(ApplicationErrorResponse::class)->respond($response, $exception, $request);
+        });
     })->create();
