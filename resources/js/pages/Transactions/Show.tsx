@@ -79,14 +79,14 @@ export default function Show({
     departments,
     assignableEmployees: initialAssignableEmployees,
     accountability: initialAccountability,
-    permissions: initialPermissions,
+    transactionPermissions: initialPermissions,
     evidence,
 }: {
     transaction: Tx;
     departments: Dept[];
     assignableEmployees: Employee[];
     accountability: Accountability;
-    permissions: Permissions;
+    transactionPermissions: Permissions;
     evidence: EvidencePayload;
 }) {
     const [tx, setTx] = useState(initialTx);

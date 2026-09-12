@@ -108,7 +108,7 @@ class TransactionController extends Controller
                 ->get(['id', 'code', 'name', 'short_name', 'branch', 'office_type']),
             'assignableEmployees' => $mutable['assignableEmployees'],
             'accountability' => $mutable['accountability'],
-            'permissions' => $mutable['permissions'],
+            'transactionPermissions' => $mutable['permissions'],
             'evidence' => $evidence->forTransaction($transaction),
         ]);
     }

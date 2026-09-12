@@ -1149,3 +1149,33 @@ This append records the completed Approved Travel Orders wave. Earlier entries t
 - Production evidence intentionally preserved: transaction detail rendering failures, correspondence post-route convergence/actionability behavior, duplicate browser requests, and any other application-level failures remain failures. No controller, component, authorization, transition, database, or business rule is patched here.
 - Verification before publication: `node --check tests/Browser/h1-mutation-readiness.mjs` PASS; exact changed set limited to the H1 browser harness and this append; `git diff --check` PASS; engineering-log historical bytes remain unchanged and this entry is EOF-only.
 - Schema/migration/dependency impact: **none**. Final exact-SHA Platform, H0 browser, and H1 mutation execution remains the acceptance authority.
+
+## 2026-09-13 — Stable Baseline H1A client mutation reliability
+
+### `fix(mutations): harden client write-state handling`
+
+- Current hardening slice: **H1A — Client Mutation Reliability / No-Refresh Convergence**.
+- Exact parent SHA: `b41d50ee5e7bba68fd9b5e5ebb13b5fa5f9c2e06`; writer branch: `KIRCH-TALIBON-H1A-MUTATION-CLIENT-RELIABILITY`.
+- Mutation audit: existing transaction transitions, correspondence REGISTER/CLASSIFY/ROUTE/ACT, and Approved Travel Order create/transition surfaces already use Inertia `useForm`, processing locks, validation/error presentation, and server-authoritative redirects and were left unchanged. Transaction creation was PARTIAL; memorandum publication was PARTIAL; memorandum acknowledgement was UNSAFE because it used raw `router.post` without a processing lock or visible failure state.
+- Files/modules changed: `resources/js/pages/Transactions/Create.tsx`; `resources/js/pages/Memoranda/Create.tsx`; `resources/js/pages/Memoranda/Show.tsx`; this engineering log.
+- Transaction creation: blocks re-entry while processing, exposes a complete server-validation summary (including non-field/domain validation such as missing routable office), and changes the active submit label to `Routing…` while retaining the existing Inertia POST and authoritative detail redirect.
+- Memoranda: publication blocks re-entry, locks editable controls during submission, renders the complete server validation set as well as field errors, and retains the existing `Publishing…` state. Acknowledgement now uses `useForm`, blocks duplicate clicks, exposes `Acknowledging…`, preserves scroll, renders a visible non-field failure message, and relies on the existing server redirect/props so the acknowledgement control settles into the server-authoritative acknowledged state without reload or optimistic state.
+- No-refresh contract: no polling, `window.location.reload()`, `router.reload()`, optimistic mutation, or client-owned terminal state was added. Existing server redirects and shared success flash remain the source of truth for touched mutations.
+- Notification audit: database notification read/acknowledgement POST endpoints and URLs exist, but the current notification panel does not expose a client mutation control for them. H1A does not invent new notification product behavior; this is recorded for maintainer review rather than expanding scope. Logout/session mutation and parked-domain writes are also outside this narrow Core write-state correction.
+- Deferred boundaries: no authorization, workflow/business-rule, schema, database-concurrency, or locking change was required. Any future defect in those classes remains deferred to H2/H4/H5 rather than being folded into H1A.
+- Schema/migration/package impact: **none**. No backend, route, policy, workflow, dependency, H0 runtime recovery, H1B browser harness, or CI workflow file changed.
+- Verification actually observed before publication: writer branch HEAD verified exactly at the parent SHA; exact current-scope mutation sources and server redirect/flash contracts were inspected; the three candidate TSX blobs hash exactly to the locally reviewed candidate files; isolated TypeScript syntax/type-shape checking of those three candidates passed against minimal local stubs. The execution container cannot resolve/connect to `github.com`, so a dependency-backed repository checkout could not be established; repository `npm run types:check`, `npm run build`, literal repository `git diff --check`, Feature execution, and browser mutation proof are **NOT OBSERVED** and are not claimed PASS.
+- Next gate: **H1B mutation acceptance / maintainer integration**. Do not begin H2 automatically.
+
+## 2026-09-13 — H1 convergence V2
+
+### `fix(h1): converge mutation reliability`
+
+- Exact parent SHA: `e43eddf242cf429137585f6970e2129b018ec9f9`; branch: `KIRCH-TALIBON-H1A-CONVERGENCE-V2`.
+- Imported the production-only H1A client mutation reliability changes from `67ed5c8bc9f5b771356b7912febfe5daf8f3e609` without importing that branch history; existing H1B log entries remain preserved and the H1A entry is appended intact.
+- Transaction detail root cause: `TransactionController::show()` supplied transaction-specific data through top-level Inertia prop `permissions`, overwriting the shared `permissions` contract required by `AppLayout`. The transaction-local prop is now `transactionPermissions`, with `Transactions/Show.tsx` updated accordingly; `AppLayout` was not weakened.
+- Memorandum acknowledgement duplicate root cause: `useForm.processing` is not a synchronous mutex between rapid activations in the same render turn. A `useRef<boolean>` guard is set before the Inertia POST and cleared in `onFinish`, while retaining processing UI, visible errors, and server-authoritative reconciliation.
+- H2 boundary: `correspondence-route-double-click` and `correspondence-begin-action` remain executed and evidenced, but are explicitly classified `DEFERRED_H2`. No correspondence authorization, linked-workflow, lifecycle, or business-rule production code is changed.
+- Verification actually observed before publication: Composer validation PASS; TypeScript PASS; production build PASS; isolated PostgreSQL migrate/seed PASS; focused Transaction/Memorandum Feature tests PASS; full Feature suite PASS; route inspection PASS; H1 mutation harness syntax PASS; final diff check and exact changed-file review PASS.
+- Schema/migration/dependency impact: **NONE**. No merge or deployment. Exact-SHA Platform, H0 runtime smoke, and H1 mutation acceptance are the final acceptance authority.
+- H2 is **NOT STARTED**.

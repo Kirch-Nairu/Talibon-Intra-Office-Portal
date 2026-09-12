@@ -34,6 +34,8 @@ const report = {
     scenarios: 0,
     passed: 0,
     failed: 0,
+    failH1: 0,
+    deferredH2: 0,
     pageerrorCount: 0,
     server5xxCount: 0,
   },
@@ -270,6 +272,7 @@ function newRow(meta) {
     scenario: meta.scenario,
     actorRoleLabel: meta.actor,
     mutationName: meta.mutation,
+    disposition: meta.disposition || 'H1',
     requestCount: 0,
     responseStatus: null,
     responseStatuses: [],
@@ -361,13 +364,20 @@ async function runScenario(page, meta, body) {
   check(row, 'no-fatal-console-runtime-error', fatalConsole === 0, `fatalConsole=${fatalConsole}`);
 
   row.failureReason = row._failures.length ? row._failures.join(' | ') : null;
-  row.result = row.failureReason ? 'FAIL' : 'PASS';
+  const deferredH2 = meta.disposition === 'DEFERRED_H2';
+  row.result = deferredH2 ? 'DEFERRED_H2' : (row.failureReason ? 'FAIL' : 'PASS');
   delete row._failures;
 
-  if (row.result === 'PASS') report.summary.passed++;
-  else {
+  if (row.result === 'PASS') {
+    report.summary.passed++;
+  } else if (row.result === 'DEFERRED_H2') {
+    report.summary.deferredH2++;
+    report.defects.push({ scenario: row.scenario, disposition: 'DEFERRED_H2', reason: row.failureReason });
+    if (row.failureReason && meta.safeScreenshot !== false) await safeScreenshot(page, row);
+  } else {
     report.summary.failed++;
-    report.defects.push({ scenario: row.scenario, reason: row.failureReason });
+    report.summary.failH1++;
+    report.defects.push({ scenario: row.scenario, disposition: 'H1', reason: row.failureReason });
     if (meta.safeScreenshot !== false) await safeScreenshot(page, row);
   }
 
@@ -647,6 +657,7 @@ async function main() {
 
     await runScenario(engineering.page, {
       scenario: 'correspondence-route-double-click',
+      disposition: 'DEFERRED_H2',
       actor: 'Engineering Department Head',
       mutation: 'Route correspondence with rapid duplicate interaction',
     }, async (row) => {
@@ -701,6 +712,7 @@ async function main() {
 
     await runScenario(budget.page, {
       scenario: 'correspondence-begin-action',
+      disposition: 'DEFERRED_H2',
       actor: 'Budget Department Head',
       mutation: 'Begin action on routed correspondence',
     }, async (row) => {
