@@ -64,6 +64,7 @@ jobs:
           test "$(git rev-parse HEAD)" = "$BASE_SHA"
           test "$(git rev-parse FETCH_HEAD)" = "$BASE_SHA"
           python ../builder/.h2a-corr-patch.py
+          python ../builder/.h2a-corr-patch-v2.py
 
       - name: Prepare isolated verification environment
         working-directory: repo
@@ -93,7 +94,7 @@ jobs:
           composer validate --no-check-publish
           npm run types:check
           npm run build
-          php artisan test tests/Feature/CorrespondenceWorkspaceActionsTest.php tests/Feature/CorrespondenceWorkspaceTest.php tests/Feature/CorrespondenceDetailWorkspaceTest.php tests/Feature/WorkflowDefinitionNormalizationTest.php tests/Feature/TransactionAuthorizationNormalizationTest.php
+          php artisan test tests/Feature/CorrespondenceWorkspaceActionsTest.php tests/Feature/CorrespondenceWorkspaceTest.php tests/Feature/CorrespondenceDetailWorkspaceTest.php tests/Feature/CoreDocumentAttachmentsTest.php tests/Feature/WorkflowDefinitionNormalizationTest.php tests/Feature/TransactionAuthorizationNormalizationTest.php
           php artisan test --testsuite=Feature
           php artisan route:list
           php -l tests/Browser/h1-mutation-probe.php
@@ -116,7 +117,7 @@ jobs:
           - Linked workflow prerequisite truth: correspondence routing continues to create the existing `document_review` workflow in configured initial `submitted` state with no assignment. `CorrespondenceWorkflowStateMapper` remains authoritative: `submitted` is not action-ready; the existing `mark_review` transition to `for_review` (or an existing assignment path) makes the workflow actionable. No transition or state machine was invented or bypassed.
           - Operational path correction: the existing routed/non-actionable Next Step panel now links directly to the already-authorized linked workflow URL so the receiving office can perform the legitimate workflow preparation step before `Start Action` becomes available.
           - Production files changed: `app/Http/Controllers/CorrespondenceWorkspaceActionController.php`; `resources/js/components/correspondence/CorrespondenceActionPanel.tsx`; `.github/workflows/stable-baseline-hardening.yml`. No correspondence access decider, classification policy, workflow definition, state mapper, routing service, schema, role model, or unrelated product domain was widened or redesigned.
-          - Tests/evidence changed: `tests/Feature/CorrespondenceWorkspaceActionsTest.php`; `tests/Browser/h1-mutation-probe.php`; `tests/Browser/h1-mutation-readiness.mjs`. Existing H1 correspondence route/action scenarios are retained and now exercise the real origin handoff, destination visibility, linked-workflow `mark_review` prerequisite, exactly-once `Start Action`, `action_started_at`, immediate convergence, and reload consistency. No new browser framework/job was added.
+          - Tests/evidence changed: `tests/Feature/CorrespondenceWorkspaceActionsTest.php`; `tests/Feature/CoreDocumentAttachmentsTest.php`; `tests/Browser/h1-mutation-probe.php`; `tests/Browser/h1-mutation-readiness.mjs`. Existing H1 correspondence route/action scenarios are retained and now exercise the real origin handoff, destination visibility, linked-workflow `mark_review` prerequisite, exactly-once `Start Action`, `action_started_at`, immediate convergence, and reload consistency. No new browser framework/job was added.
           - Prepublication verification actually observed PASS in isolated PostgreSQL: `composer validate --no-check-publish`; `npm run types:check`; `npm run build`; focused correspondence/workflow Feature tests; full `php artisan test --testsuite=Feature`; `php artisan route:list`; `php -l tests/Browser/h1-mutation-probe.php`; `node --check tests/Browser/h1-mutation-readiness.mjs`; `git diff --check`.
           - Browser scenario result: exact-SHA H2A carrier execution is required after publication; final route/action scenario counts and artifact evidence will be appended only after observed execution rather than predicted here.
           - Schema/migration/dependency impact: **NONE**. H2 broader audit is **NOT STARTED**. No merge and no deployment.
@@ -136,6 +137,7 @@ jobs:
           resources/js/components/correspondence/CorrespondenceActionPanel.tsx
           tests/Browser/h1-mutation-probe.php
           tests/Browser/h1-mutation-readiness.mjs
+          tests/Feature/CoreDocumentAttachmentsTest.php
           tests/Feature/CorrespondenceWorkspaceActionsTest.php
           EOF
           )
@@ -144,7 +146,7 @@ jobs:
           ! git diff --name-only "$BASE_SHA" | grep -E '(^database/migrations/|^composer\.(json|lock)$|^package(-lock)?\.json$)' >/dev/null
           test "$(git diff --numstat "$BASE_SHA" -- docs/ENGINEERING_LOG.md | awk '{print $2}')" = "0"
           git diff --stat "$BASE_SHA"
-          git diff "$BASE_SHA" -- .github/workflows/stable-baseline-hardening.yml app/Http/Controllers/CorrespondenceWorkspaceActionController.php resources/js/components/correspondence/CorrespondenceActionPanel.tsx tests/Feature/CorrespondenceWorkspaceActionsTest.php tests/Browser/h1-mutation-probe.php tests/Browser/h1-mutation-readiness.mjs docs/ENGINEERING_LOG.md
+          git diff "$BASE_SHA" -- .github/workflows/stable-baseline-hardening.yml app/Http/Controllers/CorrespondenceWorkspaceActionController.php resources/js/components/correspondence/CorrespondenceActionPanel.tsx tests/Feature/CorrespondenceWorkspaceActionsTest.php tests/Feature/CoreDocumentAttachmentsTest.php tests/Browser/h1-mutation-probe.php tests/Browser/h1-mutation-readiness.mjs docs/ENGINEERING_LOG.md
 
       - name: Commit and push H2A normally
         working-directory: repo
@@ -155,7 +157,7 @@ jobs:
           TARGET_BRANCH=KIRCH-TALIBON-H2A-CORRESPONDENCE-STATE-TRUTH
           git config user.name 'H2A Correspondence Builder'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add .github/workflows/stable-baseline-hardening.yml app/Http/Controllers/CorrespondenceWorkspaceActionController.php resources/js/components/correspondence/CorrespondenceActionPanel.tsx tests/Feature/CorrespondenceWorkspaceActionsTest.php tests/Browser/h1-mutation-probe.php tests/Browser/h1-mutation-readiness.mjs docs/ENGINEERING_LOG.md
+          git add .github/workflows/stable-baseline-hardening.yml app/Http/Controllers/CorrespondenceWorkspaceActionController.php resources/js/components/correspondence/CorrespondenceActionPanel.tsx tests/Feature/CorrespondenceWorkspaceActionsTest.php tests/Feature/CoreDocumentAttachmentsTest.php tests/Browser/h1-mutation-probe.php tests/Browser/h1-mutation-readiness.mjs docs/ENGINEERING_LOG.md
           git commit -m 'fix(correspondence): align routing and action state truth'
           git fetch origin "$TARGET_BRANCH"
           test "$(git rev-parse FETCH_HEAD)" = "$BASE_SHA"
