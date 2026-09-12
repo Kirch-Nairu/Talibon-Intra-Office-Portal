@@ -42,6 +42,7 @@ jobs:
           set -euo pipefail
           SOURCE_SHA="$GITHUB_SHA"
           git cat-file -e "$BASE_SHA^{commit}"
+          git show "$SOURCE_SHA:.h0a-log-append" > /tmp/h0a-log-append
           git checkout --detach "$BASE_SHA"
           files=(
             app/Http/Middleware/AssignRequestId.php
@@ -57,7 +58,6 @@ jobs:
             git show "$SOURCE_SHA:$path" > "$path"
           done
           test "$(git hash-object docs/ENGINEERING_LOG.md)" = "$BASE_LOG_BLOB"
-          echo "SOURCE_SHA=$SOURCE_SHA" >> "$GITHUB_ENV"
 
       - name: Set up PHP
         uses: shivammathur/setup-php@v2
@@ -114,57 +114,29 @@ jobs:
           BASE_LOG_BLOB: 479498a019ee5951f3ea5a70be02b9bcb7ad14b5
         run: |
           set -euo pipefail
-          test "$(git hash-object "$BASE_SHA:docs/ENGINEERING_LOG.md" 2>/dev/null || true)" = "" || true
           git show "$BASE_SHA:docs/ENGINEERING_LOG.md" > /tmp/h0a-base-engineering-log.md
           test "$(git hash-object /tmp/h0a-base-engineering-log.md)" = "$BASE_LOG_BLOB"
           cp /tmp/h0a-base-engineering-log.md docs/ENGINEERING_LOG.md
-          cat >> docs/ENGINEERING_LOG.md <<'EOF'
-
-## 2026-09-13 — Stable Baseline Hardening H0A runtime recovery
-
-### `fix(runtime): add recoverable application error boundaries`
-
-- Current hardening slice: **Stable Baseline H0A — failure visibility / runtime recovery / server error contract**.
-- Exact authority: implemented directly from `6a2cc1e0be9de64d34c6dc84c65308c455c7efcd`, which already contains the accepted H0B QA carrier. H0B workflow/browser files are unchanged.
-- Intent: prevent recoverable client/server failures from collapsing into an unexplained blank application by adding a top-level React recovery boundary, controlled Laravel/Inertia browser error presentation, session-expiry recovery, and a safe application request identifier.
-- Request identity: every application request receives a server-generated UUID `X-Request-ID`; client-supplied request IDs are not authoritative. Existing integration `X-Correlation-ID` behavior remains separate and unchanged.
-- Server error contract: browser 403/404/500/503 responses use sanitized `Errors/Status` presentation with the real HTTP status and request ID when `APP_DEBUG=false`; 419 redirects back with the existing shared `flash.error` contract. JSON/API traffic, `documents.download`, and `reports.export` remain native/non-Inertia responses.
-- Diagnostics: H0A emits bounded 5xx context containing request ID, status, route name, authenticated user ID when available, and exception class only. Browser-facing responses never include stack traces, SQL, paths, request bodies, credentials, MFA/health/document content, or raw exception messages.
-- Client recovery: `AppErrorBoundary` wraps the Inertia root and renders a standalone light/dark recovery state with Retry and Return to dashboard actions without depending on `AppLayout`.
-- Files/modules changed: `app/Http/Middleware/AssignRequestId.php`; `app/Services/ApplicationErrorResponse.php`; `bootstrap/app.php`; `resources/js/app.tsx`; `resources/js/components/system/AppErrorBoundary.tsx`; `resources/js/pages/Errors/Status.tsx`; `tests/Feature/RuntimeRecoveryTest.php`; this engineering log.
-- Schema/migration/package impact: **none**. No dependency, route, authorization, workflow/business, mutation UX, H1, CI/browser-carrier, or deployment change.
-- Verification actually observed before commit: PHP syntax PASS for the four changed PHP files; `composer validate --no-check-publish` PASS; `npm run types:check` PASS; `npm run build` PASS; isolated PostgreSQL `php artisan migrate:fresh --seed --force` PASS; `php artisan test tests/Feature/RuntimeRecoveryTest.php` PASS; and `php artisan route:list` PASS. The engineering-log base blob was verified exactly before this append; the log diff was checked as EOF additions only with zero deletions; the exact eight-file changed set and `git diff --check` were verified before commit.
-- Inherited documentation gap: pre-hardening SHA `d1cb14f31228601cde9575db1c0a0c7cbd6eb4da` changed `ProgressiveFilterBar.tsx` without the engineering-log update required by `AGENTS.md`; that historical commit is not rewritten.
-- Known gaps / next: exact-SHA stable-baseline Platform and H0 browser runtime runs must be observed after publication. H1 mutation reliability remains future work and is **NOT STARTED**.
-EOF
-          python3 - <<'PY'
-          from pathlib import Path
-          base = Path('/tmp/h0a-base-engineering-log.md').read_bytes()
-          current = Path('docs/ENGINEERING_LOG.md').read_bytes()
-          if not current.startswith(base):
-              raise SystemExit('engineering log historical bytes changed')
-          if len(current) <= len(base):
-              raise SystemExit('engineering log append missing')
-          PY
+          cat /tmp/h0a-log-append >> docs/ENGINEERING_LOG.md
+          python3 -c "from pathlib import Path; b=Path('/tmp/h0a-base-engineering-log.md').read_bytes(); c=Path('docs/ENGINEERING_LOG.md').read_bytes(); assert c.startswith(b) and len(c)>len(b)"
           echo '--- ENGINEERING LOG DIFF ---'
           git diff "$BASE_SHA" -- docs/ENGINEERING_LOG.md
           read additions deletions path < <(git diff --numstat "$BASE_SHA" -- docs/ENGINEERING_LOG.md)
           test "$path" = "docs/ENGINEERING_LOG.md"
           test "$deletions" = "0"
-          expected=$(cat <<'EOF'
-app/Http/Middleware/AssignRequestId.php
-app/Services/ApplicationErrorResponse.php
-bootstrap/app.php
-docs/ENGINEERING_LOG.md
-resources/js/app.tsx
-resources/js/components/system/AppErrorBoundary.tsx
-resources/js/pages/Errors/Status.tsx
-tests/Feature/RuntimeRecoveryTest.php
-EOF
-)
-          actual="$(git diff --name-only "$BASE_SHA" | sort)"
-          test "$actual" = "$expected"
-          test "$(git diff --name-only "$BASE_SHA" | wc -l)" -eq 8
+          expected=(
+            app/Http/Middleware/AssignRequestId.php
+            app/Services/ApplicationErrorResponse.php
+            bootstrap/app.php
+            docs/ENGINEERING_LOG.md
+            resources/js/app.tsx
+            resources/js/components/system/AppErrorBoundary.tsx
+            resources/js/pages/Errors/Status.tsx
+            tests/Feature/RuntimeRecoveryTest.php
+          )
+          mapfile -t actual < <(git diff --name-only "$BASE_SHA" | sort)
+          test "${#actual[@]}" -eq 8
+          test "$(printf '%s\n' "${actual[@]}")" = "$(printf '%s\n' "${expected[@]}")"
           git diff --check "$BASE_SHA"
           git diff --stat "$BASE_SHA"
           git status --short
@@ -192,4 +164,4 @@ EOF
           git fetch origin "$TARGET_BRANCH"
           test "$(git rev-parse FETCH_HEAD)" = "$BASE_SHA"
           git push origin "HEAD:refs/heads/$TARGET_BRANCH"
-          echo "FINAL_SHA=$(git rev-parse HEAD)" >> "$GITHUB_ENV"
+          echo "FINAL_SHA=$(git rev-parse HEAD)"
