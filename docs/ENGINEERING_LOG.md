@@ -1179,3 +1179,15 @@ This append records the completed Approved Travel Orders wave. Earlier entries t
 - Verification actually observed before publication: Composer validation PASS; TypeScript PASS; production build PASS; isolated PostgreSQL migrate/seed PASS; focused Transaction/Memorandum Feature tests PASS; full Feature suite PASS; route inspection PASS; H1 mutation harness syntax PASS; final diff check and exact changed-file review PASS.
 - Schema/migration/dependency impact: **NONE**. No merge or deployment. Exact-SHA Platform, H0 runtime smoke, and H1 mutation acceptance are the final acceptance authority.
 - H2 is **NOT STARTED**.
+
+## 2026-09-13 — H1 convergence V2 exact-SHA correction
+
+### `fix(h1): close terminal mutation convergence gaps`
+
+- Exact parent SHA: `d43460e116b99c6ca6e4ee22ec14a47875c3f62c`; correction is limited to defects proven by exact-SHA H1 artifact `10303264402` from run `34712541359`.
+- Mayor approval production defect: the transaction reached authoritative `approved` state exactly once, but `TransactionLiveQuery` exposed authorization capability flags without considering the workflow terminal state, so the terminal transaction continued to advertise mutation actions. The mutable projection now suppresses transition, Mayor-decision, and assignment capabilities when the resolved workflow definition marks the current status terminal. Authorization policy itself is unchanged.
+- Validation evidence correction: the transaction form visibly rendered the same `title field is required` message in both the summary and field-level error. The Playwright locator matched both and strict-mode resolution was caught as `false`; the existing scenario now selects the first visible copy without changing the product assertion or mutation behavior.
+- Deferred-H2 accounting correction: the existing two correspondence scenarios remain executed and retain their failure evidence as `DEFERRED_H2`; H1 completion now requires `FAIL_H1 = 0` and `PASS + DEFERRED_H2 = scenarios`, rather than incorrectly requiring all 14 scenarios to be PASS.
+- Regression coverage: `PerformanceLiveEndpointsTest` now proves terminal transaction live projections hide Mayor decision and all system-admin mutation controls.
+- Verification actually observed before publication: Composer validation PASS; TypeScript PASS; production build PASS; isolated PostgreSQL migrate/seed PASS; focused Performance/Transaction/Memorandum Feature tests PASS; full Feature suite PASS; route inspection PASS; PHP syntax PASS; H1 harness syntax PASS; `git diff --check` PASS; engineering-log diff remains EOF-only.
+- Schema/migration/dependency impact: **NONE**. Correspondence production behavior remains untouched. No merge, deployment, or H2 implementation.

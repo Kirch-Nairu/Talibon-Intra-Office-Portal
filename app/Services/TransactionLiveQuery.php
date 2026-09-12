@@ -30,10 +30,11 @@ final class TransactionLiveQuery
         ]);
 
         $definition = $this->definitions->resolve($transaction);
+        $terminal = $definition->isTerminal($transaction->status);
         $permissions = [
-            'canTransition' => $actor->can('transition', $transaction),
-            'canMayorDecision' => $actor->can('mayorDecision', $transaction),
-            'canAssign' => $actor->can('assign', $transaction),
+            'canTransition' => ! $terminal && $actor->can('transition', $transaction),
+            'canMayorDecision' => ! $terminal && $actor->can('mayorDecision', $transaction),
+            'canAssign' => ! $terminal && $actor->can('assign', $transaction),
         ];
 
         return [

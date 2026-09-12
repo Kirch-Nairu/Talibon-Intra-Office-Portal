@@ -171,6 +171,34 @@ class PerformanceLiveEndpointsTest extends TestCase
             ->assertForbidden();
     }
 
+    public function test_transaction_live_state_hides_mutation_permissions_after_terminal_state(): void
+    {
+        $origin = $this->department('TERM-ORIGIN', 'Terminal Origin');
+        $mayorOffice = $this->department('MAYOR', 'Mayor Office');
+        $creator = $this->human('department_head', $origin);
+        $approver = $this->human('mayor_staff', $mayorOffice);
+        $admin = $this->human('system_admin', $mayorOffice);
+        $transaction = $this->transaction($origin, $mayorOffice, $creator);
+
+        $transaction->forceFill([
+            'status' => 'approved',
+            'completed_at' => now(),
+        ])->save();
+
+        $this->actingAs($approver)
+            ->getJson('/transactions/'.$transaction->id.'/live')
+            ->assertOk()
+            ->assertJsonPath('transaction.status', 'approved')
+            ->assertJsonPath('permissions.canMayorDecision', false);
+
+        $this->actingAs($admin)
+            ->getJson('/transactions/'.$transaction->id.'/live')
+            ->assertOk()
+            ->assertJsonPath('permissions.canTransition', false)
+            ->assertJsonPath('permissions.canMayorDecision', false)
+            ->assertJsonPath('permissions.canAssign', false);
+    }
+
     public function test_mayor_live_endpoint_preserves_existing_executive_access_boundary(): void
     {
         $mayorOffice = $this->department('MAYOR', 'Mayor Office');
