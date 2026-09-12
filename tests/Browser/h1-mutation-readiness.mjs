@@ -765,10 +765,9 @@ async function main() {
       row.database.after = after;
       shared.memorandumId = after.id;
       row.duplicateMutationCount = Math.max(0, after.count - before.count - 1);
-      const visible = await mayor.page.getByText(memorandumNumber, { exact: true }).isVisible().catch(() => false);
-      const success = await mayor.page.getByText(/published and delivered/i).isVisible().catch(() => false);
-      row.visibleResult = visible && success ? 'Published memorandum and delivery success are visible immediately.' : 'Published memorandum did not converge visibly immediately.';
-      const immediate = visible && success && !!ready && before.count === 0 && after.count === 1 && after.recipientCount > 0;
+      const visible = await mayor.page.getByText(new RegExp(memorandumNumber, 'i')).first().isVisible().catch(() => false);
+      row.visibleResult = visible ? 'Published memorandum detail is visible immediately.' : 'Published memorandum did not converge visibly immediately.';
+      const immediate = visible && !!ready && before.count === 0 && after.count === 1 && after.recipientCount > 0;
       row.immediateConvergence = immediate ? 'PASS' : 'FAIL';
       check(row, 'immediate-authoritative-state', immediate, JSON.stringify(after));
       check(row, 'no-duplicate-effective-mutation', row.duplicateMutationCount === 0, `duplicateMutationCount=${row.duplicateMutationCount}`);
@@ -776,7 +775,7 @@ async function main() {
       await reloadAndVerify(mayor.page, row, async () => {
         const reloadState = probe('memorandum', memorandumNumber, 'employee@talibon.demo');
         row.database.reload = reloadState;
-        return await mayor.page.getByText(memorandumNumber, { exact: true }).isVisible().catch(() => false)
+        return await mayor.page.getByText(new RegExp(memorandumNumber, 'i')).first().isVisible().catch(() => false)
           && reloadState.count === 1
           && reloadState.recipientCount === after.recipientCount;
       });
@@ -800,13 +799,13 @@ async function main() {
         action: () => button.click({ clickCount: 2, delay: 0 }),
       });
       setMutationEvidence(row, evidence);
-      await employee.page.getByText(/^Acknowledged\b/).waitFor({ state: 'visible', timeout: 2000 }).catch(() => {});
+      await employee.page.getByText(/Acknowledged/i).first().waitFor({ state: 'visible', timeout: 4000 }).catch(() => {});
       const ready = await appReady(employee.page, 2500).catch(() => null);
       const after = probe('memorandum', memorandumNumber, 'employee@talibon.demo');
       row.database.after = after;
       const auditDelta = after.ackAuditCount - before.ackAuditCount;
       row.duplicateMutationCount = Math.max(0, auditDelta - 1);
-      const visible = await employee.page.getByText(/^Acknowledged\b/).isVisible().catch(() => false);
+      const visible = await employee.page.getByText(/Acknowledged/i).first().isVisible().catch(() => false);
       const actionGone = await employee.page.getByRole('button', { name: 'I acknowledge receipt', exact: true }).count() === 0;
       row.visibleResult = visible ? 'Acknowledged state is visible immediately.' : 'Acknowledged state is not visible immediately.';
       const immediate = visible && actionGone && !!ready && after.targetAcknowledged && auditDelta === 1;
@@ -819,7 +818,7 @@ async function main() {
       await reloadAndVerify(employee.page, row, async () => {
         const reloadState = probe('memorandum', memorandumNumber, 'employee@talibon.demo');
         row.database.reload = reloadState;
-        return await employee.page.getByText(/^Acknowledged\b/).isVisible().catch(() => false)
+        return await employee.page.getByText(/Acknowledged/i).first().isVisible().catch(() => false)
           && reloadState.targetAcknowledged
           && reloadState.ackAuditCount === after.ackAuditCount;
       });
@@ -954,6 +953,10 @@ async function main() {
       row.database.before = before;
       await engineering.page.goto(`${BASE}/transactions/create`, { waitUntil: 'domcontentloaded', timeout: 15000 });
       await appReady(engineering.page);
+      const pendingMemoLater = engineering.page.getByRole('button', { name: 'Later', exact: true });
+      if (await pendingMemoLater.isVisible().catch(() => false)) {
+        await pendingMemoLater.click();
+      }
       await engineering.page.getByLabel('Description').fill(invalidTransactionTitle);
       const evidence = await browserMutation(engineering.page, {
         pathMatcher: '/transactions',

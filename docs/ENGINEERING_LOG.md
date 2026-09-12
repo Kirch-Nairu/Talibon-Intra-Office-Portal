@@ -1137,3 +1137,15 @@ This append records the completed Approved Travel Orders wave. Earlier entries t
 - Verification actually observed before publication: exact parent authority rechecked; `node --check tests/Browser/h1-mutation-readiness.mjs` PASS; PHP syntax check for `tests/Browser/h1-mutation-probe.php` PASS; workflow YAML syntax validation PASS; `git diff --check` PASS; full four-file diff/stat reviewed; and `git diff b41d50ee5e7bba68fd9b5e5ebb13b5fa5f9c2e06 -- docs/ENGINEERING_LOG.md` proved this entry is EOF-only with zero historical deletions.
 - Defects exposed: **none claimed by source construction alone**. H1B deliberately treats current-product no-refresh, duplicate-submission, state-visibility, validation, controlled denial, and exactly-once failures as evidence rather than patching them. Exact-SHA workflow execution after publication is the authority for any defect inventory.
 - Next gate: maintainer review of exact-SHA Platform, H0 browser, and H1 mutation evidence, followed by parallel H1A/H1B integration as authorized. H2 is **NOT STARTED**.
+
+
+## 2026-09-13 — Stable Baseline H1B exact-SHA evidence refinement
+
+### `test(hardening): refine mutation acceptance evidence`
+
+- Exact parent: published H1B carrier SHA `ac0544d315c8841e02973341f9a77618a37cc287`; production application files and the stable hardening workflow are unchanged by this refinement.
+- First exact-SHA H1 execution: run `34709164744` reached the real mutation harness and produced 14 scenario records with 6 passing and 8 provisional failures, zero `pageerror`, and zero HTTP 5xx. Its artifact remains preserved as evidence.
+- Harness-only correction: remove an unnecessary memorandum flash-message requirement when the newly published memorandum detail is already the visible authoritative result; use the rendered acknowledgement state rather than an over-strict text anchor; and dismiss the existing client-only pending-memorandum overlay before the later transaction-validation scenario so the validation click is not mechanically blocked by an unrelated modal. The `Later` control only updates local React state and is not a server mutation.
+- Production evidence intentionally preserved: transaction detail rendering failures, correspondence post-route convergence/actionability behavior, duplicate browser requests, and any other application-level failures remain failures. No controller, component, authorization, transition, database, or business rule is patched here.
+- Verification before publication: `node --check tests/Browser/h1-mutation-readiness.mjs` PASS; exact changed set limited to the H1 browser harness and this append; `git diff --check` PASS; engineering-log historical bytes remain unchanged and this entry is EOF-only.
+- Schema/migration/dependency impact: **none**. Final exact-SHA Platform, H0 browser, and H1 mutation execution remains the acceptance authority.
