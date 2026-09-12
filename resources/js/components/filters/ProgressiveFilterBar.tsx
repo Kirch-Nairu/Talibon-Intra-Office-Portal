@@ -50,7 +50,7 @@ export default function ProgressiveFilterBar({
                             aria-expanded={expanded}
                             aria-haspopup="dialog"
                             onClick={() => setExpanded((value) => !value)}
-                            className="inline-flex items-center gap-2 rounded-xl border border-slate-300 bg-white px-3 py-2.5 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100 text-[13px] font-bold text-slate-700 transition hover:border-blue-300 hover:bg-blue-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 sm:text-xs"
+                            className="inline-flex items-center gap-2 rounded-xl border border-slate-300 bg-white px-3 py-2.5 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100 text-[13px] font-bold text-slate-700 hover:border-blue-300 hover:bg-blue-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 sm:text-xs"
                         >
                             <SlidersHorizontal size={15} aria-hidden="true" />
                             Filters{activeFilters.length > 0 ? ` ${activeFilters.length}` : ''}
