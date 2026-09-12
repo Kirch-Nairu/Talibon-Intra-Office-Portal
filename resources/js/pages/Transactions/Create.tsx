@@ -37,6 +37,7 @@ export default function Create({ departments }: { departments: Department[] }) {
         remarks: '',
         evidence: [],
     });
+    const formErrors = Object.values(errors).filter((message): message is string => typeof message === 'string');
 
     return <AppLayout title="New Transaction">
         <Head title="New Transaction" />
@@ -47,7 +48,8 @@ export default function Create({ departments }: { departments: Department[] }) {
                 <p className="mt-2 text-sm leading-6 text-slate-500 dark:text-slate-400">Create one accountable transaction and send it to any active routable executive, administrative, or legislative office.</p>
             </div>
 
-            <form onSubmit={(event) => { event.preventDefault(); post('/transactions', { forceFormData: true }); }} className="space-y-5 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm dark:bg-[#142236] dark:border-slate-700">
+            <form onSubmit={(event) => { event.preventDefault(); if (processing) return; post('/transactions', { forceFormData: true }); }} className="space-y-5 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm dark:bg-[#142236] dark:border-slate-700">
+                {formErrors.length > 0 && <div role="alert" className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800 dark:border-red-900 dark:bg-red-950/30 dark:text-red-200"><div className="font-semibold">The transaction could not be routed.</div><ul className="mt-1 list-disc space-y-1 pl-5">{formErrors.map((message, index) => <li key={`${message}-${index}`}>{message}</li>)}</ul></div>}
                 <div className="grid gap-5 md:grid-cols-2">
                     <label className="space-y-2 text-sm font-semibold text-slate-700 dark:text-slate-300">Transaction type
                         <select value={data.transaction_type} onChange={(event) => setData('transaction_type', event.target.value)} className="w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm dark:border-slate-700">
@@ -104,7 +106,7 @@ export default function Create({ departments }: { departments: Department[] }) {
 
                 <div className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 pt-5 dark:border-slate-700">
                     <Link href="/transactions" className="text-sm font-semibold text-slate-500 hover:text-slate-900 dark:text-slate-400">Cancel</Link>
-                    <button disabled={processing || departments.length === 0} className="inline-flex items-center gap-2 rounded-xl bg-blue-900 px-5 py-3 text-sm font-bold text-white disabled:opacity-50"><Building2 size={17} />Route transaction<ArrowRight size={17} /></button>
+                    <button type="submit" disabled={processing || departments.length === 0} aria-busy={processing} className="inline-flex items-center gap-2 rounded-xl bg-blue-900 px-5 py-3 text-sm font-bold text-white disabled:opacity-50"><Building2 size={17} />{processing ? 'Routing…' : 'Route transaction'}<ArrowRight size={17} /></button>
                 </div>
             </form>
         </div>
