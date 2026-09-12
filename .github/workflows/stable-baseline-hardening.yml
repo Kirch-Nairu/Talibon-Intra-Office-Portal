@@ -6,6 +6,8 @@ on:
       - KIRCH-TALIBON-STABLE-BASELINE-HARDENING-V1
       - KIRCH-TALIBON-H0A-**
       - KIRCH-TALIBON-H0B-**
+      - KIRCH-TALIBON-H1A-**
+      - KIRCH-TALIBON-H1B-**
   workflow_dispatch:
 
 permissions:
@@ -220,5 +222,136 @@ jobs:
             storage/app/qa/h0-runtime-readiness-report.json
             storage/app/qa/h0-runtime-failures/**
             storage/logs/stable-baseline-hardening-server.log
+          if-no-files-found: warn
+          retention-days: 7
+
+  h1-mutations:
+    name: H1 mutation acceptance
+    if: >-
+      github.ref_name == 'KIRCH-TALIBON-STABLE-BASELINE-HARDENING-V1' ||
+      startsWith(github.ref_name, 'KIRCH-TALIBON-H1A-') ||
+      startsWith(github.ref_name, 'KIRCH-TALIBON-H1B-')
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: talibon_h1_mutations
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d talibon_h1_mutations"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    steps:
+      - name: Checkout exact hardening head
+        uses: actions/checkout@v4
+
+      - name: Verify exact checkout
+        shell: bash
+        run: |
+          set -euo pipefail
+          ACTUAL_SHA="$(git rev-parse HEAD)"
+          test "$ACTUAL_SHA" = "$GITHUB_SHA"
+          echo "QA_EXPECTED_SHA=$GITHUB_SHA" >> "$GITHUB_ENV"
+          echo "Exact checkout: $ACTUAL_SHA"
+
+      - name: Prepare H1 evidence directories
+        run: mkdir -p storage/app/qa storage/logs
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: mbstring, pdo_pgsql, fileinfo, zip
+          coverage: none
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Prepare isolated H1 mutation environment
+        shell: bash
+        run: |
+          set -euo pipefail
+          cp .env.example .env
+          sed -i 's/^APP_ENV=.*/APP_ENV=testing/' .env
+          sed -i 's/^APP_DEBUG=.*/APP_DEBUG=false/' .env
+          sed -i 's#^APP_URL=.*#APP_URL=http://127.0.0.1:8001#' .env
+          sed -i 's/^DB_HOST=.*/DB_HOST=127.0.0.1/' .env
+          sed -i 's/^DB_DATABASE=.*/DB_DATABASE=talibon_h1_mutations/' .env
+          sed -i 's/^DB_USERNAME=.*/DB_USERNAME=postgres/' .env
+          sed -i 's/^DB_PASSWORD=.*/DB_PASSWORD=postgres/' .env
+          DEMO_PASSWORD="$(openssl rand -hex 24)"
+          echo "::add-mask::$DEMO_PASSWORD"
+          sed -i "s/^PROTOTYPE_DEMO_PASSWORD=.*/PROTOTYPE_DEMO_PASSWORD=$DEMO_PASSWORD/" .env
+          echo "QA_DEMO_PASSWORD=$DEMO_PASSWORD" >> "$GITHUB_ENV"
+          echo "QA_BASE_URL=http://127.0.0.1:8001" >> "$GITHUB_ENV"
+          echo "QA_ENVIRONMENT=github-actions-stable-baseline-h1-mutations" >> "$GITHUB_ENV"
+
+      - name: Install PHP dependencies
+        run: composer install --no-interaction --prefer-dist --no-progress
+
+      - name: Generate application key
+        run: php artisan key:generate --force
+
+      - name: Install frontend dependencies
+        run: npm install --no-audit --no-fund
+
+      - name: TypeScript check
+        run: npm run types:check
+
+      - name: Production frontend build
+        run: npm run build
+
+      - name: Fresh migrate and seed isolated H1 PostgreSQL
+        run: php artisan migrate:fresh --seed --force
+
+      - name: Verify H1 test-only database probe
+        shell: bash
+        run: |
+          php -l tests/Browser/h1-mutation-probe.php
+          php tests/Browser/h1-mutation-probe.php isolation
+
+      - name: Install transient Playwright browser
+        shell: bash
+        run: |
+          npm install --no-save --package-lock=false playwright@1.55.0
+          npx playwright install --with-deps chromium
+
+      - name: Start isolated H1 Laravel runtime
+        shell: bash
+        run: |
+          set -euo pipefail
+          nohup php artisan serve --host=127.0.0.1 --port=8001 > storage/logs/stable-baseline-h1-mutations-server.log 2>&1 &
+          echo $! > /tmp/talibon-stable-baseline-h1-server.pid
+          for attempt in $(seq 1 40); do
+            if curl --fail --silent --show-error http://127.0.0.1:8001/ >/dev/null; then
+              exit 0
+            fi
+            sleep 1
+          done
+          cat storage/logs/stable-baseline-h1-mutations-server.log
+          exit 1
+
+      - name: H1 real mutation acceptance
+        run: node tests/Browser/h1-mutation-readiness.mjs
+
+      - name: Upload H1 mutation evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: stable-baseline-h1-mutations-${{ github.sha }}
+          path: |
+            storage/app/qa/h1-mutation-readiness-report.json
+            storage/app/qa/h1-mutation-failures/**
+            storage/logs/stable-baseline-h1-mutations-server.log
           if-no-files-found: warn
           retention-days: 7

@@ -1,0 +1,101 @@
+name: H1B Mutation Harness Builder
+
+on:
+  push:
+    branches:
+      - __tmp_h1b_mutation_builder__
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout builder source
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Reconstruct exact-base H1B candidate
+        shell: bash
+        env:
+          BASE_SHA: b41d50ee5e7bba68fd9b5e5ebb13b5fa5f9c2e06
+        run: |
+          set -euo pipefail
+          SOURCE_SHA="$GITHUB_SHA"
+          git cat-file -e "$BASE_SHA^{commit}"
+          git show "$SOURCE_SHA:.h1b-log-append" > /tmp/h1b-log-append
+          git checkout --detach "$BASE_SHA"
+          for path in \
+            .github/workflows/stable-baseline-hardening.yml \
+            tests/Browser/h1-mutation-readiness.mjs \
+            tests/Browser/h1-mutation-probe.php; do
+            mkdir -p "$(dirname "$path")"
+            git show "$SOURCE_SHA:$path" > "$path"
+          done
+          git show "$BASE_SHA:docs/ENGINEERING_LOG.md" > /tmp/h1b-base-engineering-log.md
+          cp /tmp/h1b-base-engineering-log.md docs/ENGINEERING_LOG.md
+          cat /tmp/h1b-log-append >> docs/ENGINEERING_LOG.md
+          git add \
+            .github/workflows/stable-baseline-hardening.yml \
+            tests/Browser/h1-mutation-readiness.mjs \
+            tests/Browser/h1-mutation-probe.php \
+            docs/ENGINEERING_LOG.md
+
+      - name: Verify exact H1B diff
+        shell: bash
+        env:
+          BASE_SHA: b41d50ee5e7bba68fd9b5e5ebb13b5fa5f9c2e06
+        run: |
+          set -euo pipefail
+          node --check tests/Browser/h1-mutation-readiness.mjs
+          php -l tests/Browser/h1-mutation-probe.php
+          ruby -e "require 'yaml'; YAML.load_file('.github/workflows/stable-baseline-hardening.yml', aliases: true); puts 'workflow YAML syntax PASS'"
+          python3 - <<'PY'
+          from pathlib import Path
+          base = Path('/tmp/h1b-base-engineering-log.md').read_bytes()
+          current = Path('docs/ENGINEERING_LOG.md').read_bytes()
+          assert current.startswith(base), 'engineering log historical bytes changed'
+          assert len(current) > len(base), 'engineering log append missing'
+          PY
+          echo '--- ENGINEERING LOG DIFF ---'
+          git diff "$BASE_SHA" -- docs/ENGINEERING_LOG.md
+          read additions deletions path < <(git diff --numstat "$BASE_SHA" -- docs/ENGINEERING_LOG.md)
+          test "$path" = "docs/ENGINEERING_LOG.md"
+          test "$deletions" = "0"
+          mapfile -t actual < <(git diff --name-only "$BASE_SHA" | sort)
+          expected=(
+            .github/workflows/stable-baseline-hardening.yml
+            docs/ENGINEERING_LOG.md
+            tests/Browser/h1-mutation-probe.php
+            tests/Browser/h1-mutation-readiness.mjs
+          )
+          test "${#actual[@]}" -eq 4
+          test "$(printf '%s\n' "${actual[@]}")" = "$(printf '%s\n' "${expected[@]}")"
+          grep -Fq 'KIRCH-TALIBON-H1A-**' .github/workflows/stable-baseline-hardening.yml
+          grep -Fq 'KIRCH-TALIBON-H1B-**' .github/workflows/stable-baseline-hardening.yml
+          grep -Fq 'workflow_dispatch:' .github/workflows/stable-baseline-hardening.yml
+          git diff --check "$BASE_SHA"
+          echo '--- FULL DIFF ---'
+          git diff "$BASE_SHA"
+          echo '--- DIFF STAT ---'
+          git diff --stat "$BASE_SHA"
+          echo '--- STATUS ---'
+          git status --short
+
+      - name: Commit clean candidate and publish disposable result ref
+        shell: bash
+        env:
+          BASE_SHA: b41d50ee5e7bba68fd9b5e5ebb13b5fa5f9c2e06
+          RESULT_BRANCH: __tmp_h1b_mutation_built_20260913__
+        run: |
+          set -euo pipefail
+          git config user.name "H1B QA Builder"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "test(hardening): add real mutation acceptance gate"
+          test "$(git rev-parse HEAD^)" = "$BASE_SHA"
+          FINAL_SHA="$(git rev-parse HEAD)"
+          git push origin "HEAD:refs/heads/$RESULT_BRANCH"
+          echo "FINAL_SHA=$FINAL_SHA"
