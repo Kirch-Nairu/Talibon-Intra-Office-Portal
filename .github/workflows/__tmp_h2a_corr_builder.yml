@@ -121,7 +121,6 @@ jobs:
           - Browser scenario result: exact-SHA H2A carrier execution is required after publication; final route/action scenario counts and artifact evidence will be appended only after observed execution rather than predicted here.
           - Schema/migration/dependency impact: **NONE**. H2 broader audit is **NOT STARTED**. No merge and no deployment.
           EOF
-          sed -i 's/^          //' docs/ENGINEERING_LOG.md
           git diff --check
 
       - name: Enforce focused diff and append-only log
