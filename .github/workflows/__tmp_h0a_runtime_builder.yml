@@ -1,0 +1,195 @@
+name: H0A Runtime Recovery Builder
+
+on:
+  push:
+    branches:
+      - __tmp_h0a_runtime_builder__
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: talibon_h0a_builder
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d talibon_h0a_builder"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    steps:
+      - name: Checkout builder source
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Reconstruct exact-base H0A worktree
+        shell: bash
+        env:
+          BASE_SHA: 6a2cc1e0be9de64d34c6dc84c65308c455c7efcd
+          BASE_LOG_BLOB: 479498a019ee5951f3ea5a70be02b9bcb7ad14b5
+        run: |
+          set -euo pipefail
+          SOURCE_SHA="$GITHUB_SHA"
+          git cat-file -e "$BASE_SHA^{commit}"
+          git checkout --detach "$BASE_SHA"
+          files=(
+            app/Http/Middleware/AssignRequestId.php
+            app/Services/ApplicationErrorResponse.php
+            bootstrap/app.php
+            resources/js/app.tsx
+            resources/js/components/system/AppErrorBoundary.tsx
+            resources/js/pages/Errors/Status.tsx
+            tests/Feature/RuntimeRecoveryTest.php
+          )
+          for path in "${files[@]}"; do
+            mkdir -p "$(dirname "$path")"
+            git show "$SOURCE_SHA:$path" > "$path"
+          done
+          test "$(git hash-object docs/ENGINEERING_LOG.md)" = "$BASE_LOG_BLOB"
+          echo "SOURCE_SHA=$SOURCE_SHA" >> "$GITHUB_ENV"
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: mbstring, pdo_pgsql, fileinfo, zip
+          coverage: none
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Prepare isolated environment
+        shell: bash
+        run: |
+          set -euo pipefail
+          cp .env.example .env
+          sed -i 's/^APP_ENV=.*/APP_ENV=testing/' .env
+          sed -i 's/^APP_DEBUG=.*/APP_DEBUG=false/' .env
+          sed -i 's/^DB_HOST=.*/DB_HOST=127.0.0.1/' .env
+          sed -i 's/^DB_DATABASE=.*/DB_DATABASE=talibon_h0a_builder/' .env
+          sed -i 's/^DB_USERNAME=.*/DB_USERNAME=postgres/' .env
+          sed -i 's/^DB_PASSWORD=.*/DB_PASSWORD=postgres/' .env
+          DEMO_PASSWORD="$(openssl rand -hex 24)"
+          echo "::add-mask::$DEMO_PASSWORD"
+          sed -i "s/^PROTOTYPE_DEMO_PASSWORD=.*/PROTOTYPE_DEMO_PASSWORD=$DEMO_PASSWORD/" .env
+
+      - name: Install dependencies
+        run: |
+          composer install --no-interaction --prefer-dist --no-progress
+          php artisan key:generate --force
+          npm install --no-audit --no-fund
+
+      - name: Verify H0A implementation
+        shell: bash
+        run: |
+          set -euo pipefail
+          php -l app/Http/Middleware/AssignRequestId.php
+          php -l app/Services/ApplicationErrorResponse.php
+          php -l bootstrap/app.php
+          php -l tests/Feature/RuntimeRecoveryTest.php
+          composer validate --no-check-publish
+          npm run types:check
+          npm run build
+          php artisan migrate:fresh --seed --force
+          php artisan test tests/Feature/RuntimeRecoveryTest.php
+          php artisan route:list >/tmp/h0a-route-list.txt
+
+      - name: Append exact-base engineering log and prove diff
+        shell: bash
+        env:
+          BASE_SHA: 6a2cc1e0be9de64d34c6dc84c65308c455c7efcd
+          BASE_LOG_BLOB: 479498a019ee5951f3ea5a70be02b9bcb7ad14b5
+        run: |
+          set -euo pipefail
+          test "$(git hash-object "$BASE_SHA:docs/ENGINEERING_LOG.md" 2>/dev/null || true)" = "" || true
+          git show "$BASE_SHA:docs/ENGINEERING_LOG.md" > /tmp/h0a-base-engineering-log.md
+          test "$(git hash-object /tmp/h0a-base-engineering-log.md)" = "$BASE_LOG_BLOB"
+          cp /tmp/h0a-base-engineering-log.md docs/ENGINEERING_LOG.md
+          cat >> docs/ENGINEERING_LOG.md <<'EOF'
+
+## 2026-09-13 — Stable Baseline Hardening H0A runtime recovery
+
+### `fix(runtime): add recoverable application error boundaries`
+
+- Current hardening slice: **Stable Baseline H0A — failure visibility / runtime recovery / server error contract**.
+- Exact authority: implemented directly from `6a2cc1e0be9de64d34c6dc84c65308c455c7efcd`, which already contains the accepted H0B QA carrier. H0B workflow/browser files are unchanged.
+- Intent: prevent recoverable client/server failures from collapsing into an unexplained blank application by adding a top-level React recovery boundary, controlled Laravel/Inertia browser error presentation, session-expiry recovery, and a safe application request identifier.
+- Request identity: every application request receives a server-generated UUID `X-Request-ID`; client-supplied request IDs are not authoritative. Existing integration `X-Correlation-ID` behavior remains separate and unchanged.
+- Server error contract: browser 403/404/500/503 responses use sanitized `Errors/Status` presentation with the real HTTP status and request ID when `APP_DEBUG=false`; 419 redirects back with the existing shared `flash.error` contract. JSON/API traffic, `documents.download`, and `reports.export` remain native/non-Inertia responses.
+- Diagnostics: H0A emits bounded 5xx context containing request ID, status, route name, authenticated user ID when available, and exception class only. Browser-facing responses never include stack traces, SQL, paths, request bodies, credentials, MFA/health/document content, or raw exception messages.
+- Client recovery: `AppErrorBoundary` wraps the Inertia root and renders a standalone light/dark recovery state with Retry and Return to dashboard actions without depending on `AppLayout`.
+- Files/modules changed: `app/Http/Middleware/AssignRequestId.php`; `app/Services/ApplicationErrorResponse.php`; `bootstrap/app.php`; `resources/js/app.tsx`; `resources/js/components/system/AppErrorBoundary.tsx`; `resources/js/pages/Errors/Status.tsx`; `tests/Feature/RuntimeRecoveryTest.php`; this engineering log.
+- Schema/migration/package impact: **none**. No dependency, route, authorization, workflow/business, mutation UX, H1, CI/browser-carrier, or deployment change.
+- Verification actually observed before commit: PHP syntax PASS for the four changed PHP files; `composer validate --no-check-publish` PASS; `npm run types:check` PASS; `npm run build` PASS; isolated PostgreSQL `php artisan migrate:fresh --seed --force` PASS; `php artisan test tests/Feature/RuntimeRecoveryTest.php` PASS; and `php artisan route:list` PASS. The engineering-log base blob was verified exactly before this append; the log diff was checked as EOF additions only with zero deletions; the exact eight-file changed set and `git diff --check` were verified before commit.
+- Inherited documentation gap: pre-hardening SHA `d1cb14f31228601cde9575db1c0a0c7cbd6eb4da` changed `ProgressiveFilterBar.tsx` without the engineering-log update required by `AGENTS.md`; that historical commit is not rewritten.
+- Known gaps / next: exact-SHA stable-baseline Platform and H0 browser runtime runs must be observed after publication. H1 mutation reliability remains future work and is **NOT STARTED**.
+EOF
+          python3 - <<'PY'
+          from pathlib import Path
+          base = Path('/tmp/h0a-base-engineering-log.md').read_bytes()
+          current = Path('docs/ENGINEERING_LOG.md').read_bytes()
+          if not current.startswith(base):
+              raise SystemExit('engineering log historical bytes changed')
+          if len(current) <= len(base):
+              raise SystemExit('engineering log append missing')
+          PY
+          echo '--- ENGINEERING LOG DIFF ---'
+          git diff "$BASE_SHA" -- docs/ENGINEERING_LOG.md
+          read additions deletions path < <(git diff --numstat "$BASE_SHA" -- docs/ENGINEERING_LOG.md)
+          test "$path" = "docs/ENGINEERING_LOG.md"
+          test "$deletions" = "0"
+          expected=$(cat <<'EOF'
+app/Http/Middleware/AssignRequestId.php
+app/Services/ApplicationErrorResponse.php
+bootstrap/app.php
+docs/ENGINEERING_LOG.md
+resources/js/app.tsx
+resources/js/components/system/AppErrorBoundary.tsx
+resources/js/pages/Errors/Status.tsx
+tests/Feature/RuntimeRecoveryTest.php
+EOF
+)
+          actual="$(git diff --name-only "$BASE_SHA" | sort)"
+          test "$actual" = "$expected"
+          test "$(git diff --name-only "$BASE_SHA" | wc -l)" -eq 8
+          git diff --check "$BASE_SHA"
+          git diff --stat "$BASE_SHA"
+          git status --short
+
+      - name: Commit and publish H0A normally
+        shell: bash
+        env:
+          BASE_SHA: 6a2cc1e0be9de64d34c6dc84c65308c455c7efcd
+          TARGET_BRANCH: KIRCH-TALIBON-H0A-RUNTIME-RECOVERY-V2
+        run: |
+          set -euo pipefail
+          git config user.name "H0A Runtime Builder"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add \
+            app/Http/Middleware/AssignRequestId.php \
+            app/Services/ApplicationErrorResponse.php \
+            bootstrap/app.php \
+            resources/js/app.tsx \
+            resources/js/components/system/AppErrorBoundary.tsx \
+            resources/js/pages/Errors/Status.tsx \
+            tests/Feature/RuntimeRecoveryTest.php \
+            docs/ENGINEERING_LOG.md
+          git commit -m "fix(runtime): add recoverable application error boundaries"
+          test "$(git rev-parse HEAD^)" = "$BASE_SHA"
+          git fetch origin "$TARGET_BRANCH"
+          test "$(git rev-parse FETCH_HEAD)" = "$BASE_SHA"
+          git push origin "HEAD:refs/heads/$TARGET_BRANCH"
+          echo "FINAL_SHA=$(git rev-parse HEAD)" >> "$GITHUB_ENV"
