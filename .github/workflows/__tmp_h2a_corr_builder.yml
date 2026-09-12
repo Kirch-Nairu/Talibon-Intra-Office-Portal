@@ -1,0 +1,165 @@
+name: H2A Correspondence Builder
+
+on:
+  push:
+    branches:
+      - __tmp_h2a_corr_builder__
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: talibon_h2a_builder
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d talibon_h2a_builder"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    steps:
+      - name: Checkout builder carrier
+        uses: actions/checkout@v4
+        with:
+          path: builder
+
+      - name: Checkout exact H2A target
+        uses: actions/checkout@v4
+        with:
+          ref: KIRCH-TALIBON-H2A-CORRESPONDENCE-STATE-TRUTH
+          fetch-depth: 0
+          path: repo
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: mbstring, pdo_pgsql, fileinfo, zip
+          coverage: none
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Verify authority and apply H2A patch
+        working-directory: repo
+        shell: bash
+        run: |
+          set -euo pipefail
+          BASE_SHA=d802534ddaafbd120a43ccae959790edc1208a31
+          TARGET_BRANCH=KIRCH-TALIBON-H2A-CORRESPONDENCE-STATE-TRUTH
+          git fetch origin "$TARGET_BRANCH"
+          test "$(git rev-parse HEAD)" = "$BASE_SHA"
+          test "$(git rev-parse FETCH_HEAD)" = "$BASE_SHA"
+          python ../builder/.h2a-corr-patch.py
+
+      - name: Prepare isolated verification environment
+        working-directory: repo
+        shell: bash
+        run: |
+          set -euo pipefail
+          cp .env.example .env
+          sed -i 's/^APP_ENV=.*/APP_ENV=testing/' .env
+          sed -i 's/^APP_DEBUG=.*/APP_DEBUG=false/' .env
+          sed -i 's/^DB_HOST=.*/DB_HOST=127.0.0.1/' .env
+          sed -i 's/^DB_DATABASE=.*/DB_DATABASE=talibon_h2a_builder/' .env
+          sed -i 's/^DB_USERNAME=.*/DB_USERNAME=postgres/' .env
+          sed -i 's/^DB_PASSWORD=.*/DB_PASSWORD=postgres/' .env
+
+      - name: Install dependencies
+        working-directory: repo
+        run: |
+          composer install --no-interaction --prefer-dist --no-progress
+          npm install --no-audit --no-fund
+          php artisan key:generate --force
+
+      - name: Mandatory prepublication verification
+        working-directory: repo
+        shell: bash
+        run: |
+          set -euo pipefail
+          composer validate --no-check-publish
+          npm run types:check
+          npm run build
+          php artisan test tests/Feature/CorrespondenceWorkspaceActionsTest.php tests/Feature/CorrespondenceWorkspaceTest.php tests/Feature/CorrespondenceDetailWorkspaceTest.php tests/Feature/WorkflowDefinitionNormalizationTest.php tests/Feature/TransactionAuthorizationNormalizationTest.php
+          php artisan test --testsuite=Feature
+          php artisan route:list
+          php -l tests/Browser/h1-mutation-probe.php
+          node --check tests/Browser/h1-mutation-readiness.mjs
+          git diff --check
+
+      - name: Append H2A engineering log evidence
+        working-directory: repo
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat >> docs/ENGINEERING_LOG.md <<'EOF'
+
+          ## 2026-09-13 — Stable Baseline Hardening H2A correspondence state/action/route truth
+
+          ### `fix(correspondence): align routing and action state truth`
+
+          - Exact parent SHA: `d802534ddaafbd120a43ccae959790edc1208a31`; branch: `KIRCH-TALIBON-H2A-CORRESPONDENCE-STATE-TRUTH`.
+          - Route redirect contradiction: routing correctly transfers linked-workflow current-office ownership to the destination, while the workspace controller correctly denies the originating office after that handoff; the action controller nevertheless redirected the origin actor back to the now-unauthorized detail route. H2A preserves the ownership/classification/privacy boundary and redirects the successful sender to the existing `correspondence.index` workspace instead of broadening read access.
+          - Linked workflow prerequisite truth: correspondence routing continues to create the existing `document_review` workflow in configured initial `submitted` state with no assignment. `CorrespondenceWorkflowStateMapper` remains authoritative: `submitted` is not action-ready; the existing `mark_review` transition to `for_review` (or an existing assignment path) makes the workflow actionable. No transition or state machine was invented or bypassed.
+          - Operational path correction: the existing routed/non-actionable Next Step panel now links directly to the already-authorized linked workflow URL so the receiving office can perform the legitimate workflow preparation step before `Start Action` becomes available.
+          - Production files changed: `app/Http/Controllers/CorrespondenceWorkspaceActionController.php`; `resources/js/components/correspondence/CorrespondenceActionPanel.tsx`; `.github/workflows/stable-baseline-hardening.yml`. No correspondence access decider, classification policy, workflow definition, state mapper, routing service, schema, role model, or unrelated product domain was widened or redesigned.
+          - Tests/evidence changed: `tests/Feature/CorrespondenceWorkspaceActionsTest.php`; `tests/Browser/h1-mutation-probe.php`; `tests/Browser/h1-mutation-readiness.mjs`. Existing H1 correspondence route/action scenarios are retained and now exercise the real origin handoff, destination visibility, linked-workflow `mark_review` prerequisite, exactly-once `Start Action`, `action_started_at`, immediate convergence, and reload consistency. No new browser framework/job was added.
+          - Prepublication verification actually observed PASS in isolated PostgreSQL: `composer validate --no-check-publish`; `npm run types:check`; `npm run build`; focused correspondence/workflow Feature tests; full `php artisan test --testsuite=Feature`; `php artisan route:list`; `php -l tests/Browser/h1-mutation-probe.php`; `node --check tests/Browser/h1-mutation-readiness.mjs`; `git diff --check`.
+          - Browser scenario result: exact-SHA H2A carrier execution is required after publication; final route/action scenario counts and artifact evidence will be appended only after observed execution rather than predicted here.
+          - Schema/migration/dependency impact: **NONE**. H2 broader audit is **NOT STARTED**. No merge and no deployment.
+          EOF
+          sed -i 's/^          //' docs/ENGINEERING_LOG.md
+          git diff --check
+
+      - name: Enforce focused diff and append-only log
+        working-directory: repo
+        shell: bash
+        run: |
+          set -euo pipefail
+          BASE_SHA=d802534ddaafbd120a43ccae959790edc1208a31
+          EXPECTED=$(cat <<'EOF'
+          .github/workflows/stable-baseline-hardening.yml
+          app/Http/Controllers/CorrespondenceWorkspaceActionController.php
+          docs/ENGINEERING_LOG.md
+          resources/js/components/correspondence/CorrespondenceActionPanel.tsx
+          tests/Browser/h1-mutation-probe.php
+          tests/Browser/h1-mutation-readiness.mjs
+          tests/Feature/CorrespondenceWorkspaceActionsTest.php
+          EOF
+          )
+          ACTUAL="$(git diff --name-only "$BASE_SHA" | sort)"
+          test "$ACTUAL" = "$(printf '%s\n' "$EXPECTED" | sort)"
+          ! git diff --name-only "$BASE_SHA" | grep -E '(^database/migrations/|^composer\.(json|lock)$|^package(-lock)?\.json$)' >/dev/null
+          test "$(git diff --numstat "$BASE_SHA" -- docs/ENGINEERING_LOG.md | awk '{print $2}')" = "0"
+          git diff --stat "$BASE_SHA"
+          git diff "$BASE_SHA" -- .github/workflows/stable-baseline-hardening.yml app/Http/Controllers/CorrespondenceWorkspaceActionController.php resources/js/components/correspondence/CorrespondenceActionPanel.tsx tests/Feature/CorrespondenceWorkspaceActionsTest.php tests/Browser/h1-mutation-probe.php tests/Browser/h1-mutation-readiness.mjs docs/ENGINEERING_LOG.md
+
+      - name: Commit and push H2A normally
+        working-directory: repo
+        shell: bash
+        run: |
+          set -euo pipefail
+          BASE_SHA=d802534ddaafbd120a43ccae959790edc1208a31
+          TARGET_BRANCH=KIRCH-TALIBON-H2A-CORRESPONDENCE-STATE-TRUTH
+          git config user.name 'H2A Correspondence Builder'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add .github/workflows/stable-baseline-hardening.yml app/Http/Controllers/CorrespondenceWorkspaceActionController.php resources/js/components/correspondence/CorrespondenceActionPanel.tsx tests/Feature/CorrespondenceWorkspaceActionsTest.php tests/Browser/h1-mutation-probe.php tests/Browser/h1-mutation-readiness.mjs docs/ENGINEERING_LOG.md
+          git commit -m 'fix(correspondence): align routing and action state truth'
+          git fetch origin "$TARGET_BRANCH"
+          test "$(git rev-parse FETCH_HEAD)" = "$BASE_SHA"
+          git push origin HEAD:"$TARGET_BRANCH"
+          echo "FINAL_SHA=$(git rev-parse HEAD)" >> "$GITHUB_ENV"
+          echo "Published $(git rev-parse HEAD)"
