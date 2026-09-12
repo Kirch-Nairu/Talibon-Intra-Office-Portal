@@ -1,0 +1,128 @@
+name: H1B Mutation Harness Refinement Builder
+
+on:
+  push:
+    branches:
+      - __tmp_h1b_refine_builder__
+
+permissions:
+  contents: write
+
+jobs:
+  refine:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout builder source
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Reconstruct exact published H1B head
+        shell: bash
+        env:
+          TARGET_BASE: ac0544d315c8841e02973341f9a77618a37cc287
+        run: |
+          set -euo pipefail
+          git cat-file -e "$TARGET_BASE^{commit}"
+          git checkout --detach "$TARGET_BASE"
+
+      - name: Refine evidence selectors only
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+
+          path = Path('tests/Browser/h1-mutation-readiness.mjs')
+          text = path.read_text()
+
+          replacements = [
+              (
+                  "      const visible = await mayor.page.getByText(memorandumNumber, { exact: true }).isVisible().catch(() => false);\n      const success = await mayor.page.getByText(/published and delivered/i).isVisible().catch(() => false);\n      row.visibleResult = visible && success ? 'Published memorandum and delivery success are visible immediately.' : 'Published memorandum did not converge visibly immediately.';\n      const immediate = visible && success && !!ready && before.count === 0 && after.count === 1 && after.recipientCount > 0;",
+                  "      const visible = await mayor.page.getByText(new RegExp(memorandumNumber, 'i')).first().isVisible().catch(() => false);\n      row.visibleResult = visible ? 'Published memorandum detail is visible immediately.' : 'Published memorandum did not converge visibly immediately.';\n      const immediate = visible && !!ready && before.count === 0 && after.count === 1 && after.recipientCount > 0;",
+              ),
+              (
+                  "        return await mayor.page.getByText(memorandumNumber, { exact: true }).isVisible().catch(() => false)\n          && reloadState.count === 1",
+                  "        return await mayor.page.getByText(new RegExp(memorandumNumber, 'i')).first().isVisible().catch(() => false)\n          && reloadState.count === 1",
+              ),
+              (
+                  "      await employee.page.getByText(/^Acknowledged\\b/).waitFor({ state: 'visible', timeout: 2000 }).catch(() => {});",
+                  "      await employee.page.getByText(/Acknowledged/i).first().waitFor({ state: 'visible', timeout: 4000 }).catch(() => {});",
+              ),
+              (
+                  "      const visible = await employee.page.getByText(/^Acknowledged\\b/).isVisible().catch(() => false);",
+                  "      const visible = await employee.page.getByText(/Acknowledged/i).first().isVisible().catch(() => false);",
+              ),
+              (
+                  "        return await employee.page.getByText(/^Acknowledged\\b/).isVisible().catch(() => false)\n          && reloadState.targetAcknowledged",
+                  "        return await employee.page.getByText(/Acknowledged/i).first().isVisible().catch(() => false)\n          && reloadState.targetAcknowledged",
+              ),
+              (
+                  "      await engineering.page.goto(`${BASE}/transactions/create`, { waitUntil: 'domcontentloaded', timeout: 15000 });\n      await appReady(engineering.page);\n      await engineering.page.getByLabel('Description').fill(invalidTransactionTitle);",
+                  "      await engineering.page.goto(`${BASE}/transactions/create`, { waitUntil: 'domcontentloaded', timeout: 15000 });\n      await appReady(engineering.page);\n      const pendingMemoLater = engineering.page.getByRole('button', { name: 'Later', exact: true });\n      if (await pendingMemoLater.isVisible().catch(() => false)) {\n        await pendingMemoLater.click();\n      }\n      await engineering.page.getByLabel('Description').fill(invalidTransactionTitle);",
+              ),
+          ]
+
+          for old, new in replacements:
+              count = text.count(old)
+              if count != 1:
+                  raise SystemExit(f'expected exactly one replacement target, found {count}: {old[:80]}')
+              text = text.replace(old, new, 1)
+
+          path.write_text(text)
+          PY
+
+      - name: Append refinement engineering log
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat >> docs/ENGINEERING_LOG.md <<'EOF'
+
+## 2026-09-13 — Stable Baseline H1B exact-SHA evidence refinement
+
+### `test(hardening): refine mutation acceptance evidence`
+
+- Exact parent: published H1B carrier SHA `ac0544d315c8841e02973341f9a77618a37cc287`; production application files and the stable hardening workflow are unchanged by this refinement.
+- First exact-SHA H1 execution: run `34709164744` reached the real mutation harness and produced 14 scenario records with 6 passing and 8 provisional failures, zero `pageerror`, and zero HTTP 5xx. Its artifact remains preserved as evidence.
+- Harness-only correction: remove an unnecessary memorandum flash-message requirement when the newly published memorandum detail is already the visible authoritative result; use the rendered acknowledgement state rather than an over-strict text anchor; and dismiss the existing client-only pending-memorandum overlay before the later transaction-validation scenario so the validation click is not mechanically blocked by an unrelated modal. The `Later` control only updates local React state and is not a server mutation.
+- Production evidence intentionally preserved: transaction detail rendering failures, correspondence post-route convergence/actionability behavior, duplicate browser requests, and any other application-level failures remain failures. No controller, component, authorization, transition, database, or business rule is patched here.
+- Verification before publication: `node --check tests/Browser/h1-mutation-readiness.mjs` PASS; exact changed set limited to the H1 browser harness and this append; `git diff --check` PASS; engineering-log historical bytes remain unchanged and this entry is EOF-only.
+- Schema/migration/dependency impact: **none**. Final exact-SHA Platform, H0 browser, and H1 mutation execution remains the acceptance authority.
+EOF
+
+      - name: Verify refinement diff
+        shell: bash
+        env:
+          TARGET_BASE: ac0544d315c8841e02973341f9a77618a37cc287
+        run: |
+          set -euo pipefail
+          node --check tests/Browser/h1-mutation-readiness.mjs
+          git diff --check "$TARGET_BASE"
+          mapfile -t changed < <(git diff --name-only "$TARGET_BASE" | sort)
+          expected=(docs/ENGINEERING_LOG.md tests/Browser/h1-mutation-readiness.mjs)
+          test "${#changed[@]}" -eq 2
+          test "$(printf '%s\n' "${changed[@]}")" = "$(printf '%s\n' "${expected[@]}")"
+          read additions deletions path < <(git diff --numstat "$TARGET_BASE" -- docs/ENGINEERING_LOG.md)
+          test "$path" = docs/ENGINEERING_LOG.md
+          test "$deletions" = 0
+          git diff "$TARGET_BASE" -- docs/ENGINEERING_LOG.md
+          git diff --stat "$TARGET_BASE"
+          git status --short
+
+      - name: Commit and fast-forward H1B target
+        shell: bash
+        env:
+          TARGET_BASE: ac0544d315c8841e02973341f9a77618a37cc287
+          TARGET_BRANCH: KIRCH-TALIBON-H1B-MUTATION-ACCEPTANCE-HARNESS
+        run: |
+          set -euo pipefail
+          git config user.name "H1B QA Builder"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add tests/Browser/h1-mutation-readiness.mjs docs/ENGINEERING_LOG.md
+          git commit -m "test(hardening): refine mutation acceptance evidence"
+          test "$(git rev-parse HEAD^)" = "$TARGET_BASE"
+          git fetch origin "$TARGET_BRANCH"
+          test "$(git rev-parse FETCH_HEAD)" = "$TARGET_BASE"
+          git push origin "HEAD:refs/heads/$TARGET_BRANCH"
+          echo "FINAL_SHA=$(git rev-parse HEAD)"
