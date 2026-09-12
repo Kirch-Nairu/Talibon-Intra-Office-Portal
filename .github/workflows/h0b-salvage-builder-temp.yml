@@ -1,0 +1,105 @@
+name: H0B Salvage Builder Temp
+
+on:
+  push:
+    branches:
+      - KIRCH-TALIBON-H0B-SALVAGE-BUILDER-TEMP
+
+permissions:
+  contents: write
+
+jobs:
+  build-clean-candidate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout salvage builder
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Rebuild exact-base H0B candidate
+        shell: bash
+        env:
+          BASE_SHA: d1cb14f31228601cde9575db1c0a0c7cbd6eb4da
+          RESULT_BRANCH: KIRCH-TALIBON-H0B-SALVAGE-BUILT
+          WORKFLOW_BLOB: d59d0021aad13a1a2294d59fd60bb67c0125d6f2
+          BROWSER_BLOB: 91835c3c4a5c6f6398ae78a9786572af56548616
+        run: |
+          set -euo pipefail
+
+          test "$(git hash-object .github/workflows/stable-baseline-hardening.yml)" = "$WORKFLOW_BLOB"
+          test "$(git hash-object tests/Browser/h0-runtime-readiness.mjs)" = "$BROWSER_BLOB"
+
+          cp .github/workflows/stable-baseline-hardening.yml /tmp/stable-baseline-hardening.yml
+          cp tests/Browser/h0-runtime-readiness.mjs /tmp/h0-runtime-readiness.mjs
+
+          git read-tree --reset -u "$BASE_SHA"
+          mkdir -p .github/workflows tests/Browser
+          cp /tmp/stable-baseline-hardening.yml .github/workflows/stable-baseline-hardening.yml
+          cp /tmp/h0-runtime-readiness.mjs tests/Browser/h0-runtime-readiness.mjs
+
+          cat >> docs/ENGINEERING_LOG.md <<'EOF'
+
+## 2026-09-12 — Stable Baseline Hardening H0B QA carrier
+
+### `test(hardening): establish stable baseline QA carrier`
+
+- Current hardening slice: **Stable Baseline H0B — QA carrier / browser runtime smoke / verification infrastructure**.
+- Exact authority: this candidate is rebuilt directly from `d1cb14f31228601cde9575db1c0a0c7cbd6eb4da`. It does not consume Writer 1 implementation and does not change production application files.
+- CI carrier intent: add a dedicated `Talibon Stable Baseline Hardening` workflow for `KIRCH-TALIBON-STABLE-BASELINE-HARDENING-V1`, `KIRCH-TALIBON-H0A-**`, and `KIRCH-TALIBON-H0B-**`, plus manual dispatch. The first already-existing H0A branch does not contain this workflow and therefore does not automatically receive the new carrier; the maintainer will integrate H0B into the stable-baseline branch before combining H0A. Future hardening branches created from the updated stable baseline can inherit the carrier normally.
+- Platform gate: preserve PostgreSQL 16, PHP 8.4, Node 22, Composer install/validation, repository-consistent `npm install`, TypeScript, production frontend build, isolated `migrate:fresh --seed --force`, complete Feature suite, and route registration evidence. Platform and browser jobs use separate synthetic PostgreSQL databases.
+- Browser runtime smoke: add `tests/Browser/h0-runtime-readiness.mjs` as an additive catastrophic-render harness. It verifies exact HEAD, uses existing synthetic identities and MFA enrollment conventions, and covers public/login, ordinary Employee, Engineering Department Head, Mayor executive, and System Admin surfaces. It records failed navigation, HTTP 5xx, `pageerror`, meaningful console/runtime diagnostics, failed script/stylesheet responses, invalid final paths, login failure, blank body, missing/empty Inertia `#app`, and semantic presentation readiness. Application navigation is never reloaded or retried to manufacture a pass.
+- Evidence: write sanitized machine-readable evidence to `storage/app/qa/h0-runtime-readiness-report.json`; permit failure screenshots only on public/login surfaces; exclude passwords, MFA/TOTP values, recovery codes, cookies, CSRF/auth headers, response/document bodies, and private employee/document payloads; upload the report, safe failure screenshots, and isolated Laravel server log with `if: always()`.
+- Files/modules changed: `.github/workflows/stable-baseline-hardening.yml`; `tests/Browser/h0-runtime-readiness.mjs`; this engineering log.
+- Schema/migration impact: **none**. No production application, route, authorization, workflow, business, database-schema, HR/privacy, mutation UX, or deployment implementation is changed.
+- Verification actually observed during clean candidate construction: the accepted workflow and browser blobs were checked against the rejected candidate; the log was restored from the exact base before this EOF append; the engineering-log diff was checked for append-only behavior with zero historical deletions; the three historical phrases `municipality-wide filtering`, `attachments/photos`, and `approved raw municipal assets` remained present; the exact changed-file set was checked; `git diff --check` and `node --check tests/Browser/h0-runtime-readiness.mjs` passed. Dependency-backed platform/browser execution remains the responsibility of exact-SHA GitHub Actions after publication and is not claimed by source validation alone.
+- Known gaps / next: historical F2-F8 browser acceptance remains preserved and is not rerun by this narrow H0 smoke. The H1 mutation harness remains future work and is **NOT STARTED**.
+EOF
+
+          grep -Fq 'municipality-wide filtering' docs/ENGINEERING_LOG.md
+          grep -Fq 'attachments/photos' docs/ENGINEERING_LOG.md
+          grep -Fq 'approved raw municipal assets' docs/ENGINEERING_LOG.md
+
+          git add -N .github/workflows/stable-baseline-hardening.yml tests/Browser/h0-runtime-readiness.mjs
+
+          echo '=== MANDATORY ENGINEERING LOG DIFF ==='
+          git diff "$BASE_SHA" -- docs/ENGINEERING_LOG.md
+          if git diff --unified=0 "$BASE_SHA" -- docs/ENGINEERING_LOG.md | grep -E '^-[^-]'; then
+            echo 'Historical engineering-log deletion/change detected.' >&2
+            exit 1
+          fi
+
+          echo '=== MANDATORY DIFF STAT ==='
+          git diff --stat "$BASE_SHA"
+          echo '=== MANDATORY DIFF CHECK ==='
+          git diff --check
+          echo '=== MANDATORY STATUS ==='
+          git status --short
+
+          EXPECTED=$'.github/workflows/stable-baseline-hardening.yml\ndocs/ENGINEERING_LOG.md\ntests/Browser/h0-runtime-readiness.mjs'
+          ACTUAL="$(git diff --name-only "$BASE_SHA" | sort)"
+          test "$ACTUAL" = "$EXPECTED"
+
+          node --check tests/Browser/h0-runtime-readiness.mjs
+          test "$(git hash-object .github/workflows/stable-baseline-hardening.yml)" = "$WORKFLOW_BLOB"
+          test "$(git hash-object tests/Browser/h0-runtime-readiness.mjs)" = "$BROWSER_BLOB"
+
+          git add .github/workflows/stable-baseline-hardening.yml tests/Browser/h0-runtime-readiness.mjs docs/ENGINEERING_LOG.md
+          git diff --cached --check
+
+          TREE_SHA="$(git write-tree)"
+          export GIT_AUTHOR_NAME='H0B QA Builder'
+          export GIT_AUTHOR_EMAIL='41898282+github-actions[bot]@users.noreply.github.com'
+          export GIT_COMMITTER_NAME="$GIT_AUTHOR_NAME"
+          export GIT_COMMITTER_EMAIL="$GIT_AUTHOR_EMAIL"
+          CLEAN_SHA="$(printf '%s\n' 'test(hardening): establish stable baseline QA carrier' | git commit-tree "$TREE_SHA" -p "$BASE_SHA")"
+
+          test "$(git rev-parse "$CLEAN_SHA^")" = "$BASE_SHA"
+          CLEAN_FILES="$(git diff-tree --no-commit-id --name-only -r "$CLEAN_SHA" | sort)"
+          test "$CLEAN_FILES" = "$EXPECTED"
+
+          echo "Clean candidate: $CLEAN_SHA"
+          git push origin "$CLEAN_SHA:refs/heads/$RESULT_BRANCH"
+          echo "CLEAN_SHA=$CLEAN_SHA" >> "$GITHUB_ENV"
+          echo "### Clean H0B candidate: \`$CLEAN_SHA\`" >> "$GITHUB_STEP_SUMMARY"
