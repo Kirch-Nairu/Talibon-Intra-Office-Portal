@@ -57,7 +57,7 @@ async function baselines() {
   check('historical/F1 baseline preserved',hist===174&&f1n===133,JSON.stringify(report.baseline));
   check('representative accounts and F1 screenshots preserved',f1.accounts.length===7&&f1.screenshots.length===7,JSON.stringify(report.baseline));
   check('F2 preserved',f2.completed===true&&f2.failure==null&&f2n===39&&f2fail===0&&f2.screenshots.length===5,`f2=${f2n} failures=${f2fail}`);
-  check('F3 preserved',f3.completed===true&&f3.failure==null&&f3n===313&&f3fail===0&&f3.targets.length===5&&f3.screenshots.length===7,`f3=${f3n} failures=${f3fail}`);
+  check('F3 preserved',f3.completed===true&&f3.failure==null&&f3n===315&&f3fail===0&&f3.targets.length===5&&f3.screenshots.length===7,`f3=${f3n} failures=${f3fail}`);
 }
 async function login(page) {
   checkpoint('authentication',page); await page.goto(`${BASE}/login`);
