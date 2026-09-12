@@ -1,4 +1,4 @@
-name: H0A Runtime Recovery Builder
+name: H0A Exact-SHA Hardening Dispatch
 
 on:
   push:
@@ -6,84 +6,25 @@ on:
       - __tmp_h0a_runtime_builder__
 
 permissions:
-  contents: write
+  actions: write
+  contents: read
 
 jobs:
-  build-and-publish:
+  dispatch:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
     steps:
-      - name: Checkout builder source
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Reconstruct exact-base candidate
-        shell: bash
+      - name: Dispatch stable baseline hardening on H0A final branch
         env:
-          BASE_SHA: 6a2cc1e0be9de64d34c6dc84c65308c455c7efcd
-          BASE_LOG_BLOB: 479498a019ee5951f3ea5a70be02b9bcb7ad14b5
+          GH_TOKEN: ${{ github.token }}
+          TARGET_REF: KIRCH-TALIBON-H0A-RUNTIME-RECOVERY-V2
+          REPOSITORY: ${{ github.repository }}
+        shell: bash
         run: |
           set -euo pipefail
-          SOURCE_SHA="$GITHUB_SHA"
-          git cat-file -e "$BASE_SHA^{commit}"
-          git show "$SOURCE_SHA:.h0a-log-append" > /tmp/h0a-log-append
-          git checkout --detach "$BASE_SHA"
-          files=(
-            app/Http/Middleware/AssignRequestId.php
-            app/Services/ApplicationErrorResponse.php
-            bootstrap/app.php
-            resources/js/app.tsx
-            resources/js/components/system/AppErrorBoundary.tsx
-            resources/js/pages/Errors/Status.tsx
-            tests/Feature/RuntimeRecoveryTest.php
-          )
-          for path in "${files[@]}"; do
-            mkdir -p "$(dirname "$path")"
-            git show "$SOURCE_SHA:$path" > "$path"
-          done
-          test "$(git hash-object docs/ENGINEERING_LOG.md)" = "$BASE_LOG_BLOB"
-          git show "$BASE_SHA:docs/ENGINEERING_LOG.md" > /tmp/h0a-base-engineering-log.md
-          test "$(git hash-object /tmp/h0a-base-engineering-log.md)" = "$BASE_LOG_BLOB"
-          cp /tmp/h0a-base-engineering-log.md docs/ENGINEERING_LOG.md
-          cat /tmp/h0a-log-append >> docs/ENGINEERING_LOG.md
-          git add \
-            app/Http/Middleware/AssignRequestId.php \
-            app/Services/ApplicationErrorResponse.php \
-            bootstrap/app.php \
-            resources/js/app.tsx \
-            resources/js/components/system/AppErrorBoundary.tsx \
-            resources/js/pages/Errors/Status.tsx \
-            tests/Feature/RuntimeRecoveryTest.php \
-            docs/ENGINEERING_LOG.md
-
-      - name: Prove append-only eight-file diff
-        shell: bash
-        env:
-          BASE_SHA: 6a2cc1e0be9de64d34c6dc84c65308c455c7efcd
-        run: |
-          set -euo pipefail
-          echo '--- ENGINEERING LOG DIFF ---'
-          git diff "$BASE_SHA" -- docs/ENGINEERING_LOG.md
-          echo '--- DIFF STAT ---'
-          git diff --stat "$BASE_SHA"
-          echo '--- STATUS ---'
-          git status --short
-          python3 -c "import subprocess; from pathlib import Path; base=Path('/tmp/h0a-base-engineering-log.md').read_bytes(); cur=Path('docs/ENGINEERING_LOG.md').read_bytes(); assert cur.startswith(base) and len(cur)>len(base); row=subprocess.check_output(['git','diff','--numstat','$BASE_SHA','--','docs/ENGINEERING_LOG.md'], text=True).strip().split(chr(9)); assert len(row)==3 and row[1]=='0' and row[2]=='docs/ENGINEERING_LOG.md', row; expected={'app/Http/Middleware/AssignRequestId.php','app/Services/ApplicationErrorResponse.php','bootstrap/app.php','docs/ENGINEERING_LOG.md','resources/js/app.tsx','resources/js/components/system/AppErrorBoundary.tsx','resources/js/pages/Errors/Status.tsx','tests/Feature/RuntimeRecoveryTest.php'}; actual=set(subprocess.check_output(['git','diff','--name-only','$BASE_SHA'],text=True).splitlines()); assert actual==expected, (actual, expected)"
-          git diff --check "$BASE_SHA"
-
-      - name: Commit and publish H0A normally
-        shell: bash
-        env:
-          BASE_SHA: 6a2cc1e0be9de64d34c6dc84c65308c455c7efcd
-          TARGET_BRANCH: KIRCH-TALIBON-H0A-RUNTIME-RECOVERY-V2
-        run: |
-          set -euo pipefail
-          git config user.name "H0A Runtime Builder"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git commit -m "fix(runtime): add recoverable application error boundaries"
-          test "$(git rev-parse HEAD^)" = "$BASE_SHA"
-          git fetch origin "$TARGET_BRANCH"
-          test "$(git rev-parse FETCH_HEAD)" = "$BASE_SHA"
-          git push origin "HEAD:refs/heads/$TARGET_BRANCH"
-          echo "FINAL_SHA=$(git rev-parse HEAD)"
+          curl --fail-with-body --silent --show-error \
+            -X POST \
+            -H "Accept: application/vnd.github+json" \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            "https://api.github.com/repos/$REPOSITORY/actions/workflows/356437570/dispatches" \
+            -d "{\"ref\":\"$TARGET_REF\"}"
